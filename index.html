@@ -9520,6 +9520,21 @@ function inkDrop(r, kind, k){ const I = INK, sz = r.c.size; let T0 = null;
   else if(kind === 'balloon') T0 = inkToy('balloon', I.mid.x + (Math.random() - .5)*.4*sz, I.mid.y + .15*sz, I.mid.z, {vf: -.3 - Math.random()*.3, vu: .25 + Math.random()*.2, life: 4.2, n: k});
   else { inkAround(k, _ikA, .9, INK_TSPOT); T0 = inkToy(kind, _ikA.x, _ikA.y, _ikA.z, {vf: -.05, vu: .02, life: 3.2, n: k}); }
   return T0; }
+/* what a tap does for each plane's show (WIN_MOVE.tap): fn(r, k), k the number of the tap (a ripple, a note and the extra flip come with every tap, inkTap) */
+const INK_TAP = {
+  spark: (r, k)=>{ inkBurst(r, INK_PAL.party); },
+  heart: (r, k)=>{ inkShow('heart', k, INK_PAL.pink, .32); inkBurst(r, INK_PAL.pink); inkMwah(); },
+  star: (r, k)=>{ inkShow('star', k, k % 2 ? INK_PAL.party : INK_PAL.rainbow, .3, {tw: 1}); inkBurst(r, INK_PAL.gold); },
+  rainbow: (r, k)=>{ inkShow('rainbow', k, INK_PAL.rainbow, .36); inkBurst(r, INK_PAL.water); },
+  one: (r, k)=>{ inkShow('one', k, INK_PAL.gold, .3, {tw: 1}); inkBurst(r, INK_PAL.flash); inkClick(); },
+  navy: (r, k)=>{ inkShow('star', k, INK_PAL.navy, .3); inkBurst(r, INK_PAL.navy); inkBugle(); },
+  sparkle: (r, k)=>{ inkShow('ring', k, INK_PAL.gold, .4, {tw: 1, size: .1, life: 2.4}); inkBurst(r, INK_PAL.gold); },
+  honk: (r, k)=>{ inkShow('burst', k, INK_PAL.party, .35); inkBurst(r, INK_PAL.party); inkHorn(); },
+  chute: (r, k)=>{ inkDrop(r, 'chute', k); inkPuffSnd(); },
+  balloon: (r, k)=>{ inkDrop(r, 'balloon', k); inkDrop(r, 'balloon', k + 1); inkPuffSnd(); },
+  tea: (r, k)=>{ inkDrop(r, k % 2 ? 'cup' : 'umb', k); inkPing(k); },
+  beam: (r, k)=>{ const P = INK.prop; if(P && P.kind === 'beam') P.boost = 1; inkBurst(r, INK_PAL.gold); inkSiren(); },
+  trophy: (r, k)=>{ const P = INK.prop; if(P && P.kind === 'trophy'){ P.amp = .5; P.gl = 1; const p = inkTrophyAt(_ikB); if(p) fxBurst(p, 20, 40, Math.max(3, r.c.size*.07), INK_PAL.gold.map(inkCol), 1.1, 14); } inkPing(k); }};
 /* the plane's own part in a tap, by the number of the tap (k): maracas shake, a flare pair, else nothing more */
 const INK_EXTRA = {
   geebee2: r=>{ if(MC.g && MC.r === r && WM.t > WM.mc + MCR.tin && WM.t < WM.mc + MCR.tin + MCR.hold){ mcRattle(MC.shk); mcNote(r, WM.t - WM.mc, MC.n % 2 ? 1 : -1); } },
