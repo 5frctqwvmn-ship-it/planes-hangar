@@ -300,6 +300,16 @@
   .r-stand li.on{outline:2px solid #fff}
 .r-stand.many{gap:2px}.r-stand.many li{padding:2px 8px 2px 3px;font-size:11px;min-width:110px}.r-stand.many li b{width:17px;height:17px;font-size:11px}   /* seven or eight racers (2026-10-12): the list stays short */
   .r-feat{position:absolute;left:calc(var(--sl) + 10px);bottom:calc(var(--sb) + 12px);background:rgba(20,26,28,.72);color:#fff;font:700 15px var(--body);padding:7px 12px;border-radius:8px}
+  /* the dances (section "win moves"): the tapping hand while a show plays, and the ripple under a finger that taps */
+  .wm-tap{position:absolute;left:50%;bottom:calc(6% + env(safe-area-inset-bottom,0px));margin-left:-42px;width:84px;height:84px;pointer-events:none;filter:drop-shadow(0 3px 8px rgba(0,0,0,.45))}
+  .wm-tap[hidden]{display:none}.wm-tap svg{width:100%;height:100%;overflow:visible}.wm-tap .wt-ring{fill:rgba(255,255,255,.16);stroke:#fff;stroke-width:4;transform-origin:60px 40px;animation:wmRing 1.2s ease-out infinite}
+  .wm-tap .wt-hand{transform-origin:60px 92px;animation:wmHand 1.2s ease-in-out infinite}
+  @keyframes wmHand{0%,100%{transform:translateY(8px) rotate(-6deg)}40%{transform:translateY(-6px) rotate(0)}55%{transform:translateY(-6px) rotate(0)}}
+  @keyframes wmRing{0%,45%{opacity:0;transform:scale(.4)}55%{opacity:1;transform:scale(.7)}100%{opacity:0;transform:scale(1.5)}}
+  .wm-rip{position:absolute;width:72px;height:72px;margin:-36px 0 0 -36px;border-radius:50%;border:5px solid #fff;box-shadow:0 0 14px rgba(255,214,10,.9),inset 0 0 12px rgba(255,214,10,.6);opacity:0;pointer-events:none}
+  .wm-rip.on{animation:wmRip .55s ease-out}
+  @keyframes wmRip{0%{opacity:.95;transform:scale(.3)}100%{opacity:0;transform:scale(1.7)}}
+  @media (prefers-reduced-motion:reduce){.wm-tap .wt-hand,.wm-tap .wt-ring{animation:none}}
   .cr-hint{position:absolute;left:50%;top:56%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;pointer-events:none}
   .cr-hint svg{width:120px;height:120px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.45))}.cr-hint .cr-arr{fill:none;stroke:#fff;stroke-width:5;stroke-linecap:round;stroke-linejoin:round}
   .cr-hint .cr-hand{animation:crSwipe 1.6s ease-in-out infinite}.cr-hint b{background:rgba(20,26,28,.72);color:#fff;font:800 18px var(--body);padding:6px 14px;border-radius:999px}
@@ -7562,7 +7572,7 @@ function raceTags(){
 const V_UP = V(0,1,0);
 const SMOKE = {mesh:null, per:64, life:3.6, gap:.07, cols:['#ffffff','#e63946','#4ea8de','#fcbf49','#8ac926','#ff70a6']};
 function smokeInit(){
-  if(SMOKE.mesh) return SMOKE.mesh; const cap = SMOKE.cap = SMOKE.per*8 + FX.n + FLR.tn + DDR.mn, g = new T.InstancedBufferGeometry();   // eight racers' trails (2026-10-12), the sparks, Echo & Bravo's flare trails (FLR), Lil' Dipper's mist (DDR)
+  if(SMOKE.mesh) return SMOKE.mesh; const cap = SMOKE.cap = SMOKE.per*8 + FX.n + FLR.tn + DDR.mn + INK.n, g = new T.InstancedBufferGeometry();   // eight racers' trails (2026-10-12), the sparks, Echo & Bravo's flare trails (FLR), Lil' Dipper's mist (DDR)
   g.setAttribute('position', new T.Float32BufferAttribute([-.5,-.5,0, .5,-.5,0, .5,.5,0, -.5,.5,0], 3));
   g.setAttribute('uv', new T.Float32BufferAttribute([0,0, 1,0, 1,1, 0,1], 2)); g.setIndex([0,1,2, 0,2,3]);
   SMOKE.p = new Float32Array(cap*3); SMOKE.a = new Float32Array(cap*2); SMOKE.c = new Float32Array(cap*3);
@@ -7609,7 +7619,7 @@ function smokeFrame(){
   for(let k = 0; k < FX.n && n < cap; k++){ const age = RACE.clock - FX.born[k]; if(age < 0 || age > FX.life[k]) continue; const f = age/FX.life[k], dr = 1 - f*.45;   // sparks and fireworks
     SMOKE.p[n*3] = FX.pos[k*3] + FX.vel[k*3]*age*dr; SMOKE.p[n*3+1] = FX.pos[k*3+1] + FX.vel[k*3+1]*age*dr - FX.g[k]*age*age; SMOKE.p[n*3+2] = FX.pos[k*3+2] + FX.vel[k*3+2]*age*dr;
     SMOKE.a[n*2] = FX.size[k]*(1 - f*.4); SMOKE.a[n*2+1] = Math.min(1, (1 - f)*1.4); SMOKE.c[n*3] = FX.col[k*3]; SMOKE.c[n*3+1] = FX.col[k*3+1]; SMOKE.c[n*3+2] = FX.col[k*3+2]; n++; }
-  n = flSmoke(n, cap); n = ddSmoke(n, cap);   // Echo & Bravo's flare trails, Lil' Dipper's mist (section "win moves")
+  n = flSmoke(n, cap); n = ddSmoke(n, cap); n = inkSmoke(n, cap);   // Echo & Bravo's flare trails, Lil' Dipper's mist, the dances' ink (section "win moves")
   M.geometry.instanceCount = n; if(n){ SMOKE.ap.needsUpdate = SMOKE.aa.needsUpdate = SMOKE.ac.needsUpdate = true; }
 }
 /* ================= race excitement: boost rings, lap banners, photo finish, fireworks ================= */
@@ -8004,7 +8014,7 @@ function raceFrame(dt){
   const W2 = stage.clientWidth, H2 = stage.clientHeight; if(Math.abs(rCam.aspect - W2/H2) > .001){ rCam.aspect = W2/H2; rCam.updateProjectionMatrix(); }
   raceHud(); raceTags(); drawConfetti(dt); ringsFrame(dt); wlDraw(dt);
   raceEnvFrame(dt); raceSound(dt);
-  talkFrame(); bubbleFrame(); flFrame(dt); ddFrame(dt); smokeFrame(); DET.focal = renderer.domElement.height/(2*Math.tan(rCam.fov*Math.PI/360)); RACE.racers.forEach(r=>{ racerDetailFrame(r); farFrame(r); });
+  talkFrame(); bubbleFrame(); flFrame(dt); ddFrame(dt); inkFrame(dt); smokeFrame(); DET.focal = renderer.domElement.height/(2*Math.tan(rCam.fov*Math.PI/360)); RACE.racers.forEach(r=>{ racerDetailFrame(r); farFrame(r); });
   if(rCourse && rCourse.city) crRender(dt); else if(RACE.noDraw) rScene.updateMatrixWorld(); else renderer.render(rScene, rCam);   // Sky City Sprint: the city first, the race over it (tests, raceNoDraw: no picture, so the race clock keeps the wall clock's pace in software rendering)
   if(BL.rec){ blimpRecFrame(); blQuietFrame(dt); }   // (tests: how she shows, and how much she talks in her shots: blimpRec)
 }
@@ -9282,28 +9292,299 @@ function mcPose(r, td){
   MC.sp.forEach(n=>{ if(n.b < -50) return; const a = td - n.b, u = a/R.life; if(u >= 1 || a < 0){ n.s.visible = false; n.m.opacity = 0; n.b = -99; return; }
     n.s.position.set(n.x0 + n.vx*a + Math.sin(a*7 + n.vz*5)*.08, n.y0 + n.vy*a, n.z0 + n.vz*a*.6); n.m.opacity = Math.min(1, a/.12)*(1 - Math.max(0, (u - .55)/.45)); n.s.scale.setScalar(.6 + .4*Math.min(1, a/.3)); }); }
 const wmTurn = (k, a, b)=>{ const n = +saveGet(k) ? 1 : 0; saveSet(k, String(1 - n)); return n ? b : a; };   // the next of two shows that take turns (the saved turn k)
+/* ===== dances begin ===== */
+/* ---- the dances (owner, 2026-10-28: "better interactive celebration dances for each plane, similar to the Concorde, El Chupacabra, and the others that
+   have distinct ones"). Every plane's win show now tells a little story of its character, and any tap on the screen during it joins in. Nothing but
+   code: no new picture, model or sound file, and no new voice line.
+   The air art ("ink"): a pool of INK.n soft puffs that go into the smoke system's one instanced mesh (inkSmoke, after the flares' trails), so no new
+   draw call and no new shader. They live in the routine's frame (WM.A, WM.yawC), like Echo & Bravo's flares: the art flies on with the plane and the
+   camera, so a heart or a star drawn in the air stays whole in the picture. Three ways in:
+   1. the pen: a routine's step ['shape', name, size, style] flies a path (INK_SEGS: lines and arcs, the heart, the star, a "1", a rainbow arch) and the pen,
+      at the plane's tail, paints the stroke in puffs (INK_STYLE: colours along the stroke, or a ribbon of bands for a rainbow or a road); ['pen', style, from, to]
+      paints a stretch of any other move (a spiral);
+   2. stamps: a small shape of puffs (INK_STAMP: heart, star, ring, "1", rainbow, burst) that pops out facing the camera: ['stamp', shape, at, colours, size]
+      in a step, or from a tap;
+   3. toys: a few paper-doll sprites (parachutes with a smokejumper, teacups, umbrellas, balloons), drawn on small canvases when the show starts and freed
+      when it ends (inkToy); and two 3D props made of a few primitives (Blade Ranger's searchlight beam, Windlifter's trophy on its cable).
+   The tap (inkTap, a listener on the stage): any tap anywhere, big and forgiving, counts. Each tap rings a note of a pentatonic scale, shows a ripple under the
+   finger, makes a burst of sparks at the plane, does what the plane's own show says (WIN_MOVE.tap: INK_TAP: a heart, a star, a parachute, a honk, a camera
+   flash) and gives the plane one more flip, spin or hop (WIN_MOVE.ov, inkOv: only with room under it). A small tapping hand shows while it plays.
+   Cost and safety: the pool, the toys and the props are made the first time a show needs them, nothing is allocated per frame, and everything is put back
+   by inkEnd (the show's end) and inkStop (wmStop: Race again, Back, a new race, the next routine). Sounds are WebAudio tones, as the maracas'. */
+const INK = {n: 640, P: null, O: null, V: null, C: null, B: null, L: null, Z: null, A: null, K: null, T: null, head: 0, t: 0, on: false, live: 0, r: null,
+  Af: V(0,0,0), yaw: 0, mid: V(0,0,0), tail: V(0,0,0), nose: V(1,0,0), pp: V(0,0,0), pd: V(0,1,0), penOn: null, acc: 0, pc: 0,
+  taps: 0, lastTap: -9, ov: {k: 0, t0: 0, d: 1, dir: 1}, q: 0, toys: [], g: null, mats: [], geos: [], tex: [], prop: null, hint: null, rips: [], ripN: 0, ang: 0,
+  cr: V(1,0,0), cu: V(0,1,0), st: null};
+const inkStats = ()=>({pen: 0, stamps: 0, taps: 0, toys: 0, peak: 0, ov: 0, sounds: 0});
+INK.st = inkStats();
+const _ikA = V(0,0,0), _ikB = V(0,0,0), _ikD = V(0,0,0), _ikC = V(0,0,0), _ikE = V(0,0,0), _ikQ = new T.Quaternion();
+const INK_COL = {};
+const inkCol = h=>INK_COL[h] || (INK_COL[h] = new T.Color(h).convertSRGBToLinear());   // (the smoke mesh takes linear colours)
+const INK_STYLE = {
+  star:    {pal: ['#ff4d6d', '#ffb703', '#3ddc84', '#35b8ff', '#b46bff'], mode: 'seg', size: .23, sp: .075, life: 4.8, grow: .25, rise: .015},
+  heart:   {pal: ['#ff9ac0', '#ff5c93', '#ff2d6f', '#ff5c93'], mode: 'grad', size: .24, sp: .075, life: 4.8, grow: .25, rise: .015},
+  rainbow: {pal: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff', '#9b5cff'], mode: 'bands', bw: .1, size: .15, sp: .085, life: 4.6, grow: .2, rise: .01},
+  one:     {pal: ['#ff3b30', '#ffd60a', '#ff3b30', '#ffffff'], mode: 'cycle', cyc: 3, size: .25, sp: .07, life: 4.8, grow: .2, rise: .01},
+  corkscrew: {pal: ['#ffffff', '#fff1c2'], mode: 'cycle', cyc: 2, size: .2, sp: .09, life: 3.4, grow: .5, rise: .02},
+  navy:    {pal: ['#ef3b4a', '#ffffff', '#2f6df0'], mode: 'bands', bw: .13, size: .15, sp: .09, life: 4.2, grow: .25, rise: .01},
+  sparkle: {pal: ['#fff6b8', '#ffffff', '#ffd740', '#ffc4ef', '#b8f0ff'], mode: 'cycle', cyc: 1, size: .1, sp: .06, life: 2.4, grow: .1, rise: .05, tw: 1, jit: .08},
+  road:    {pal: ['#7b8290', '#ffd60a', '#7b8290'], mode: 'bands', bw: .13, dash: 1, size: .15, sp: .095, life: 4.4, grow: .1, rise: 0}};
+/* the puff pool, made on first use */
+function inkMake(){ const I = INK; if(I.P) return; const n = I.n; I.P = new Float32Array(n*3); I.O = new Float32Array(n*3); I.V = new Float32Array(n*3); I.C = new Float32Array(n*3);
+  I.B = new Float32Array(n).fill(-99); I.L = new Float32Array(n); I.Z = new Float32Array(n*2); I.A = new Float32Array(n); I.K = new Uint8Array(n); I.T = new Float32Array(n); }
+function inkPuff(f, u, s, col, size, grow, life, alpha, b, kind, rise){ const I = INK, k = I.head; I.head = (k + 1) % I.n; const j = k*3;
+  I.P[j] = f; I.P[j + 1] = u; I.P[j + 2] = s; I.O[j] = I.O[j + 1] = I.O[j + 2] = 0; I.V[j] = 0; I.V[j + 1] = rise || 0; I.V[j + 2] = 0; I.C[j] = col.r; I.C[j + 1] = col.g; I.C[j + 2] = col.b;
+  I.B[k] = b; I.L[k] = life; I.Z[k*2] = size; I.Z[k*2 + 1] = size*(1 + grow); I.A[k] = alpha; I.K[k] = kind || 0; I.T[k] = 0; return k; }
+/* the frame to the world, and back */
+function inkWorld(f, u, s, out){ const I = INK, c = Math.cos(I.yaw), sn = Math.sin(I.yaw); return out.set(I.Af.x + c*f + sn*s, I.Af.y + u, I.Af.z - sn*f + c*s); }
+function inkFrameOf(w, out){ const I = INK, c = Math.cos(I.yaw), sn = Math.sin(I.yaw), dx = w.x - I.Af.x, dz = w.z - I.Af.z; return out.set(c*dx - sn*dz, w.y - I.Af.y, sn*dx + c*dz); }
+/* the puffs into the smoke mesh (smokeFrame), after the flares' trails */
+function inkSmoke(n, cap){ const I = INK; if(!I.P || !I.on) return n; const c = Math.cos(I.yaw), sn = Math.sin(I.yaw), A = I.Af; let live = 0;
+  for(let k = 0; k < I.n && n < cap; k++){ const b = I.B[k]; if(b < -90) continue; const a = I.t - b, L = I.L[k]; if(a > L){ I.B[k] = -99; continue; } live++; if(a < 0) continue;
+    const j = k*3, f = a/L, pop = I.T[k], e = pop > 0 ? shEz(a/pop) : 1;
+    const pf = I.P[j] + I.O[j]*e + I.V[j]*a, pu = I.P[j + 1] + I.O[j + 1]*e + I.V[j + 1]*a, ps = I.P[j + 2] + I.O[j + 2]*e + I.V[j + 2]*a;
+    SMOKE.p[n*3] = A.x + c*pf + sn*ps; SMOKE.p[n*3 + 1] = A.y + pu; SMOKE.p[n*3 + 2] = A.z - sn*pf + c*ps;
+    const z0 = I.Z[k*2], z1 = I.Z[k*2 + 1], fo = f < .55 ? 1 : Math.pow(Math.max(0, 1 - (f - .55)/.45), 1.3), tw = I.K[k] ? .62 + .38*Math.sin(I.t*21 + k*1.9) : 1;
+    SMOKE.a[n*2] = (z0 + (z1 - z0)*f)*(.35 + .65*Math.min(1, a/.1)); SMOKE.a[n*2 + 1] = I.A[k]*Math.min(1, a/.05)*fo*tw;
+    SMOKE.c[n*3] = I.C[j]; SMOKE.c[n*3 + 1] = I.C[j + 1]; SMOKE.c[n*3 + 2] = I.C[j + 2]; n++; }
+  I.live = live; if(live > I.st.peak) I.st.peak = live; return n; }
+/* ---- the paths: lines ['L', length] and arcs ['A', radius, degrees] (left turns positive; sizes in the plane's own size), pen windows ['pen', 1] and ['pen', 0] */
+const INK_PATH = {};
+function inkPoly(P, rho){ const n = P.length, ph = [], ln = [], segs = [];
+  for(let i = 0; i < n; i++){ const a = P[i], b = P[(i + 1) % n]; ph.push(Math.atan2(b[1] - a[1], b[0] - a[0])); ln.push(Math.hypot(b[0] - a[0], b[1] - a[1])); }
+  const th = ph.map((h, i)=>{ let d = ph[(i + 1) % n] - h; d = Math.atan2(Math.sin(d), Math.cos(d)); return d; }), tg = th.map(d=>rho*Math.tan(Math.abs(d)/2));
+  segs.push(['L', ln[0]/2 - tg[0]]);
+  for(let i = 0; i < n; i++){ segs.push(['A', rho, th[i]*180/Math.PI]); const nx = (i + 1) % n; segs.push(['L', i === n - 1 ? ln[0]/2 - tg[i] : ln[nx] - tg[i] - tg[nx]]); }
+  return {segs, h0: ph[0]*180/Math.PI}; }
+const INK_SEGS = {
+  heart: ()=>[['A', .3, 45], ['pen', 1], ['L', 1], ['A', .5, 180], ['A', .07, -90], ['A', .5, 180], ['L', 1], ['pen', 0], ['A', .3, 45]],   // up the right edge, over the right lobe, the notch, over the left lobe, down the left edge to the tip (a heart whose sides are a square's, 1 on a side)
+  star: ()=>{ const P = [[-.588, -.809], [0, 1], [.588, -.809], [-.951, .309], [.951, .309]], Q = inkPoly(P, .08);
+    return [['A', .3, Q.h0], ['pen', 1]].concat(Q.segs, [['pen', 0], ['A', .3, -Q.h0]]); },   // the five-pointed star in one stroke (a circle of radius 1), the corners rounded a little
+  one: ()=>[['A', .45, 90], ['pen', 1], ['L', 1.9], ['A', .14, 138], ['L', .75], ['pen', 0], ['A', .35, 132]],   // a "1": up the stem, a flick, down the flag
+  rainbow: ()=>[['A', .45, 90], ['pen', 1], ['A', 1.1, -180], ['pen', 0], ['A', .45, 90]],   // a pull up, an arch over the top, a pull out
+  road: ()=>[['A', .4, 30], ['pen', 1], ['A', .9, -60], ['A', .9, 60], ['A', .9, -60], ['A', .9, 60], ['pen', 0], ['A', .4, -30]]};   // a winding road: S-curves climbing into the sky   // a pull up, an arch over the top, a pull out
+function inkShape(name){ let S = INK_PATH[name]; if(S) return S; const segs = INK_SEGS[name](), N = 240, X = new Float32Array(N), Y = new Float32Array(N), H = new Float32Array(N), pens = [];
+  let L = 0, Wt = 0; segs.forEach(g=>{ g.len = g[0] === 'L' ? Math.max(0, g[1]) : g[0] === 'A' ? g[1]*Math.abs(g[2])*Math.PI/180 : 0; g.k = g[0] === 'A' && g[1] < .2 ? 5 : 1; g.s0 = L; g.w0 = Wt; L += g.len; Wt += g.len*g.k; });   // (a tight corner takes five times its length in time: the nose turns at a rate the eye can follow)
+  const adv = (g, d, st)=>{ if(g[0] === 'L'){ st.x += Math.cos(st.h)*d; st.y += Math.sin(st.h)*d; } else if(g[0] === 'A'){ const k = Math.sign(g[2])/g[1], h2 = st.h + k*d; st.x += (Math.sin(h2) - Math.sin(st.h))/k; st.y += (Math.cos(st.h) - Math.cos(h2))/k; st.h = h2; } };
+  const st = {x: 0, y: 0, h: 0}; segs.forEach(g=>{ g.a = {x: st.x, y: st.y, h: st.h}; adv(g, g.len, st); });
+  let gi = 0; for(let i = 0; i < N; i++){ const w = Wt*i/(N - 1); while(gi < segs.length - 1 && w > segs[gi].w0 + segs[gi].len*segs[gi].k + 1e-9) gi++; const g = segs[gi], p = {x: g.a.x, y: g.a.y, h: g.a.h}; adv(g, Math.max(0, Math.min(g.len, (w - g.w0)/g.k)), p); X[i] = p.x; Y[i] = p.y; H[i] = p.h; }
+  let on = null; segs.forEach(g=>{ if(g[0] !== 'pen') return; if(g[1]) on = g.w0/Wt; else if(on !== null){ pens.push([on, g.w0/Wt]); on = null; } });   // (the pen's windows, as parts of the time)
+  return (INK_PATH[name] = {N, X, Y, H, L, pens, end: {x: X[N - 1], y: Y[N - 1]}}); }
+/* the move: the path of a shape, from its start to its end (sizes of the plane); the nose follows the path */
+function wmShape(o, u, name, size){ const S = inkShape(name), w = shEz(u)*(S.N - 1), i = Math.min(S.N - 2, Math.floor(w)), t = w - i, k = size || 1;
+  o.f += k*(S.X[i] + (S.X[i + 1] - S.X[i])*t); o.u += k*(S.Y[i] + (S.Y[i + 1] - S.Y[i])*t); o.pitch += S.H[i] + (S.H[i + 1] - S.H[i])*t; }
+const inkUOf = w=>{ let a = 0, b = 1; for(let i = 0; i < 24; i++){ const m = (a + b)/2; if(shEz(m) < w) a = m; else b = m; } return (a + b)/2; };   // the time (0 to 1) of a place on the path (the path's speed is eased: shEz)
+Object.assign(WM_MOVES, {shape: (o, u, name, size)=>wmShape(o, u, name, size)});
+/* ---- the pen: at the plane's tail, every INK_STYLE.sp of its size along the way */
+function inkMidTail(r){ const I = INK, q = r.root.quaternion, sz = r.c.size;
+  _ikA.copy(WM.ctr).applyQuaternion(q).add(r.root.position); inkFrameOf(_ikA, I.mid);
+  I.nose.set(1, 0, 0).applyQuaternion(q); _ikB.copy(_ikA).addScaledVector(I.nose, -sz*.45); inkFrameOf(_ikB, I.tail); }
+function inkEmit(pen, ST, T, dx, dy, fr, b, sz){
+  const I = INK, pal = ST.pal, np = pal.length, nx = -dy, ny = dx, jit = ST.jit ? ST.jit*sz : 0, jf = jit ? (Math.random() - .5)*2*jit : 0, ju = jit ? (Math.random() - .5)*2*jit : 0;
+  if(ST.mode === 'bands'){ for(let k = 0; k < np; k++){ if(ST.dash && k === 1 && ((I.pc >> 1) & 1)) continue; const off = (np - 1)/2 - k, of = off*ST.bw*sz;   // (the first colour on the outside: the left of the way it flies)
+      inkPuff(T.x + nx*of, T.y + ny*of, T.z, inkCol(pal[k]), ST.size*sz, ST.grow, ST.life, .95, b, 0, ST.rise*sz); I.st.pen++; } }
+  else { const ci = ST.mode === 'seg' ? Math.min(np - 1, Math.floor(fr*np)) : ST.mode === 'cycle' ? Math.floor(I.pc/(ST.cyc || 1)) % np : Math.min(np - 1, Math.floor(fr*np));
+    let col = inkCol(pal[ci]); if(ST.mode === 'grad'){ const x = fr*(np - 1), i = Math.min(np - 2, Math.floor(x)), t = x - i; col = _inkLerp.copy(inkCol(pal[i])).lerp(inkCol(pal[i + 1]), t); }
+    inkPuff(T.x + jf, T.y + ju, T.z, col, ST.size*sz*(ST.jit ? .6 + Math.random()*.8 : 1), ST.grow, ST.life*(ST.jit ? .75 + Math.random()*.5 : 1), .95, b, ST.tw ? 1 : 0, ST.rise*sz); I.st.pen++; }
+  I.pc++; }
+const _inkLerp = new T.Color();
+function inkPen(r, dt){ const W = WM, I = INK; if(!W.pens || !W.pens.length) return; let pen = null; for(let i = 0; i < W.pens.length; i++){ const p = W.pens[i]; if(W.t >= p.t0 && W.t <= p.t1){ pen = p; break; } }
+  if(!pen){ I.penOn = null; return; } inkMake(); I.on = true; I.r = r; const ST = INK_STYLE[pen.st], sz = r.c.size, T = I.tail, fr = Math.min(1, Math.max(0, (W.t - pen.t0)/(pen.t1 - pen.t0 || 1)));
+  if(I.penOn !== pen){ I.penOn = pen; I.pp.copy(T); I.acc = 0; I.pc = 0; I.pd.set(1, 0, 0); inkEmit(pen, ST, T, I.pd.x, I.pd.y, fr, I.t, sz); return; }
+  _ikD.subVectors(T, I.pp); const d = _ikD.length(); if(d < 1e-3) return; const hl = Math.hypot(_ikD.x, _ikD.y); if(hl > 1e-3){ I.pd.set(_ikD.x/hl, _ikD.y/hl, 0); }   // (its way in the picture's plane, for the ribbon's sideways)
+  const sp = ST.sp*sz; let at = sp - I.acc; while(at <= d){ const e = at/d; _ikC.copy(I.pp).addScaledVector(_ikD, e); inkEmit(pen, ST, _ikC, I.pd.x, I.pd.y, fr, I.t + dt*e, sz); at += sp; }
+  I.acc = d - (at - sp); I.pp.copy(T); }
+/* ---- the stamps: small shapes of puffs that pop out facing the camera */
+const INK_STAMPS = {};
+function inkPolySample(P, closed, n){ const m = P.length, segN = closed ? m : m - 1; let L = 0; const ls = []; for(let i = 0; i < segN; i++){ const a = P[i], b = P[(i + 1) % m], d = Math.hypot(b[0] - a[0], b[1] - a[1]); ls.push(d); L += d; }
+  const out = []; for(let i = 0; i < n; i++){ let s = L*i/(closed ? n : n - 1), j = 0; while(j < segN - 1 && s > ls[j]){ s -= ls[j]; j++; } const a = P[j], b = P[(j + 1) % m], t = ls[j] ? s/ls[j] : 0; out.push([a[0] + (b[0] - a[0])*t, a[1] + (b[1] - a[1])*t, 0]); } return out; }
+function inkStampPts(name){ let S = INK_STAMPS[name]; if(S) return S; let pts = [];
+  if(name === 'heart'){ for(let i = 0; i < 26; i++){ const t = i/26*2*Math.PI; pts.push([16*Math.pow(Math.sin(t), 3)/16.5, (13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t))/16.5 + .12, 0]); } }
+  else if(name === 'star'){ const P = []; for(let i = 0; i < 10; i++){ const a = Math.PI/2 + i*Math.PI/5, r = i % 2 ? .42 : 1; P.push([r*Math.cos(a), r*Math.sin(a)]); } pts = inkPolySample(P, true, 30); }
+  else if(name === 'ring'){ for(let i = 0; i < 20; i++){ const a = i/20*2*Math.PI; pts.push([Math.cos(a), Math.sin(a), 0]); } }
+  else if(name === 'one'){ pts = inkPolySample([[-.55, .45], [0, 1], [0, -1]], false, 18).concat(inkPolySample([[-.5, -1], [.5, -1]], false, 6)); }
+  else if(name === 'rainbow'){ for(let b = 0; b < 5; b++) for(let i = 0; i < 9; i++){ const a = Math.PI*i/8, r = 1 - b*.14; pts.push([r*Math.cos(a), r*Math.sin(a) - .35, b]); } }
+  else if(name === 'burst'){ for(let k = 0; k < 8; k++){ const a = k*Math.PI/4 + .2; for(let j = 0; j < 3; j++) pts.push([Math.cos(a)*(.45 + j*.28), Math.sin(a)*(.45 + j*.28), 0]); } }
+  else if(name === 'cross'){ for(let k = 0; k < 4; k++){ const a = k*Math.PI/2; for(let j = 0; j < 4; j++) pts.push([Math.cos(a)*(.25 + j*.25), Math.sin(a)*(.25 + j*.25), 0]); } }
+  return (INK_STAMPS[name] = pts); }
+function inkCamAxes(){ const I = INK; if(!rCam) return; rCam.updateMatrixWorld(); const e = rCam.matrixWorld.elements, c = Math.cos(I.yaw), sn = Math.sin(I.yaw);
+  I.cr.set(c*e[0] - sn*e[2], e[1], sn*e[0] + c*e[2]).normalize(); I.cu.set(c*e[4] - sn*e[6], e[5], sn*e[4] + c*e[6]).normalize(); }
+/* a stamp at (f, u, s) of the frame, scale in sizes of the plane, colours (hex list, the shape's bands or by turns), its life */
+function inkStamp(name, f, u, s, scale, pal, o){ const I = INK; inkMake(); I.on = true; const pts = inkStampPts(name), sz = I.r ? I.r.c.size : 30, op = o || {}, R = scale*sz, size = (op.size || .12)*sz*Math.min(1.4, .6 + scale*.8), life = op.life || 2.0, nc = pal.length; inkCamAxes(); I.st.stamps++;
+  for(let i = 0; i < pts.length; i++){ const p = pts[i], col = inkCol(pal[(name === 'rainbow' ? p[2] : i) % nc]), k = inkPuff(f, u, s, col, size, .15, life*(.85 + Math.random()*.3), .95, I.t + (op.delay || 0) + i*(op.stag || 0), op.tw ? 1 : 0, (op.rise == null ? .09 : op.rise)*sz), j = k*3;
+    I.O[j] = (I.cr.x*p[0] + I.cu.x*p[1])*R; I.O[j + 1] = (I.cr.y*p[0] + I.cu.y*p[1])*R; I.O[j + 2] = (I.cr.z*p[0] + I.cu.z*p[1])*R; I.T[k] = op.pop || .28; } }
+/* ---- the toys: a few paper-doll sprites, drawn when the show starts (def.toys), freed at its end */
+const INK_TOYK = {chute: {w: .5, h: .62, n: 5}, cup: {w: .42, h: .42, n: 2}, umb: {w: .5, h: .5, n: 2}, balloon: {w: .3, h: .46, n: 6}};
+const INK_CHUTE = ['#ff3b30', '#ffd60a', '#35b8ff', '#34c759', '#ff7ab8'];
+function inkCv(w, h, f){ const cv = document.createElement('canvas'); cv.width = w; cv.height = h; f(cv.getContext('2d'), w, h); const t = new T.CanvasTexture(cv); INK.tex.push(t); return t; }
+function inkDrawToy(kind, i){
+  if(kind === 'chute') return inkCv(96, 120, (x, w, h)=>{ const c = INK_CHUTE[i % INK_CHUTE.length], cx = w/2; x.lineJoin = 'round'; x.lineCap = 'round';
+      x.strokeStyle = 'rgba(40,40,60,.85)'; x.lineWidth = 1.6; [[8, 52], [26, 56], [48, 58], [70, 56], [88, 52]].forEach(([px, py])=>{ x.beginPath(); x.moveTo(px, py); x.lineTo(cx, 82); x.stroke(); });
+      x.beginPath(); x.moveTo(5, 52); x.bezierCurveTo(5, 8, w - 5, 8, w - 5, 52); [0, 1, 2, 3].forEach(k=>{ const px = w - 5 - (w - 10)*(k + 1)/4; x.quadraticCurveTo(px + (w - 10)/8, 62, px, 52); }); x.closePath(); x.fillStyle = c; x.fill(); x.lineWidth = 2.4; x.strokeStyle = 'rgba(40,40,60,.9)'; x.stroke();
+      x.fillStyle = 'rgba(255,255,255,.5)'; x.beginPath(); x.moveTo(cx - 12, 14); x.quadraticCurveTo(cx - 8, 30, cx - 14, 52); x.lineTo(cx - 4, 52); x.quadraticCurveTo(cx - 2, 30, cx - 5, 12); x.fill(); x.beginPath(); x.moveTo(cx + 12, 14); x.quadraticCurveTo(cx + 8, 30, cx + 14, 52); x.lineTo(cx + 4, 52); x.quadraticCurveTo(cx + 2, 30, cx + 5, 12); x.fill();
+      x.fillStyle = '#ff8c1a'; x.strokeStyle = 'rgba(40,40,60,.9)'; x.lineWidth = 2; x.beginPath(); x.roundRect ? x.roundRect(cx - 7, 90, 14, 16, 4) : x.rect(cx - 7, 90, 14, 16); x.fill(); x.stroke();
+      x.strokeStyle = '#ff8c1a'; x.lineWidth = 4; x.beginPath(); x.moveTo(cx - 5, 94); x.lineTo(cx - 12, 84); x.moveTo(cx + 5, 94); x.lineTo(cx + 12, 84); x.moveTo(cx - 3, 106); x.lineTo(cx - 6, 116); x.moveTo(cx + 3, 106); x.lineTo(cx + 6, 116); x.stroke();
+      x.fillStyle = '#ffd60a'; x.strokeStyle = 'rgba(40,40,60,.9)'; x.lineWidth = 2; x.beginPath(); x.arc(cx, 84, 7.5, 0, 7); x.fill(); x.stroke(); x.fillStyle = '#ffe3c2'; x.beginPath(); x.arc(cx, 86, 4, 0, 7); x.fill(); });
+  if(kind === 'cup') return inkCv(96, 96, (x, w, h)=>{ x.lineJoin = 'round'; x.lineCap = 'round';
+      x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = 4; [30, 48, 66].forEach((px, k)=>{ x.beginPath(); x.moveTo(px, 44); x.bezierCurveTo(px - 8, 34, px + 8, 26, px, 14 - k*0); x.stroke(); });
+      x.fillStyle = '#ffffff'; x.strokeStyle = '#3b4a6b'; x.lineWidth = 3; x.beginPath(); x.ellipse(48, 82, 36, 8, 0, 0, 7); x.fill(); x.stroke();
+      x.beginPath(); x.moveTo(20, 50); x.lineTo(76, 50); x.quadraticCurveTo(74, 78, 48, 79); x.quadraticCurveTo(22, 78, 20, 50); x.fill(); x.stroke();
+      x.beginPath(); x.ellipse(48, 50, 28, 6, 0, 0, 7); x.fillStyle = '#c47f3b'; x.fill(); x.stroke(); x.strokeStyle = '#3b4a6b'; x.lineWidth = 4; x.beginPath(); x.arc(79, 60, 9, -1.2, 1.6); x.stroke();
+      x.fillStyle = '#ff7ab8'; [[34, 66], [48, 70], [62, 66]].forEach(([px, py])=>{ x.beginPath(); x.arc(px, py, 3.4, 0, 7); x.fill(); }); });
+  if(kind === 'umb') return inkCv(96, 96, (x, w, h)=>{ x.lineJoin = 'round'; x.lineCap = 'round'; const cols = ['#ef3b4a', '#ffffff'];
+      for(let k = 0; k < 4; k++){ const a0 = Math.PI + k*Math.PI/4, a1 = a0 + Math.PI/4; x.beginPath(); x.moveTo(48, 52); x.arc(48, 52, 42, a0, a1); x.closePath(); x.fillStyle = cols[k % 2]; x.fill(); }
+      x.strokeStyle = '#3b4a6b'; x.lineWidth = 3; x.beginPath(); x.arc(48, 52, 42, Math.PI, 2*Math.PI); x.lineTo(6, 52); x.stroke(); x.beginPath(); x.moveTo(48, 10); x.lineTo(48, 14); x.stroke();
+      x.lineWidth = 4; x.beginPath(); x.moveTo(48, 52); x.lineTo(48, 82); x.quadraticCurveTo(48, 92, 40, 90); x.stroke(); x.lineWidth = 2; x.beginPath(); x.moveTo(6, 52); x.quadraticCurveTo(14, 60, 20, 52); x.quadraticCurveTo(28, 60, 34, 52); x.quadraticCurveTo(41, 60, 48, 52); x.quadraticCurveTo(55, 60, 62, 52); x.quadraticCurveTo(69, 60, 76, 52); x.quadraticCurveTo(84, 60, 90, 52); x.stroke(); });
+  if(kind === 'balloon') return inkCv(64, 96, (x, w, h)=>{ const c = ['#ff3b30', '#ffd60a', '#35b8ff', '#34c759', '#ff7ab8', '#b46bff'][i % 6]; x.lineCap = 'round';
+      x.strokeStyle = 'rgba(60,60,80,.8)'; x.lineWidth = 1.8; x.beginPath(); x.moveTo(32, 70); x.bezierCurveTo(26, 78, 38, 86, 32, 94); x.stroke();
+      x.fillStyle = c; x.strokeStyle = 'rgba(40,40,60,.85)'; x.lineWidth = 2.4; x.beginPath(); x.moveTo(32, 70); x.bezierCurveTo(2, 56, 2, 8, 32, 6); x.bezierCurveTo(62, 8, 62, 56, 32, 70); x.fill(); x.stroke();
+      x.beginPath(); x.moveTo(32, 70); x.lineTo(27, 76); x.lineTo(37, 76); x.closePath(); x.fill(); x.stroke(); x.fillStyle = 'rgba(255,255,255,.55)'; x.beginPath(); x.ellipse(22, 26, 5, 10, .4, 0, 7); x.fill(); });
+  return null; }
+/* the sprites of this show's toys (def.toys: kinds), a few of each, hidden until they are sent */
+function inkToysMake(kinds){ const I = INK; if(!I.g){ I.g = new T.Group(); I.g.name = 'dance-toys'; }
+  kinds.forEach(kind=>{ const K = INK_TOYK[kind]; if(!K) return; const tx = []; for(let i = 0; i < K.n; i++) tx.push(inkDrawToy(kind, i));
+    for(let i = 0; i < (kind === 'balloon' ? 10 : 6); i++){ const m = new T.SpriteMaterial({map: tx[i % tx.length], transparent: true, depthWrite: false, fog: false, toneMapped: false, opacity: 0}), s = new T.Sprite(m); s.visible = false; s.frustumCulled = false; s.renderOrder = 6; I.g.add(s); I.mats.push(m);
+      I.toys.push({s, m, kind, tx, b: -99, life: 4, f: 0, u: 0, s0: 0, vf: 0, vu: 0, ph: 0, w: K.w, h: K.h, n: 0}); } });
+  if(rScene && !I.g.parent) rScene.add(I.g); }
+let _ikToyN = 0;
+function inkToy(kind, f, u, s, o){ const I = INK; if(!I.toys.length || !I.r) return null; let T0 = null, old = null;
+  for(let i = 0; i < I.toys.length; i++){ const t = I.toys[i]; if(t.kind !== kind) continue; if(t.b < -50){ T0 = t; break; } if(!old || t.b < old.b) old = t; } T0 = T0 || old; if(!T0) return null;
+  const sz = I.r.c.size, op = o || {}; T0.b = I.t; T0.f = f; T0.u = u; T0.s0 = s; T0.ph = Math.random()*6; T0.vf = (op.vf || 0)*sz; T0.vu = (op.vu || 0)*sz; T0.life = op.life || 4; T0.n = (op.n == null ? _ikToyN++ : op.n);
+  T0.m.map = T0.tx[T0.n % T0.tx.length]; T0.m.opacity = 0; T0.s.visible = true; I.on = true; I.st.toys++; return T0; }
+function inkToysFrame(dt){ const I = INK; if(!I.toys.length || !I.r) return; const sz = I.r.c.size, K = rCourse, city = !!(K && K.city); let any = false;
+  for(let i = 0; i < I.toys.length; i++){ const t = I.toys[i]; if(t.b < -50) continue; const a = I.t - t.b, u = a/t.life; if(u >= 1 || a < 0){ t.s.visible = false; t.m.opacity = 0; t.b = -99; continue; } any = true;
+    let f = t.f, up = t.u, s = t.s0, w = t.w*sz, h = t.h*sz, op = 1, rot = 0;
+    if(t.kind === 'chute'){ const open = shEz(Math.min(1, a/.4)), d = (1 - Math.exp(-1.1*a))/1.1; f += t.vf*d - .12*sz*a*u; up += -.34*sz*Math.max(0, a - .15) + t.vu*d; w *= .35 + .65*open; h *= .35 + .65*open; rot = .16*Math.sin(a*2.1 + t.ph)*open; f += Math.sin(a*1.4 + t.ph)*.06*sz*open; op = Math.min(1, a/.12)*Math.min(1, (1 - u)/.35); }
+    else if(t.kind === 'balloon'){ const d = (1 - Math.exp(-.9*a))/.9; f += t.vf*d - .06*sz*a; up += t.vu*d + .2*sz*a; f += Math.sin(a*2 + t.ph)*.05*sz; rot = .12*Math.sin(a*2.6 + t.ph); const pop = shEz(Math.min(1, a/.25)); w *= .3 + .7*pop; h *= .3 + .7*pop; op = Math.min(1, a/.1)*Math.min(1, (1 - u)/.3); }
+    else { const pop = Math.min(1, a/.35), ov = pop < 1 ? 1 + .3*Math.sin(Math.PI*pop) : 1, d = (1 - Math.exp(-1.2*a))/1.2; up += t.vu*d + .1*sz*a; f += t.vf*d - .05*sz*a; w *= shEz(pop)*ov + .05; h *= shEz(pop)*ov + .05; rot = .12*Math.sin(a*3 + t.ph)*(t.kind === 'cup' ? 1 : .5); op = Math.min(1, a/.1)*Math.min(1, (1 - u)/.3); }
+    inkWorld(f, up, s, _ikE); if(K && !city){ const g = Math.max(K.H(_ikE.x, _ikE.z), K.wl) + 3; if(_ikE.y < g){ _ikE.y = g; op *= .6; } }
+    t.s.position.copy(_ikE); t.s.scale.set(w, h, 1); t.m.rotation = rot; t.m.opacity = op; }
+  if(!any && !I.live && !WM.on && I.g && I.g.parent){ inkEnd(); } }
+/* ---- the props (3D, a few primitives): Blade Ranger's searchlight beam, Windlifter's trophy on its cable */
+function inkMat(m){ INK.mats.push(m); return m; }
+function inkGeo(g){ INK.geos.push(g); return g; }
+function inkBeamMake(c){ const I = INK, bb = c.bb, L = (bb.max.x - bb.min.x)/FT*.95, grp = new T.Group(), piv = new T.Group(); grp.name = 'searchlight';
+  const gt = inkCv(8, 64, (x, w, h)=>{ const g = x.createLinearGradient(0, 0, 0, h); g.addColorStop(0, 'rgba(255,250,215,1)'); g.addColorStop(.5, 'rgba(255,240,170,.45)'); g.addColorStop(1, 'rgba(0,0,0,1)'); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+  const mk = (r1, r2, op)=>{ const g = inkGeo(new T.CylinderGeometry(r1, r2, L, 20, 1, true)); g.translate(0, -L/2, 0); const m = inkMat(new T.MeshBasicMaterial({map: gt, transparent: true, opacity: op, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide, fog: false, toneMapped: false}));
+    const me = new T.Mesh(g, m); me.rotation.z = Math.PI/2 - .62; me.frustumCulled = false; me.renderOrder = 6; piv.add(me); return m; };
+  const mo = mk(.08, L*.17, .3), mi = mk(.05, L*.085, .42);
+  const sg = inkCv(64, 64, (x, w, h)=>{ const g = x.createRadialGradient(32, 32, 2, 32, 32, 30); g.addColorStop(0, 'rgba(255,255,235,1)'); g.addColorStop(.4, 'rgba(255,240,170,.55)'); g.addColorStop(1, 'rgba(255,240,170,0)'); x.fillStyle = g; x.fillRect(0, 0, w, h); });
+  const sm = inkMat(new T.SpriteMaterial({map: sg, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, opacity: .9})), sp = new T.Sprite(sm); sp.scale.set(L*.12, L*.12, 1); sp.position.set(L*Math.cos(.62)*.9, -L*Math.sin(.62)*.9, 0); sp.frustumCulled = false; sp.renderOrder = 7; piv.add(sp);
+  grp.add(piv); grp.position.set(bb.max.x/FT*.55, bb.min.y/FT + (bb.max.y - bb.min.y)/FT*.32, 0); grp.visible = false; c.model.add(grp); grp.traverse(o=>{ o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; });
+  return {grp, piv, mo, mi, sm, sp, L, base: [.3, .42]}; }
+function inkTrophyMake(c){ const bb = c.bb, S = (bb.max.x - bb.min.x)/FT, grp = new T.Group(), sw = new T.Group(), H = S*.2; grp.name = 'trophy';
+  const gold = inkMat(new T.MeshLambertMaterial({color: '#ffcf33', emissive: '#a86a00', emissiveIntensity: .55})), dark = inkMat(new T.MeshLambertMaterial({color: '#7a5a1e', emissive: '#2a1c06', emissiveIntensity: .4})), cab = inkMat(new T.MeshLambertMaterial({color: '#2b2f38'}));
+  const Lc = S*.3, cable = new T.Mesh(inkGeo(new T.CylinderGeometry(.05, .05, Lc, 6)), cab); cable.position.y = -Lc/2; sw.add(cable);
+  const prof = [[0, 0], [.34, 0], [.34, .05], [.2, .1], [.1, .16], [.08, .42], [.14, .5], [.34, .62], [.42, 1.05], [.4, 1.1], [.3, 1.0], [.0, .95]].map(p=>new T.Vector2(p[0]*H*.42, p[1]*H));
+  const cup = new T.Mesh(inkGeo(new T.LatheGeometry(prof, 20)), gold); cup.position.y = -Lc - H*1.05; sw.add(cup);
+  const hd = inkGeo(new T.TorusGeometry(H*.17, H*.03, 6, 14)); [1, -1].forEach(sd=>{ const h = new T.Mesh(hd, gold); h.position.set(0, -Lc - H*.55, sd*H*.42); h.rotation.y = Math.PI/2; sw.add(h); });
+  const base = new T.Mesh(inkGeo(new T.CylinderGeometry(H*.2, H*.24, H*.12, 12)), dark); base.position.y = -Lc - H*1.08; sw.add(base);
+  const hook = new T.Mesh(inkGeo(new T.SphereGeometry(.14, 8, 6)), dark); sw.add(hook);
+  grp.add(sw); grp.position.set((bb.min.x + bb.max.x)/2/FT, bb.min.y/FT + (bb.max.y - bb.min.y)/FT*.28, 0); grp.scale.setScalar(.001); c.model.add(grp); grp.traverse(o=>{ o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; });
+  return {grp, sw, cup, H, Lc, amp: .25, ph: 0, spin: 0, gl: 0}; }
+function inkPropBegin(r){ const I = INK, def = WM.def || {}; inkPropEnd(); if(def.prop === 'beam') I.prop = Object.assign({kind: 'beam', boost: 0}, inkBeamMake(r.c)); else if(def.prop === 'trophy') I.prop = Object.assign({kind: 'trophy'}, inkTrophyMake(r.c)); }
+function inkPropEnd(){ const I = INK, P = I.prop; if(!P) return; if(P.grp && P.grp.parent) P.grp.parent.remove(P.grp); I.prop = null; }
+const inkTrophyAt = out=>{ const P = INK.prop; if(!P || P.kind !== 'trophy') return null; P.cup.updateWorldMatrix(true, false); out.set(0, P.H*.6, 0); P.cup.localToWorld(out); return out; };
+/* the props each frame: td seconds since the routine began */
+function inkPropPose(r, dt){ const I = INK, P = I.prop, W = WM; if(!P) return; const t = W.t;
+  if(P.kind === 'beam'){ const e = shEz(Math.min(1, t/.5))*shEz(Math.min(1, (W.len - t)/.5)); P.grp.visible = e > .01; P.boost = Math.max(0, P.boost - dt*1.6);
+    P.piv.rotation.y = 1.15*Math.sin(t*2.1) + .12*Math.sin(t*5.3); const k = e*(1 + .9*P.boost); P.mo.opacity = P.base[0]*k; P.mi.opacity = P.base[1]*k; P.sm.opacity = Math.min(1, .8*e*(1 + P.boost)); }
+  else if(P.kind === 'trophy'){ P.amp = Math.max(.12, P.amp - dt*.18); const e = shEz(Math.min(1, t/.7)); P.grp.scale.setScalar(Math.max(.001, e*(1 + .12*Math.sin(Math.PI*Math.min(1, t/.7)))));
+    P.sw.rotation.x = P.amp*Math.sin(t*2.6 + P.ph); P.sw.rotation.z = .06*Math.sin(t*1.7); P.cup.rotation.y = t*.9 + P.spin; P.spin += P.gl*dt*14; P.gl = Math.max(0, P.gl - dt*1.4); } }
+/* ---- sounds (tones only, as the maracas' rattle) */
+const INK_NOTES = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51];
+function inkChime(k){ if(WL.m) return; const i = k % 14, j = i < 8 ? i : 14 - i, f = INK_NOTES[j]; INK.st.sounds++; tone(f, .5, 'sine', .14, null, 0); tone(f*2, .3, 'triangle', .05, null, .015); tone(f*1.5, .4, 'sine', .04, null, .06); }
+function inkHorn(){ if(WL.m) return; INK.st.sounds++; [0, .23].forEach(d=>{ tone(392, .17, 'square', .05, null, d); tone(494, .17, 'square', .045, null, d); tone(247, .17, 'sawtooth', .03, null, d); }); }
+function inkBugle(){ if(WL.m) return; INK.st.sounds++; [[392, 0, .14], [523, .16, .14], [659, .32, .38]].forEach(([f, d, l])=>{ tone(f, l, 'sawtooth', .05, null, d); tone(f*2, l, 'square', .02, null, d); }); }
+function inkSiren(){ if(WL.m) return; INK.st.sounds++; tone(660, .22, 'sine', .08, 880); tone(880, .22, 'sine', .08, 660, .24); }
+function inkClick(){ if(WL.m) return; INK.st.sounds++; noiseHit(3200, 1200, .06, .12, 2); tone(1800, .05, 'square', .03); }
+function inkMwah(){ if(WL.m) return; INK.st.sounds++; tone(740, .12, 'sine', .1, 1100); tone(1100, .2, 'sine', .08, 1500, .09); }
+function inkPuffSnd(){ if(WL.m) return; INK.st.sounds++; noiseHit(700, 220, .22, .14, .8); tone(300, .12, 'sine', .08, 520); }
+function inkPing(k){ if(WL.m) return; INK.st.sounds++; tone(1568 + (k % 3)*180, .45, 'sine', .08); tone(2349, .3, 'sine', .035, null, .02); }
+/* ---- the tap: where a plane's own show joins in */
+const INK_SPOT = [[-.8, .75], [.85, .85], [0, 1.15], [-1, .1], [1.05, .25], [-.45, 1.0], [.5, 1.1]];
+function inkAround(k, out, rad){ const I = INK, sp = INK_SPOT[k % INK_SPOT.length], sz = I.r.c.size*(rad || 1); inkCamAxes();
+  return out.set(I.mid.x + (I.cr.x*sp[0] + I.cu.x*sp[1])*sz, I.mid.y + (I.cr.y*sp[0] + I.cu.y*sp[1])*sz, I.mid.z + (I.cr.z*sp[0] + I.cu.z*sp[1])*sz); }
+const INK_PAL = {party: ['#ffd23f', '#ff6b9d', '#35b8ff', '#7ee081', '#ffffff'], pink: ['#ff9ac0', '#ff5c93', '#ff2d6f'], rainbow: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff'], gold: ['#fff6b8', '#ffd740', '#ffffff', '#ffb300'],
+  navy: ['#ef3b4a', '#ffffff', '#2f6df0'], water: ['#d4f0ff', '#ffffff', '#7cc8f0', '#35b8ff'], flash: ['#ffffff', '#fff6b8', '#ffffff']};
+/* a stamp of a tap: round the plane (the screen's right and up, in the frame), each tap in another place; colours as hex */
+function inkShow(shape, k, pal, scale, o){ inkAround(k, _ikA, 1); inkStamp(shape, _ikA.x, _ikA.y, _ikA.z, scale, pal, o); }
+/* sparks at the plane (the race's own fxBurst: no new pool) */
+function inkBurst(r, cols){ const L = cols.map(c=>typeof c === 'string' ? inkCol(c) : c); inkWorld(INK.mid.x, INK.mid.y, INK.mid.z, _ikA); fxBurst(_ikA, 22, 44, Math.max(3, r.c.size*.085), L, 1.1, 14); }
+/* a toy sent from the plane: a parachute from under its tail, a balloon from over its cockpit, a cup or an umbrella round it */
+function inkDrop(r, kind, k){ const I = INK, sz = r.c.size; let T0 = null;
+  if(kind === 'chute') T0 = inkToy('chute', I.tail.x, I.tail.y - .06*sz, I.tail.z, {vf: -1.1, vu: -.05, life: 4.2, n: k});
+  else if(kind === 'balloon') T0 = inkToy('balloon', I.mid.x + (Math.random() - .5)*.4*sz, I.mid.y + .15*sz, I.mid.z, {vf: -.3 - Math.random()*.3, vu: .25 + Math.random()*.2, life: 4.2, n: k});
+  else { inkAround(k, _ikA, .9); T0 = inkToy(kind, _ikA.x, _ikA.y, _ikA.z, {vf: -.05, vu: .1, life: 3.2, n: k}); }
+  return T0; }
+/* the plane's own part in a tap, by the number of the tap (k): maracas shake, a flare pair, else nothing more */
+const INK_EXTRA = {
+  geebee2: r=>{ if(MC.g && MC.r === r && WM.t > WM.mc + MCR.tin && WM.t < WM.mc + MCR.tin + MCR.hold){ mcRattle(MC.shk); mcNote(r, WM.t - WM.mc, MC.n % 2 ? 1 : -1); } },
+  f18: r=>{ if(FL.r === r) flBurst(r, 2); }};
+/* ---- the extra flip a tap gives (WIN_MOVE.ov): added on top of the routine in wmPose, only with room under the plane */
+const INK_OV = {roll: .95, spin: 1.0, hop: .7, wag: .9};
+function inkRoom(r){ const K = rCourse; if(!K || K.city) return true; const g = r.P.y - Math.max(K.H(r.P.x, r.P.z), K.wl); return g > r.c.size*.9 + 14; }
+function inkOvStart(kind){ const I = INK, v = I.ov; v.k = kind; v.t0 = WM.t; v.d = INK_OV[kind]; v.dir = (I.taps & 1) ? 1 : -1; I.st.ov++; }
+function inkOv(o, r){ const I = INK, v = I.ov; if(!v.k) return; const u = (WM.t - v.t0)/v.d, sz = r.c.size;
+  if(u >= 1){ v.k = 0; if(I.q > 0 && inkRoom(r)){ I.q--; inkOvStart(WM.def.ov || 'roll'); } else I.q = 0; return; }
+  const k = v.k, s = Math.sin(Math.PI*u);
+  if(k === 'roll'){ o.roll += v.dir*2*Math.PI*shEz(u); o.u += .2*sz*s; }
+  else if(k === 'spin'){ o.yaw += v.dir*2*Math.PI*shEz(u); o.u += .06*sz*s; }
+  else if(k === 'hop'){ o.u += .3*sz*s; o.pitch += .3*Math.cos(Math.PI*u)*s; }
+  else if(k === 'wag'){ o.roll += .6*Math.sin(4*Math.PI*u)*s; o.u += .05*sz*s; } }
+/* the tap (a listener on the stage): the ripple under the finger, a note, sparks and the plane's own part, one more flip */
+function inkRipple(e){ const I = INK; if(!I.rips.length) return; const el = I.rips[I.ripN++ % I.rips.length], sr = stage.getBoundingClientRect(); el.style.left = (e.clientX - sr.left) + 'px'; el.style.top = (e.clientY - sr.top) + 'px'; el.classList.remove('on'); void el.offsetWidth; el.classList.add('on'); }
+function inkTap(e){ const W = WM, I = INK, r = W.r; if(!W.on || W.done || !r || W.run !== RACE.run || RO.on || RACE.resUp) return false;
+  if(e && e.target && e.target.closest && e.target.closest('button, a, input')) return false;
+  const now = performance.now(); if(now - I.lastTap < 120) return true; I.lastTap = now; inkMake(); I.on = true; I.r = r; I.taps++; I.st.taps++; const k = I.taps, def = W.def || {};
+  if(e && e.clientX != null) inkRipple(e); inkChime(k);
+  const fn = INK_TAP[def.tap || 'spark'] || INK_TAP.spark; fn(r, k); const ex = INK_EXTRA[W.id]; if(ex) ex(r, k);
+  const ov = def.ov || 'roll'; if(!I.ov.k){ if(inkRoom(r)) inkOvStart(ov); } else if(I.q < 2) I.q++;
+  return true; }
+/* the tapping hand and the ripples: a few elements made once, shown only while a show plays */
+function inkDom(){ const I = INK; if(I.hint) return; const h = document.createElement('div'); h.className = 'wm-tap'; h.setAttribute('aria-hidden', 'true'); h.hidden = true;
+  h.innerHTML = '<svg viewBox="0 0 120 120"><circle class="wt-ring" cx="60" cy="40" r="22"/><g class="wt-hand"><path d="M54 92V58a6 6 0 0 1 12 0v18l14 4c5 1.5 7.5 6 6.5 11l-3 15H58z" fill="#fff" stroke="#1c2426" stroke-width="3.5" stroke-linejoin="round"/></g></svg>'; $('rhud').appendChild(h); I.hint = h;
+  for(let i = 0; i < 4; i++){ const d = document.createElement('div'); d.className = 'wm-rip'; $('rhud').appendChild(d); I.rips.push(d); } }
+function inkHint(on){ const I = INK; if(!I.hint) inkDom(); if(I.hint.hidden === !on) return; I.hint.hidden = !on; }
+/* the show begins (wmBegin): its tap, toys and props; ends (wmFinish), stops (wmStop) */
+function inkBegin(r){ const I = INK, W = WM, def = W.def || {}; inkMake(); I.on = true; I.r = r; I.taps = 0; I.q = 0; I.ov.k = 0; I.penOn = null; I.st = inkStats(); I.lastTap = -9; I.Af.copy(r.root.position); I.yaw = W.yawC; _ikToyN = 0;
+  if(def.toys && def.toys.length) inkToysMake(def.toys); if(def.prop) inkPropBegin(r); if(W.pens && W.pens.length) r.noSmk = true; inkHint(true); }
+function inkEnd(){ const I = INK; inkHint(false); inkPropEnd(); if(I.g && I.g.parent) I.g.parent.remove(I.g); I.toys.forEach(t=>{ t.s.visible = false; });
+  I.mats.forEach(m=>m.dispose()); I.geos.forEach(g=>g.dispose()); I.tex.forEach(t=>t.dispose()); I.mats = []; I.geos = []; I.tex = []; I.toys = []; I.g = null; I.penOn = null; I.ov.k = 0; I.q = 0; if(I.r) I.r.noSmk = false; }
+function inkStop(){ const I = INK; if(I.B) I.B.fill(-99); I.live = 0; I.on = false; inkEnd(); I.r = null; }
+function inkFrame(dt){ const I = INK; if(!I.on) return; I.t += dt; const r = I.r;
+  if(r && WM.on && WM.r === r){ I.Af.copy(WM.A); I.yaw = WM.yawC; }
+  else if(r && r.root){ I.Af.copy(r.root.position); let d = r.yaw - I.yaw; d = Math.atan2(Math.sin(d), Math.cos(d)); I.yaw += d*Math.min(1, dt*4); }
+  inkToysFrame(dt); if(!WM.on && !I.live && !I.toys.some(t=>t.b > -50)){ I.on = false; if(I.g) inkEnd(); } }
+/* an event of a step: ['stamp', shape, at, colours, size] and ['toy', kind, at, n] */
+function inkEvent(r, e){ const I = INK; if(!I.r) I.r = r; inkMake(); I.on = true;
+  if(e[1] === 'stamp'){ inkAround(e[5] == null ? 2 : e[5], _ikA, 1); inkStamp(e[2], _ikA.x, _ikA.y, _ikA.z, e[4] || .5, INK_PAL[e[3]] || INK_PAL.party, {tw: 1}); }
+  else if(e[1] === 'toy'){ const n = e[3] || 1; for(let i = 0; i < n; i++) inkDrop(r, e[2], _ikToyN++ + i); if(e[2] === 'chute') inkPuffSnd(); } }
+function inkFinish(){ const I = INK; inkHint(false); inkPropEnd(); I.penOn = null; I.ov.k = 0; I.q = 0; if(I.r) I.r.noSmk = false; }   // (the routine is over: its puffs and toys fade out on their own, inkFrame)
+stage.addEventListener('pointerdown', e=>{ if(WM.on && !WM.done) inkTap(e); }, {passive: true});
+/* ===== dances end ===== */
 /* each aircraft's routine: cam (WM_CAM) and steps [seconds, [move, ...its numbers], ...] played one after the other; the moves of a step play
    together. ['fx', kind, at] puffs or sparks at that part of its step (WM_FX); ['fl', pairs, at] a ripple of flares (Echo & Bravo: FLR);
    ['tw', trick] is one of Ned & Zed's tricks (its step lasts the trick: TWIN_TRICK). A climb that is not undone gets a settle back down at
    the end (WM_SETTLE). Why each fits: WIN_MOVES.md. */
 const WIN_MOVE = {
-  dromader:  {cam: 'q', s: [[1.9, ['dip', .45], ['fx', 'dust', .45]], [1.5, ['hop', .28, 2]], [1.6, ['wag', .5, 2]]]},            // Dusty: a crop duster's low pass with a puff of dust, two happy hops, a wave
-  dromaderf: {cam: 'q', s: [[1.8, ['dip', .4], ['fx', 'splash', .45]], [1.9, ['rise', .7], ['wag', .45, 2]]]},                       // Fire Dusty: a water drop pass, then up and away waving
-  f4u:       {cam: 'q', s: [[1.9, ['roll', 1, -1], ['rise', .35], ['fx', 'puff', .05]], [2.0, ['wag', .55, 2]]]},                     // Skipper: the old Navy victory roll, then a wing-rock salute
-  p51d:      {cam: 'q', s: [[2.8, ['loop', .75], ['fx', 'stars', .5]], [1.0, ['snap', 1]], [1.4, ['pose', .7]]]},                     // Ripslinger: a big loop into a snap roll, then poses for the cameras
-  dh88:      {cam: 'q', s: [[2.6, ['roll', 1, 1], ['rise', .25]], [1.6, ['nod', .3, 1]]]},                                             // Bulldog: a slow, proper roll and a gentleman's bow
+  dromader:  {cam: 'side', tap: 'star', ov: 'roll', s: [[1.1, ['dip', .3], ['fx', 'dust', .4]], [3.7, ['shape', 'star', .8, 'star']], [1.4, ['wag', .5, 2], ['stamp', 'star', .25, 'rainbow', .5, 2]]]},   // Dusty: a low swoop with a puff of dust, then he crop-dusts a giant star across the sky in coloured smoke (a tap: another little star pops out), a wave
+  dromaderf: {cam: 'side', tap: 'rainbow', ov: 'roll', s: [[1.1, ['dip', .35], ['fx', 'splash', .45]], [3.5, ['shape', 'rainbow', 1, 'rainbow'], ['fx', 'splash', .1], ['fx', 'splash', .9]], [1.4, ['wag', .45, 2], ['stamp', 'rainbow', .3, 'rainbow', .6, 2]]]},   // Fire Dusty: he scoops up water in a low swoop, then arcs over a rainbow of water and mist (a tap: a little rainbow pops out), a wave
+  f4u:       {cam: 'side', tap: 'navy', ov: 'roll', s: [[2.9, ['loop', .8], ['pen', 'navy', .06, .94]], [1.9, ['pose', .8], ['nod', .12, 1], ['stamp', 'star', .2, 'navy', .5, 2], ['stamp', 'star', .5, 'navy', .5, 1], ['stamp', 'star', .8, 'navy', .55, 0]], [1.1, ['wag', .5, 1]]]},   // Skipper: a proud victory loop that leaves a red, white and blue ribbon, then a salute: he banks to show his good side and nods, as stars burst (a tap: a bugle call and a star)
+  p51d:      {cam: 'q', tap: 'one', ov: 'roll', s: [[2.3, ['barrel', .5, 1], ['pen', 'corkscrew', .05, .95]], [3.0, ['shape', 'one', .8, 'one']], [1.4, ['pose', .7], ['stamp', 'star', .2, 'flash', .45, 1], ['stamp', 'star', .55, 'flash', .45, 0]]]},   // Ripslinger: a show-off barrel roll in a corkscrew of white smoke, a big smoke number 1 in red and gold, then a pose for the cameras with flashes (a tap: a camera flash and another 1)
+  dh88:      {cam: 'q', tap: 'tea', ov: 'wag', toys: ['cup', 'umb'], s: [[1.7, ['rise', .22], ['sway', .12, 1]], [1.7, ['pose', .9], ['nod', .22, 1], ['toy', 'cup', .45, 1]], [1.6, ['bow', .3], ['toy', 'umb', .3, 1]], [1.4, ['wag', .3, 1], ['toy', 'cup', .4, 1]]]},   // Bulldog: a polite pass, he tips a wing like a hat, a teacup pops out as he bows, then a little umbrella (a tap: another teacup or umbrella and a ting)
   geebee2:   {cam: 'front', s: [[.9, ['hop', .07, 1], ['mc', 'go', .17]], [3.6, ['hop', .08, 8], ['wag', .2, 4], ['tailwag', .1, 4]], [.9, ['nod', .12, 1]]]},   // El Chupacabra 2, the maracas: a strut (hops), two painted maracas pop out beside the cockpit and shake in time (wing wiggle, rattle, music notes, his line), then tuck away
   geebee:    {cam: 'front', s: [[3.6, ['cuban', .42]], [1.2, ['tailwag', .35, 3]], [1.0, ['snap', -1], ['fx', 'stars', .7]]]},             // El Chupacabra: a Cuban eight, a little dance, a snap roll and confetti: ¡Olé!
-  longez:    {cam: 'front', s: [[3.6, ['eight', .7]], [2.2, ['roll', 1, 1]]]},                                                          // Ishani: a graceful figure eight, a slow roll
-  bonanza:   {cam: 'front', s: [[2.8, ['spiral', .4, 1, .55]], [1.8, ['wag', .4, 2]]]},                                                 // Rochelle: a twirling climb like a skater, then waves au revoir
-  stearman:  {cam: 'q', s: [[1.0, ['hop', .25, 1]], [3.2, ['loop', .7]], [1.2, ['wag', .35, 1]]]},                                     // Leadbottom: "well, I'll be!", an old barnstormer's loop, a wave
+  longez:    {cam: 'front', tap: 'sparkle', ov: 'roll', s: [[3.9, ['spiral', .55, 1.5, .9], ['pen', 'sparkle', .03, .97]], [1.6, ['roll', 1, 1], ['stamp', 'star', .3, 'gold', .6, 2]], [.9, ['wag', .3, 1]]]},   // Ishani: a graceful spiral climb that leaves a trail of twinkling sparkles, a slow roll and a star at the top (a tap: a ring of sparkles)
+  bonanza:   {cam: 'side', tap: 'heart', ov: 'wag', s: [[1.2, ['rise', .15]], [3.8, ['shape', 'heart', 1, 'heart']], [1.4, ['wag', .4, 2], ['stamp', 'heart', .3, 'pink', .45, 1], ['stamp', 'heart', .6, 'pink', .4, 0]]]},   // Rochelle: she draws a big heart in pink smoke, then waves au revoir with little hearts (a tap: another heart and a kiss)
+  stearman:  {cam: 'side', tap: 'balloon', ov: 'roll', toys: ['balloon'], s: [[1.0, ['hop', .25, 1], ['toy', 'balloon', .3, 3]], [3.2, ['loop', .7], ['toy', 'balloon', .35, 3]], [1.2, ['wag', .35, 1], ['toy', 'balloon', .3, 2]]]},   // Leadbottom: an old barnstormer's air-fair: a hop and a bunch of balloons let go, a loop (more balloons), a wave (a tap: two more balloons)
   cap10:     {cam: 'front', s: [[2.4, ['tw', 'split']], [2.3, ['tw', 'cross']], [1.7, ['tw', 'mroll']]]},                              // Ned & Zed: the split, the crossover, the mirror roll, in unison
   f18:       {cam: 'fl', settle: 2.0, s: [[1.0, ['roll', 1, 1]], [4.4, ['lob', .6, 3.6, 2], ['fx', 'boom', .06], ['fl', 3, .4], ['fl', 4, .49], ['fl', 4, .565], ['fl', 5, .64]]]},   // Echo & Bravo: an aileron roll, then a forward lob: a long climb at an angle rolling (nearly twice as long as it was, over two plane sizes up before the first flare pops, 2026-10-21: the owner could not tell what the flares were doing; the settle back to the line takes 2.0 s: the lob ends so far ahead that .9 s flew it backwards over the ground), then the flares pop near the top of the climb and over it (the biggest fan on the way down), a flat arc over the top and a dive down the same line, moving forward all the way (owner, 2026-10-17; forward since 2026-10-19: "not a vertical lift and drop")
-  aerocar:   {cam: 'front', s: [[1.8, ['hop', .2, 3]], [1.6, ['wheelie']], [1.2, ['tailwag', .3, 2]]]},                                // Franz: bumpy-road hops, a wheelie, a wiggle: beep beep!
+  aerocar:   {cam: 'side', tap: 'honk', ov: 'hop', s: [[1.3, ['hop', .2, 3]], [3.6, ['shape', 'road', .85, 'road']], [1.6, ['wheelie'], ['stamp', 'burst', .3, 'party', .5, 1]]]},   // Franz: bumpy-road hops, then he drives a winding road up into the sky (a road of grey and yellow dashes), a wheelie and a beep beep (a tap: a honk)
   albatross: {cam: 'drop', s: [[1.3, ['hop', .16, 2], ['wag', .3, 1]], [3.9, ['dip', .18], ['pose', -.3], ['lurch', .12, .2], ['drop', .12]], [1.0, ['hop', .26, 1]]]},   // Lil' Dipper: a short hop and wave for joy, then a low pass with her belly hatch open and a curtain of water pouring out over what lies below, the hatch shut, one big hop (2026-10-21, the owner: "open up the hatch bay under it and release all the water like it would over a fire")
-  aw139:     {cam: 'front', s: [[2.6, ['pirouette', 1, 1]], [1.8, ['bow', .35]]]},                                                      // Blade Ranger: a crisp pirouette, a bow
-  skycrane:  {cam: 'front', s: [[2.8, ['sway', .4, 1], ['rise', .4]], [2.0, ['bow', .3]]]},                                            // Windlifter: rises swaying like a tree in the wind, a slow deep bow
-  c119:      {cam: 'q', s: [[3.4, ['barrel', .45, 1]], [1.6, ['wag', .3, 1]]]},                                                         // Cabbie: a lazy barrel roll, a tip of the wings
+  aw139:     {cam: 'front', tap: 'beam', ov: 'spin', prop: 'beam', s: [[1.0, ['rise', .15]], [3.4, ['pirouette', 1, 1]], [1.6, ['bow', .3], ['stamp', 'ring', .3, 'gold', .6, 2]]]},   // Blade Ranger: a rescue pass, a pirouette as his searchlight sweeps the sky, a bow (a tap: the light flashes bright with a siren and he spins again)
+  skycrane:  {cam: 'front', tap: 'trophy', ov: 'hop', prop: 'trophy', s: [[3.0, ['sway', .35, 1], ['rise', .4]], [2.2, ['bow', .25], ['stamp', 'star', .3, 'gold', .6, 2]], [1.4, ['hop', .12, 1]]]},   // Windlifter: he lifts a giant golden trophy on a cable, rises swaying with it, a slow deep bow (a tap: the trophy swings and glints)
+  c119:      {cam: 'q', tap: 'chute', ov: 'wag', toys: ['chute'], s: [[1.2, ['hop', .12, 1]], [3.4, ['rise', .3], ['wag', .15, 1.5], ['toy', 'chute', .08, 1], ['toy', 'chute', .26, 1], ['toy', 'chute', .44, 1], ['toy', 'chute', .62, 1], ['toy', 'chute', .8, 1]], [1.5, ['wag', .3, 1]]]},   // Cabbie: the smokejumpers jump: a row of coloured parachutes with tiny jumpers float down behind him (a tap: one more parachute)
   beluga:    {cam: 'q', s: [[3.4, ['rise', .25], ['wag', .22, 1.5]]]},                                                                  // the Beluga: a slow stately wing waggle and a gentle climb (then its nose opens)
   shuttle:   {cam: 'q', s: [[3.6, ['roll', 1, 1], ['rise', .2]]]},
   bristles:  {cam: 'front', s: [[1.0, ['hop', .2, 2]], [BB_APART.len + .15, ['apart'], ['wag', .1, 1]], [1.5, ['roll', 1, 1], ['fx', 'stars', .05]], [.8, ['hop', .3, 1], ['fx', 'stars', .5]]]},   // Bristles: two little hops, then its own trick: it comes apart into its blocks and snaps back together (bbApart), a ta-da roll and one big hop                                                                      // Endeavour: a slow roll like a launch's roll program (then its bay opens)
@@ -9323,21 +9604,24 @@ function wmBuild(def){
   st.forEach(s=>{ carry.push(f, u, sd); o.f = o.u = o.s = 0; s.slice(1).forEach(m=>{ const fn = WM_MOVES[m[0]]; if(fn) fn(o, 1, m[1], m[2], m[3]); }); f += o.f; u += o.u; sd += o.s; });
   if(Math.abs(f) + Math.abs(u) + Math.abs(sd) > .01){ st.push([def.settle || WM_SETTLE, 'settle']); carry.push(f, u, sd); }   // (def.settle: a routine that ends far ahead of its line takes longer to come back, so it never flies backwards over the ground)
   const t0 = new Float32Array(st.length), ev = []; let t = 0; st.forEach((s, i)=>{ t0[i] = t; t += s[0]; });
-  st.forEach((s, i)=>s.slice(1).forEach(m=>{ if(m[0] === 'fx' || m[0] === 'fl') ev.push([t0[i] + (m[2] || 0)*s[0], m[0], m[1]]); if(m[0] === 'tw') ev.push([t0[i] + .02, 'tw', m[1], m[2]]); }));
+  const pens = []; st.forEach((s, i)=>s.slice(1).forEach(m=>{ if(m[0] === 'fx' || m[0] === 'fl') ev.push([t0[i] + (m[2] || 0)*s[0], m[0], m[1]]); if(m[0] === 'tw') ev.push([t0[i] + .02, 'tw', m[1], m[2]]);
+    if(m[0] === 'shape') inkShape(m[1]).pens.forEach(([a, b])=>pens.push({t0: t0[i] + inkUOf(a)*s[0], t1: t0[i] + inkUOf(b)*s[0], st: m[3]}));   // (the dances: the pen's stretches of a shape, and of any move: ['pen', style, from, to])
+    if(m[0] === 'pen') pens.push({t0: t0[i] + (m[2] || 0)*s[0], t1: t0[i] + (m[3] == null ? 1 : m[3])*s[0], st: m[1]});
+    if(m[0] === 'stamp') ev.push([t0[i] + (m[2] || 0)*s[0], 'stamp', m[1], m[3], m[4], m[5]]); if(m[0] === 'toy') ev.push([t0[i] + (m[2] || 0)*s[0], 'toy', m[1], m[3]]); }));
   ev.sort((a, b)=>a[0] - b[0]); let bb = null; st.forEach((s, i)=>{ if(s.slice(1).some(m=>Array.isArray(m) && m[0] === 'apart')) bb = t0[i] + .05; });   // bb: Bristles' trick, its pop (bbApartFrame)
   let mc = null; st.forEach((s, i)=>{ const m = s.slice(1).find(m=>Array.isArray(m) && m[0] === 'mc'); if(m) mc = t0[i] + (m[2] || 0)*s[0]; });   // mc: El Chupacabra's maracas, when they start to pop out (mcPose)
   let dd = null; st.forEach((s, i)=>{ const m = s.slice(1).find(m=>Array.isArray(m) && m[0] === 'drop'); if(m) dd = t0[i] + (m[1] || 0)*s[0]; });   // dd: Lil' Dipper's water drop, when her hatch starts to open (ddPose)
-  return {steps: st, carry: Float32Array.from(carry), t0, ev, len: t, bb, dd, mc}; }
+  return {steps: st, carry: Float32Array.from(carry), t0, ev, len: t, bb, dd, mc, pens}; }
 /* the winner (celebrate): its routine starts when the blimp's call of it is over (bw s), or WM_LEAD s after the finish; returns the seconds
    from now to its end (0: none) */
 function wmArm(r, bw, id){
   if(!r || RO.on) return 0; const W = WM; let key = id && WIN_MOVE[id] ? id : r.c.def.id; if(!id && key === 'concorde') key = csTurn(); if(!id && key === 'geebee') key = wmTurn('hangar-wmturn-gb2', 'geebee2', 'geebee');   // (the Concorde: its two shows take turns)
   const B = wmBuild(WIN_MOVE[key] || WIN_MOVE._); wmStop(); CS.peak = CS.hidN = CS.coneN = CS.ringN = 0;
-  Object.assign(W, B, {r, run: RACE.run, id: WIN_MOVE[key] ? key : '_', cam: (WIN_MOVE[key] || WIN_MOVE._).cam || 'q', side: Math.random() < .5 ? 1 : -1, S: Math.max(22, r.c.size),
+  Object.assign(W, B, {r, run: RACE.run, id: WIN_MOVE[key] ? key : '_', def: WIN_MOVE[key] || WIN_MOVE._, cam: (WIN_MOVE[key] || WIN_MOVE._).cam || 'q', side: Math.random() < .5 ? 1 : -1, S: Math.max(22, r.c.size),
     k: 1, lift: 0, tw: !!r.c.pair, why: '', on: false, done: false, pend: null, t: 0, ei: 0, rec: W.recOn ? wmRecNew() : null});
   const lead = Math.max(bw || 0, WM_LEAD); W.at = RACE.clock + lead; r.wm = true; return lead + W.len; }
 const wmHold = w=>!!w && WM.r === w && !WM.done && WM.run === RACE.run;   // armed or flying: the results shot and the cheer wait (raceFrame, celebrate)
-function wmStop(){ const W = WM; if(W.r){ W.r.wm = false; wmPylons(W.r, false); bbApartRest(W.r.c); } csEnd(); W.r = null; W.on = false; W.done = true; W.pend = null; W.pyl = null; flStop(); ddStop(); mcEnd(); }   // (flStop: Echo & Bravo's flares gone too)
+function wmStop(){ const W = WM; if(W.r){ W.r.wm = false; wmPylons(W.r, false); bbApartRest(W.r.c); } csEnd(); W.r = null; W.on = false; W.done = true; W.pend = null; W.pyl = null; flStop(); ddStop(); mcEnd(); inkStop(); }   // (flStop: Echo & Bravo's flares gone too; inkStop: the dances' puffs, toys and props)
 const wmLiftK = t=>shEz(t/WM_UP)*(1 - shEz((t - (WM.len - WM_DOWN))/WM_DOWN));
 /* the routine at time t: its offset in the path frame in feet (o.f ahead, o.u up, o.s to the right) and its extra angles */
 function wmEval(t, o){
@@ -9425,7 +9709,7 @@ function wmBegin(r){
   r.root.updateMatrixWorld(true); c.bb.getCenter(_wmC).multiplyScalar(1/FT); c.model.localToWorld(_wmC);   // (c.bb is in feet, the model's own units are metres)
   if(c.pair){ c.pair.zw.updateWorldMatrix(true, false); c.bb.getCenter(_wmC2).multiplyScalar(1/FT); c.pair.zw.localToWorld(_wmC2); _wmC.lerp(_wmC2, .5); }   // Ned & Zed: between the two
   W.ctr.copy(r.root.worldToLocal(_wmC)); W.A.copy(r.root.position);
-  const t0 = performance.now(); ddBegin(r); if(W.mc != null) mcBegin(r); wmPlan(r); W.ms = performance.now() - t0; newShot('winMove', r); RACE.nextCut = Math.max(RACE.nextCut || 0, RACE.clock + W.len + 1); flBegin(r);
+  const t0 = performance.now(); ddBegin(r); if(W.mc != null) mcBegin(r); inkBegin(r); wmPlan(r); W.ms = performance.now() - t0; newShot('winMove', r); RACE.nextCut = Math.max(RACE.nextCut || 0, RACE.clock + W.len + 1); flBegin(r);
   RACE.confT = Math.min(RACE.confT || 0, RACE.clock - 8); confetti.forEach(p=>{ p.vy *= 2.4; });   // the finish's confetti stops coming back at the top (drawConfetti) and falls away faster, so the routine is not behind it
   W.log.push({id: W.id, plane: c.def.id, wall0: performance.now(), clock0: +RACE.clock.toFixed(2), len: +W.len.toFixed(2), k: W.k, lift: Math.round(W.lift), tw: W.tw, why: W.why, cam: W.cam, side: W.side, blk: W.blk, D: Math.round(W.D), ms: +W.ms.toFixed(1), cull: rCourse && rCourse.cull ? rCourse.cull.length : 0, near: W.nearN, course: rCourse && rCourse.C ? rCourse.C.id : null}); if(W.log.length > 40) W.log.shift(); }
 /* a Word Launch moment or a question card up when it should start: a moment later (the show's doors and the card's limits move with it) */
@@ -9436,22 +9720,25 @@ function wmPose(r, dt){
   if(!W.on){ if(RACE.clock < W.at) return; if(WL.m || (LEARN.q && !LEARN.q.done)){ wmPush(.25); return; } wmBegin(r); }
   W.t += dt; r.twWant = null; r.twLast = RACE.t;   // (Ned & Zed: no trick of their own while it plays)
   if(W.t >= W.len){ wmFinish(r); return; }
-  W.A.copy(r.root.position); const o = wmEval(W.t, _wmO), cy = Math.cos(r.yaw), sy = Math.sin(r.yaw);
+  W.A.copy(r.root.position); const o = wmEval(W.t, _wmO), cy = Math.cos(r.yaw), sy = Math.sin(r.yaw); inkOv(o, r);   // (the extra flip a tap gives, on top)
   _wmC.copy(W.ctr).applyQuaternion(r.root.quaternion);   // its middle before the extra angles, and after: the difference keeps it turning about its middle
   r.root.rotation.x += o.roll; r.root.rotation.z += o.pitch; if(o.yaw) r.root.rotation.y += o.yaw;
   _wmC2.copy(W.ctr).applyQuaternion(r.root.quaternion);
   r.root.position.x += cy*o.f + sy*o.s + _wmC.x - _wmC2.x; r.root.position.y += o.u + _wmC.y - _wmC2.y; r.root.position.z += -sy*o.f + cy*o.s + _wmC.z - _wmC2.z; r.P.copy(r.root.position);
+  inkMidTail(r);   // (the dances: where its middle and its tail are in the frame, for the pen, the stamps and a tap)
   while(W.ei < W.ev.length && W.t >= W.ev[W.ei][0]){ const e = W.ev[W.ei];
     if(e[1] === 'fx') wmFx(r, e[2]);
     else if(e[1] === 'fl') flBurst(r, e[2]);   // Echo & Bravo: a ripple of flares (FLR)
+    else if(e[1] === 'stamp' || e[1] === 'toy') inkEvent(r, e);   // (the dances: a stamp or a toy)
     else if(e[1] === 'tw' && W.tw && r.c.pair && !twinTrick(r.c, e[2], e[3]) && W.t < e[0] + .4) break;   // (a trick still running: this one a moment later)
     W.ei++; }
   if(r.c.def.id === 'concorde') csFrame(r, o);   // the Concorde's vapour cone, boom rings and edge of space
   if(W.bb != null) bbApartFrame(r, W.t - W.bb);   // Bristles: its blocks come off and snap back (bbApart)
   if(W.mc != null) mcPose(r, W.t - W.mc);   // El Chupacabra: his maracas
   if(W.dd != null) ddPose(r, W.t - W.dd);   // Lil' Dipper: her hatch and its water (ddFrame pours it)
+  inkPen(r, dt); inkPropPose(r, dt);   // the dances: the pen's puffs, the beam and the trophy
   if(W.rec) wmRecFrame(r); }
-function wmFinish(r){ const W = WM; W.on = false; W.done = true; r.wm = false; wmPylons(r, false); bbApartRest(r.c); ddEnd(); csEnd(); mcEnd(); const L = W.log[W.log.length - 1]; if(L){ L.wall1 = performance.now(); L.t = +W.t.toFixed(2); }
+function wmFinish(r){ const W = WM; W.on = false; W.done = true; r.wm = false; wmPylons(r, false); bbApartRest(r.c); ddEnd(); csEnd(); mcEnd(); inkFinish(); const L = W.log[W.log.length - 1]; if(L){ L.wall1 = performance.now(); L.t = +W.t.toFixed(2); }
   if(RACE.shot && RACE.shot.type === 'winMove'){ if(r.finished !== null) newShot('results', r); else RACE.nextCut = RACE.clock; }   // (the debug hook's routine in the middle of a race: back to the usual shots)
   if(r.finished !== null && W.run === RACE.run){ const sh = SHOW.c === r.c && SHOW.ctx === 'race' ? WM_GAP + (SHOW_REVEAL[r.c.def.id] || 0) : 0;   // the card's wall-clock limit (celebrate) counts again from now: the routine runs on the
     RACE.winEnd = Math.max(RACE.winEnd || 0, performance.now() + ((RACE.winCap || 12) + sh)*1000); }   // race's clock, which slow frames stretch (dt is capped), so a limit counted from the finish could cut it and the cheer
@@ -15733,6 +16020,8 @@ if(window.__hangar) window.__hangar.partAt = gid=>{ const g = cur && cur.groups[
 if(window.__hangar) Object.assign(window.__hangar, {
   winMove: id=>{ if(!RACE.on || !RACE.racers.length) return null; const r = RACE.finishers[0] || RACE.racers[0], e = wmArm(r, 0, id); if(!e) return null; WM.at = RACE.clock;   // a plane's routine (id; the plane's own without one) on the winner, or in the middle of a race on his plane
     if(r.finished === null) RACE.nextCut = RACE.clock + e + 1; return {id: WM.id, on: r.c.def.id, len: +WM.len.toFixed(2)}; },
+  inkInfo: ()=>{ const I = INK; return {on: I.on, live: I.live, taps: I.taps, ov: I.ov.k, q: I.q, st: Object.assign({}, I.st), toys: I.toys.filter(t=>t.b > -50).length, toysMade: I.toys.length, prop: I.prop && I.prop.kind, hint: !!I.hint && !I.hint.hidden, noSmk: !!(I.r && I.r.noSmk), group: !!(I.g && I.g.parent), pens: WM.pens ? WM.pens.map(p=>[+p.t0.toFixed(2), +p.t1.toFixed(2), p.st]) : null, cap: SMOKE.cap, def: WM.def && WM.def.tap}; },   // the dances: the ink now (tests)
+  inkShape: name=>{ const S = inkShape(name); return {L: +S.L.toFixed(2), end: S.end, pens: S.pens, h1: +(S.H[S.N - 1]*180/Math.PI).toFixed(1), x: [Math.min(...S.X), Math.max(...S.X)].map(v=>+v.toFixed(2)), y: [Math.min(...S.Y), Math.max(...S.Y)].map(v=>+v.toFixed(2))}; },
   mcInfo: ()=>{ const S = MC.st; return {on: !!MC.g, inScene: !!MC.g && !!MC.g.parent, arms: MC.arms.length, shown: MC.arms.filter(a=>a.piv.visible).length, scale: MC.arms.map(a=>+a.piv.scale.x.toFixed(2)), notes: MC.sp ? MC.sp.filter(n=>n.s.visible).length : 0, st: S && Object.assign({}, S), turn: saveGet('hangar-wmturn-gb2')}; },
   winMoveInfo: ()=>{ const W = WM, i = W.steps ? Math.max(0, W.t0.findIndex((t, k)=>W.t >= t && (k === W.t0.length - 1 || W.t < W.t0[k + 1]))) : -1;
     return {table: Object.fromEntries(Object.entries(WIN_MOVE).map(([k, v])=>{ const B = wmBuild(v); return [k, {cam: v.cam, len: +B.len.toFixed(2), steps: B.steps.map(s=>[s[0]].concat(s.slice(1).map(m=>Array.isArray(m) ? m.join(' ') : m)))}]; })),
