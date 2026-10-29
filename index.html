@@ -9416,7 +9416,7 @@ function inkStamp(name, f, u, s, scale, pal, o){ const I = INK; inkMake(); I.on 
   for(let i = 0; i < pts.length; i++){ const p = pts[i], col = inkCol(pal[(name === 'rainbow' ? p[2] : i) % nc]), k = inkPuff(f, u, s, col, size, .15, life*(.85 + Math.random()*.3), .95, I.t + (op.delay || 0) + i*(op.stag || 0), op.tw ? 1 : 0, (op.rise == null ? .09 : op.rise)*sz), j = k*3;
     I.O[j] = (I.cr.x*p[0] + I.cu.x*p[1])*R; I.O[j + 1] = (I.cr.y*p[0] + I.cu.y*p[1])*R; I.O[j + 2] = (I.cr.z*p[0] + I.cu.z*p[1])*R; I.T[k] = op.pop || .28; } }
 /* ---- the toys: a few paper-doll sprites, drawn when the show starts (def.toys), freed at its end */
-const INK_TOYK = {chute: {w: .62, h: .78, n: 5}, cup: {w: .55, h: .55, n: 2}, umb: {w: .62, h: .62, n: 2}, balloon: {w: .34, h: .52, n: 6}};
+const INK_TOYK = {chute: {w: .42, h: .54, n: 5}, cup: {w: .55, h: .55, n: 2}, umb: {w: .62, h: .62, n: 2}, balloon: {w: .34, h: .52, n: 6}};
 const INK_CHUTE = ['#ff3b30', '#ffd60a', '#35b8ff', '#34c759', '#ff7ab8'];
 function inkCv(w, h, f){ const cv = document.createElement('canvas'); cv.width = w; cv.height = h; f(cv.getContext('2d'), w, h); const t = new T.CanvasTexture(cv); INK.tex.push(t); return t; }
 function inkDrawToy(kind, i){
@@ -9516,7 +9516,7 @@ function inkShow(shape, k, pal, scale, o){ inkAround(k, _ikA, 1); inkStamp(shape
 function inkBurst(r, cols){ const L = cols.map(c=>typeof c === 'string' ? inkCol(c) : c); inkWorld(INK.mid.x, INK.mid.y, INK.mid.z, _ikA); fxBurst(_ikA, 22, 44, Math.max(3, r.c.size*.085), L, 1.1, 14); }
 /* a toy sent from the plane: a parachute from under its tail, a balloon from over its cockpit, a cup or an umbrella round it */
 function inkDrop(r, kind, k){ const I = INK, sz = r.c.size; let T0 = null;
-  if(kind === 'chute') T0 = inkToy('chute', I.mid.x + (I.tail.x - I.mid.x)*.55, I.tail.y - .06*sz, I.tail.z, {vf: -.45, vu: -.05, life: 4.2, n: k});
+  if(kind === 'chute') T0 = inkToy('chute', I.mid.x + (I.tail.x - I.mid.x)*(.1 + .16*(k % 5)), I.mid.y - .12*sz, I.tail.z, {vf: -.25, vu: -.05, life: 4.2, n: k});
   else if(kind === 'balloon') T0 = inkToy('balloon', I.mid.x + (Math.random() - .5)*.4*sz, I.mid.y + .15*sz, I.mid.z, {vf: -.3 - Math.random()*.3, vu: .25 + Math.random()*.2, life: 4.2, n: k});
   else { inkAround(k, _ikA, .9, INK_TSPOT); T0 = inkToy(kind, _ikA.x, _ikA.y, _ikA.z, {vf: -.05, vu: .02, life: 3.2, n: k}); }
   return T0; }
