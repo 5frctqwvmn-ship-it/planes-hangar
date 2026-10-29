@@ -7295,7 +7295,7 @@ function lfContext(K){
   X.at = (u, off)=>{ const uu = ((u % 1) + 1) % 1, q = curve.getPointAt(uu), tg = curve.getTangentAt(uu), nl = Math.hypot(tg.x, tg.z) || 1, tx = tg.x/nl, tz = tg.z/nl, x = q.x - tz*off, z = q.z + tx*off; return {x, z, y:X.ground(x, z), py:q.y, tx, tz, u:uu}; };
   /* a spot on the ground beside the racing line: o = {dmin, dmax, r (room it needs), test(y, x, z), u0, u1 (stretch of the lap), claim} */
   X.spot = o=>{ for(let k = 0; k < (o.tries || 80); k++){ const u = (o.u0 || 0) + LF.r()*((o.u1 === undefined ? 1 : o.u1) - (o.u0 || 0)), off = ((o.dmin || 150) + LF.r()*((o.dmax || 600) - (o.dmin || 150)))*(o.side || (LF.r() < .5 ? 1 : -1)), p = X.at(u, off);
-      if(!X.free(p.x, p.z, o.r || 20, o.dmin || 150)) continue; if(o.test && !o.test(p.y, p.x, p.z)) continue; if(o.claim !== false) X.claim(p.x, p.z, o.r || 20); p.off = off; return p; } return null; };
+      if(!X.free(p.x, p.z, o.r || 20, o.dmin || 150)) continue; if(o.test && !o.test(H(p.x, p.z), p.x, p.z)) continue; if(o.claim !== false) X.claim(p.x, p.z, o.r || 20); p.off = off; return p; } return null; };
   X.site = (name, x, y, z, tx, tz)=>{ LF.sites.push(tx === undefined ? [name, Math.round(x), Math.round(y), Math.round(z)] : [name, Math.round(x), Math.round(y), Math.round(z), +tx.toFixed(3), +tz.toFixed(3)]); };
   X.shade = (x, z, r, a)=>{ if(K.shadeDot) K.shadeDot(x, z, r, a === undefined ? .4 : a); };
   return X; }
@@ -7539,6 +7539,82 @@ LIFE.mountain = X=>{
   st.mesh(null, 'alpinestuff'); if(sn.P.length) sn.mesh(LF.matG, 'drifts');
   if(sm.length) lfPuffs(sm.length*6, (i, t, p)=>{ const e = sm[i % sm.length], age = (t/4.5 + i*.171) % 1; p.x = e[0] + age*16 + Math.sin(i*3 + age*5)*2; p.y = e[1] + age*40; p.z = e[2] + age*6; p.s = 5 + age*14; p.a = (1 - age)*.6*Math.min(1, age*8); p.r = p.g = p.b = .92; }, {col:'#f2f2f2', region:[sm[0][0], sm[0][1], sm[0][2], 2600], name:'smoke', f:3200});
   for(let k = 0; k < 2; k++){ const p = X.spot({dmin:300, dmax:800, r:150, test:(y)=>y > wl + 3}); if(p) lfBirds(4, p.x, p.y + 140, p.z, 150, {col:'#2a2c32', wing:'#22242a', tip:'#2a2c32', beak:'#2a2c32', size:2.4, speed:.14, flap:5, dir:k ? 1 : -1, name:'ravens', f:4500}); }
+};
+/* ===== course life: Lighthouse Coast (a sweeping lighthouse beam, sailboats bobbing, a whale with its spout, surf breaking on sea stacks and
+   the shore, seagulls, a seaside pier with a turning ferris wheel, a row of colourful cottages) ===== */
+function lfTex(w, h, draw){ const cv = document.createElement('canvas'); cv.width = w; cv.height = h; draw(cv.getContext('2d'), w, h); const t = new T.CanvasTexture(cv); t.encoding = T.sRGBEncoding; LF.texs.push(t); return t; }
+/* a flat foam sprite that pulses: n instances of a horizontal plane with a texture, fn(i, t, m) sets each matrix */
+function lfFoam(tex, n, region, fn, o){ o = o || {}; const g = new T.PlaneGeometry(1, 1); g.rotateX(-Math.PI/2); LF.geos.push(g); g.boundingSphere = new T.Sphere(V(region[0], region[1], region[2]), region[3]);
+  const mat = new T.MeshBasicMaterial({map:tex, transparent:true, depthWrite:false, opacity:o.opacity || .85, fog:true, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4}); LF.mats.push(mat);
+  const im = new T.InstancedMesh(g, mat, n), m = new T.Matrix4(); im.instanceMatrix.setUsage(T.DynamicDrawUsage); im.name = o.name || 'foam'; im.renderOrder = 4;
+  const upd = t=>{ for(let i = 0; i < n; i++){ fn(i, t, m); im.setMatrixAt(i, m); } im.instanceMatrix.needsUpdate = true; }; upd(0); LF.anim.push(upd); lfReg(im, g.boundingSphere.center, region[3], o.f); return im; }
+/* a mesh that turns: bag built about its own origin, placed at x y z, yawed by ry, spun about its own axis (axis 'y' or 'z') by rate*t */
+function lfSpin(bag, x, y, z, ry, axis, rate, mat, name, f){ const g = bag.geo(), m = new T.Mesh(g, mat || LF.mat); m.position.set(x, y, z); m.rotation.y = ry; m.name = name || 'spin'; g.computeBoundingSphere();
+  const r = g.boundingSphere.radius; lfReg(m, V(x, y, z), r + 4, f); if(axis === 'z'){ LF.anim.push(t=>{ m.rotation.z = rate*t; }); } else { LF.anim.push(t=>{ m.rotation.y = ry + rate*t; }); } return m; }
+/* dolphin pods leaping out of the water in arcs, n of them from anchors [x, z] (X.spot on water): a jump every few seconds, under the surface between */
+function lfDolphins(X, anchors, o){ o = o || {}; const wl = X.wl, db = new LBag(), n = anchors.length, cyc = o.cyc || 5.5, D = o.D || 80, Hh = o.H || 26, sz = o.s || 1.5;
+  db.add('sph', '#5f7a93', 0, 0, 0, 7, 2.4, 2.6); db.add('sph', '#e8eef2', 0, -1, 0, 6.4, 1.4, 2.2); db.add('cone6', '#5f7a93', 7, 0, 0, 1.1, 4, 1.1, 0, 0, -Math.PI/2); db.add('prism', '#4f6a82', -.5, 1.8, 0, 3.4, 3, .5, 0, 0, 0);
+  db.add('box', '#4f6a82', -8, 0, 0, 3, .5, 6, 0, 0, .2); db.add('cone6', '#5f7a93', -7, 0, 0, 1.2, 4, 1.2, 0, 0, Math.PI/2);
+  return lfAnim(db, n, (i, t, m)=>{ const a = anchors[i], c = t/cyc + a.ph, k = Math.floor(c), q = (c - k)/.46; if(q >= 1){ m.makeScale(0, 0, 0); return; }
+    const h = hash2(i*17 + k, k*5 + i)*6.283, ca = Math.cos(h), sa = Math.sin(h), s = (q - .5)*D, y = Hh*4*q*(1 - q), dy = Hh*4*(1 - 2*q)/(.46*cyc)/ (D/(.46*cyc)); lfPut(m, a.x + ca*s + (hash2(k, i)*60 - 30), wl + y - 4, a.z - sa*s, h, 0, Math.atan2(dy*4, 1)*.5, sz, sz, sz); }, [anchors[0].x, wl, anchors[0].z, o.region || 7000], {name:'dolphins', f:3400}); }
+/* a long soft beam of light from the origin along +x, fading out (vertex colours into an additive material) */
+LBag.prototype.light = function(len, r0, r1, c0, n, segs){ const c = lfCol(c0); n = n || 10; segs = segs || 5;
+  for(let s = 0; s < segs; s++){ const f0 = s/segs, f1 = (s + 1)/segs, x0 = f0*len, x1 = f1*len, a0 = r0 + (r1 - r0)*f0, a1 = r0 + (r1 - r0)*f1, k0 = Math.pow(1 - f0, 1.6), k1 = Math.pow(1 - f1, 1.6);
+    for(let i = 0; i < n; i++){ const t0 = i/n*6.2832, t1 = (i + 1)/n*6.2832, q = [[x0, Math.cos(t0)*a0, Math.sin(t0)*a0, k0], [x0, Math.cos(t1)*a0, Math.sin(t1)*a0, k0], [x1, Math.cos(t1)*a1, Math.sin(t1)*a1, k1], [x1, Math.cos(t0)*a1, Math.sin(t0)*a1, k1]];
+      [[0, 1, 2], [0, 2, 3]].forEach(tr=>tr.forEach(j=>{ const p = q[j]; this.P.push(p[0], p[1], p[2]); this.N.push(0, 1, 0); this.C.push(c.r*p[3], c.g*p[3], c.b*p[3]); })); } } return this; };
+function lfSailboat(b){ b.add('box', '#ffffff', 0, 1, 0, 24, 4, 7); b.add('prism', '#ffffff', 13, 1, 0, 7, 4, 4, Math.PI/2, 0, 0); b.add('box', '#e8e4da', 0, 5, 0, 13, 1.4, 5.6);
+  b.add('cyl6', '#d9d5c8', 1, 5, 0, .5, 34, .5); b.add('prism', '#ffffff', -2.5, 11, 0, 17, 24, .5); b.add('prism', '#ffffff', 5.5, 8, 0, 10, 17, .4, Math.PI); b.add('box', '#c24a3a', 0, -.6, 0, 24.5, 1.2, 7.4); }
+LIFE.coast = X=>{
+  const {H, wl, K} = X, g = LF.g, st = new LBag();
+  const sea = (y)=>y < wl - 14, beach = (y, x, z)=>y > wl + 1.5 && y < wl + 9;
+  /* the lighthouse: two long beams sweep round, and its lamp glows */
+  { let lh = null; K.group.children.forEach(o=>{ if(o.name === 'building' && o.children.length >= 5 && o.children.some(c=>c.isGroup)) lh = o; });
+    if(lh){ const lx = lh.position.x, ly = lh.position.y + 118, lz = lh.position.z; [0, Math.PI].forEach((ph, k)=>{ const bb = new LBag(); bb.light(1400, 5, 70, k ? '#ffd98a' : '#ffe9b0', 12, 6); const m = lfSpin(bb, lx, ly, lz, ph, 'y', .9, LF.matA, 'beam', 6500); m.renderOrder = 5; });
+      lfPuffs(1, (i, t, p)=>{ p.x = lx; p.y = ly; p.z = lz; p.s = 30 + Math.sin(t*3)*3; p.a = .5; p.r = 1; p.g = .9; p.b = .6; }, {col:'#ffe9a8', add:true, region:[lx, ly, lz, 60], name:'lamp', f:6500}); X.site('lighthouse', lx, ly - 30, lz, 1, 0); X.claim(lx, lz, 60); } }
+  /* sea stacks with surf breaking round them */
+  const stacks = []; for(let k = 0; k < 20; k++){ const p = X.spot({dmin:170, dmax:600, r:50, test:(y)=>y < wl - 5 && y > wl - 40}); if(!p) continue; const s = 14 + LF.r()*16; stacks.push({x:p.x, z:p.z, s});
+    st.add('ico', '#6e675f', p.x, wl - s*.4, p.z, s, s*(2.4 + LF.r()*1.6), s*.95, LF.r()*3); st.add('ico', '#8b837a', p.x + s*.5, wl - s*.2, p.z - s*.3, s*.6, s*(1.4 + LF.r()), s*.55, LF.r()*3); st.add('cone', '#f2f2ee', p.x, wl + s*1.5, p.z, s*.5, s*.6, s*.5); if(k < 2) X.site('seastack', p.x, wl + 20, p.z, p.tx, p.tz); }
+  const ringT = lfTex(128, 128, (c, w, h)=>{ c.clearRect(0, 0, w, h); for(let i = 0; i < 260; i++){ const a = Math.random()*6.283, r = 38 + Math.random()*24, x = w/2 + Math.cos(a)*r, y = h/2 + Math.sin(a)*r; const gr = c.createRadialGradient(x, y, 0, x, y, 5 + Math.random()*7); gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(x - 14, y - 14, 28, 28); } });
+  if(stacks.length) lfFoam(ringT, stacks.length*2, [stacks[0].x, wl, stacks[0].z, 6000], (i, t, m)=>{ const s = stacks[i >> 1], k = i & 1, f = (t*.35 + i*.31) % 1, sc = s.s*(k ? 3.2 : 2.6)*(1.05 + .25*Math.sin(6.283*f)); lfPut(m, s.x, wl + .7, s.z, i, 0, 0, sc, 1, sc); }, {opacity:.9, name:'surf', f:3600});
+  /* surf rolling in on the beaches */
+  { const surf = []; for(let k = 0; k < 18; k++){ const p = X.spot({dmin:140, dmax:700, r:40, test:beach, claim:false}); if(!p) continue; const gx = H(p.x + 12, p.z) - H(p.x - 12, p.z), gz = H(p.x, p.z + 12) - H(p.x, p.z - 12), gl = Math.hypot(gx, gz) || 1; surf.push({x:p.x, z:p.z, nx:gx/gl, nz:gz/gl}); }
+    const stripT = lfTex(256, 64, (c, w, h)=>{ c.clearRect(0, 0, w, h); for(let r = 0; r < 4; r++){ c.fillStyle = `rgba(255,255,255,${.85 - r*.18})`; c.beginPath(); for(let x = 0; x <= w; x += 8){ const y = 14 + r*12 + Math.sin(x*.07 + r)*5 + Math.random()*3; x ? c.lineTo(x, y) : c.moveTo(x, y); } c.lineTo(w, 20 + r*12); for(let x = w; x >= 0; x -= 8) c.lineTo(x, 20 + r*12 + Math.random()*3); c.fill(); } });
+    if(surf.length) lfFoam(stripT, surf.length, [surf[0].x, wl, surf[0].z, 7000], (i, t, m)=>{ const s = surf[i], f = (t*.28 + i*.37) % 1, off = (1 - f)*34 - 8, sc = 150*(.9 + .3*Math.sin(i)), fd = Math.sin(Math.PI*f); lfPut(m, s.x - s.nx*off, wl + .8, s.z - s.nz*off, Math.atan2(-s.nx, -s.nz), 0, 0, sc, 1, sc*.22*(.15 + .85*fd)); }, {opacity:.8, name:'shore', f:3400}); }
+  /* sailboats */
+  { const sb = new LBag(); lfSailboat(sb); const B = [], tints = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0', '#ffffff'];
+    for(let k = 0; k < 20; k++){ const p = X.spot({dmin:170, dmax:750, r:110, test:(y, x, z)=>y < wl - 20 && H(x + 130, z) < wl - 10 && H(x - 130, z) < wl - 10 && H(x, z + 130) < wl - 10 && H(x, z - 130) < wl - 10}); if(!p) continue; B.push({x:p.x, z:p.z, R:70 + LF.r()*50, ph:LF.r()*6.28, w:(.1 + LF.r()*.05)*(LF.r() < .5 ? 1 : -1), s:1.3 + LF.r()*.5}); if(B.length < 3) X.site('sailboat', p.x, wl + 20, p.z, p.tx, p.tz); }
+    if(B.length) lfAnim(sb, B.length, (i, t, m)=>{ const b = B[i], a = b.ph + t*b.w, hd = a + (b.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, b.x + Math.cos(a)*b.R, wl + Math.sin(t*1.3 + i*2)*1.4, b.z + Math.sin(a)*b.R, -hd, .15*(b.w > 0 ? -1 : 1) + Math.sin(t*.9 + i)*.05, Math.sin(t*1.1 + i)*.04, b.s, b.s, b.s); }, [B[0].x, wl + 10, B[0].z, 7000], {name:'sailboats', tint:B.map((b, i)=>tints[i % tints.length]), f:3600}); }
+  /* whales: a back and a tail rolling through the water, a spout of spray at each breath */
+  { const W = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:220, dmax:800, r:200, test:(y, x, z)=>y < wl - 50 && H(x + 160, z) < wl - 30 && H(x - 160, z) < wl - 30 && H(x, z + 160) < wl - 30 && H(x, z - 160) < wl - 30}); if(p){ W.push({x:p.x, z:p.z, R:100 + LF.r()*40, ph:LF.r()*6.28, w:.05*(k ? 1 : -1), c:6.5 + k*1.7}); X.site('whale', p.x, wl + 40, p.z, p.tx, p.tz); } }
+    if(W.length){ const wb = new LBag(); wb.add('sph', '#3c4f66', 0, 0, 0, 26, 8, 9); wb.add('sph', '#3c4f66', 14, -.5, 0, 14, 7.5, 8.4); wb.add('sph', '#dfe6ee', 10, -3.5, 0, 14, 4.2, 7); wb.add('sph', '#3c4f66', -22, 1.5, 0, 12, 4, 4.5); wb.add('box', '#33465c', -31, 2, 0, 5, 1.6, 15, 0, 0, .25); wb.add('box', '#3c4f66', 4, -2, 8, 7, 1.2, 3, .5, 0, .3); wb.add('box', '#3c4f66', 4, -2, -8, 7, 1.2, 3, -.5, 0, -.3);
+      const pose = (i, t, o)=>{ const w = W[i], a = w.ph + t*w.w, ph = t*(6.283/w.c) + i*2; o.x = w.x + Math.cos(a)*w.R; o.z = w.z + Math.sin(a)*w.R; o.y = wl + Math.sin(ph)*6 - 2; o.h = a + (w.w > 0 ? Math.PI/2 : -Math.PI/2); o.p = Math.cos(ph)*.28; o.up = Math.sin(ph); o.ph = ph; return o; }, wp = {x:0, y:0, z:0, h:0, p:0, up:0, ph:0};
+      lfAnim(wb, W.length, (i, t, m)=>{ pose(i, t, wp); lfPut(m, wp.x, wp.y, wp.z, -wp.h, 0, wp.p, 1.2, 1.2, 1.2); }, [W[0].x, wl, W[0].z, 7000], {name:'whales', f:3600});
+      lfPuffs(W.length*14, (i, t, p)=>{ const w = Math.floor(i/14), j = i % 14, f = j/13; pose(w, t, wp); const sp = Math.min(1, (.2 - Math.cos(wp.ph))*2.5)*Math.min(1, (Math.sin(wp.ph) - .15)*4); if(sp <= 0) return;
+        p.x = wp.x + Math.cos(wp.h)*12 + Math.sin(j)*3; p.z = wp.z + Math.sin(wp.h)*12 + Math.cos(j)*3; p.y = wp.y + 9 + f*sp*75; p.s = 5 + f*13; p.a = sp*(1 - f*.55); p.r = p.g = .94; p.b = 1; }, {col:'#ffffff', region:[W[0].x, wl + 30, W[0].z, 7000], name:'spout', f:3600}); } }
+  /* dolphins leaping beside the course */
+  { const A = []; for(let k = 0; k < 4; k++){ const p = X.spot({dmin:170, dmax:420, r:70, test:(y, x, z)=>y < wl - 25}); if(!p) continue; for(let q = 0; q < 3; q++) A.push({x:p.x + (LF.r() - .5)*60, z:p.z + (LF.r() - .5)*60, ph:LF.r()}); if(k < 2) X.site('dolphins', p.x, wl + 15, p.z, p.tx, p.tz); }
+    if(A.length) lfDolphins(X, A, {cyc:5.2, D:70, H:28, s:1.7}); }
+  /* seagulls over the shore and the waves */
+  for(let k = 0; k < 4; k++){ const p = X.spot({dmin:230, dmax:800, r:150, test:(y)=>true, claim:false}); if(p) lfBirds(6, p.x, wl + 80 + LF.r()*80, p.z, 120 + LF.r()*60, {col:'#fafafa', wing:'#f0f0f0', tip:'#3a3f48', beak:'#f2a22a', size:1.7, speed:.2, flap:8, bob:6, dir:k % 2 ? 1 : -1, name:'gulls', f:3000}); }
+  /* a seaside pier with a ferris wheel, and a row of colourful cottages */
+  { const pp = X.spot({dmin:200, dmax:600, r:110, tries:400, test:(y, x, z)=>{ if(!(y > wl + 1 && y < wl + 16)) return false; const gx = H(x + 14, z) - H(x - 14, z), gz = H(x, z + 14) - H(x, z - 14), gl = Math.hypot(gx, gz); if(gl < 1) return false; const sx = -gx/gl, sz = -gz/gl; return H(x + sx*100, z + sz*100) < wl - 6 && H(x + sx*190, z + sz*190) < wl - 6; }}); 
+    if(pp){ const gx = H(pp.x + 14, pp.z) - H(pp.x - 14, pp.z), gz = H(pp.x, pp.z + 14) - H(pp.x, pp.z - 14), gl = Math.hypot(gx, gz) || 1, inx = gx/gl, inz = gz/gl, yaw = Math.atan2(-inz, inx), dx = -inx, dz = -inz;
+      for(let a = 0; a < 190; a += 10){ [-1, 1].forEach(sd=>{ const q = [pp.x + dx*a - dz*sd*10, pp.z + dz*a + dx*sd*10]; st.add('box', '#5a4a3a', q[0], wl - 14, q[1], 1.6, 20, 1.6); }); }
+      const c = [pp.x + dx*95, pp.z + dz*95]; st.add('box', '#b89a6e', c[0], wl + 5, c[1], 190, 1.6, 26, -Math.atan2(dz, dx));
+      [30, 70, 110].forEach((a, i)=>{ [-1, 1].forEach(sd=>{ const q = [pp.x + dx*a - dz*sd*8, pp.z + dz*a + dx*sd*8]; st.add('box', ['#e8353a', '#f4c20d', '#2f9fe0'][i], q[0], wl + 6.6, q[1], 12, 8, 9, -Math.atan2(dz, dx)); st.add('prism', ['#ffffff', '#f2f2f2', '#ffffff'][i], q[0], wl + 14.6, q[1], 10, 4, 14, -Math.atan2(dz, dx) + Math.PI/2); }); });
+      const hx = pp.x + dx*150, hz = pp.z + dz*150, R = 52, hy = wl + R + 14, face = -Math.atan2(dz, dx), wf = new LBag(), cF = Math.cos(face), sF = Math.sin(face);
+      for(let i = 0; i < 24; i++){ const a0 = i/24*6.2832, a1 = (i + 1)/24*6.2832; [-4.5, 4.5].forEach(zz=>{ wf.beam('cyl6', '#f2f2f2', Math.cos(a0)*R, Math.sin(a0)*R, zz, Math.cos(a1)*R, Math.sin(a1)*R, zz, 1.1, 1.1); if(i % 2 === 0) wf.beam('cyl6', '#d9d9d9', 0, 0, zz, Math.cos(a0)*R, Math.sin(a0)*R, zz, .7, .7); }); }
+      wf.add('cyl', '#e8353a', 0, 0, -6, 4, 12, 4, 0, Math.PI/2);
+      lfSpin(wf, hx, hy, hz, face, 'z', .22, null, 'wheel', 5200);
+      [-4.5, 4.5].forEach(zz=>[-1, 1].forEach(sd=>st.beam('cyl6', '#d9d9d9', hx + sF*zz, hy, hz + cF*zz, hx + sF*zz + cF*sd*26, wl + 4, hz + cF*zz - sF*sd*26, 2, 2.4)));
+      const gb = new LBag(); gb.add('box', '#ffffff', 0, -9, 0, 9, 6, 10); gb.add('prism', '#ffffff', 0, -3, 0, 10, 3, 11, 0); gb.add('cyl6', '#999999', 0, -3, 0, .3, 3, .3);
+      const gc = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0', '#31c4c4', '#e8353a', '#f4c20d', '#2f9fe0', '#2eb872'];
+      lfAnim(gb, 12, (i, t, m)=>{ const a = i/12*6.2832 + .22*t; lfPut(m, hx + Math.cos(a)*R*cF, hy + Math.sin(a)*R, hz - Math.cos(a)*R*sF, face, 0, 0, 1.2, 1.2, 1.2); }, [hx, hy, hz, R + 20], {name:'gondolas', tint:gc, f:5200});
+      X.site('ferris', hx, hy, hz, inx, inz); X.claim(pp.x + dx*90, pp.z + dz*90, 110); } }
+  { const cz = X.spot({dmin:200, dmax:520, r:120, test:(y, x, z)=>y > wl + 4 && X.slope(x, z) < .3}); if(cz){ const pc = ['#f6c7c0', '#f4e2a0', '#bfe3d6', '#c6d4f2', '#f6d6a8', '#e6c0e6'];
+      for(let k = 0; k < 8; k++){ const x = cz.x + cz.tx*(k - 3.5)*46, z = cz.z + cz.tz*(k - 3.5)*46; if(H(x, z) < wl + 3 || X.dist(x, z) < 170 || X.slope(x, z) > .5) continue; lfHouse(st, x, H(x, z), z, Math.atan2(-cz.tz, cz.tx), 30, 22, 16, pc[k % 6], ['#c7352e', '#d9682a', '#2f6fb0'][k % 3]); X.shade(x, z, 24, .3); }
+      X.site('cottages', cz.x, cz.y + 20, cz.z, cz.tx, cz.tz); } }
+  st.mesh(null, 'coaststuff');
 };
 function useCourse(idx){
   ensureRaceScene();
