@@ -7393,6 +7393,23 @@ function lfPenguin(b, x, y, z, ry, s, lo){ const at = (a, h, o)=>lfAt(x, y, z, r
   b.add('cone6', '#f29a1c', ...at(1.8*s, 6.6*s, 0), .45*s, 1.3*s, .45*s, ry, 0, -Math.PI/2); [-.8, .8].forEach(o=>b.add('box', '#f29a1c', ...at(.8*s, 0, o*s), 1.5*s, .35*s, .9*s, ry)); [-1, 1].forEach(o=>b.add('box', '#23272e', ...at(0, 3.2*s, o*2*s), .5*s, 2.4*s, .4*s, ry, 0, o*.3)); }
 function lfTent(b, x, y, z, ry, s, col){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o);
   b.add('prism', col, x, y, z, 8*s, 6.4*s, 10*s, ry); b.add('box', '#1c1c20', ...at(0, 0, 4.4*s), 2.6*s, 3.8*s, .5*s, ry); b.add('box', '#f4f1e6', ...at(0, 6.3*s, 0), .5*s, .5*s, 10.4*s, ry); }
+/* sailboats bobbing round in the water: n boats at spots beside the course where the water is deep enough (o.deep feet below the surface) */
+function lfSailboat(b){ b.add('box', '#ffffff', 0, 1, 0, 24, 4, 7); b.add('prism', '#ffffff', 13, 1, 0, 7, 4, 4, Math.PI/2, 0, 0); b.add('box', '#e8e4da', 0, 5, 0, 13, 1.4, 5.6);
+  b.add('cyl6', '#d9d5c8', 1, 5, 0, .5, 34, .5); b.add('prism', '#ffffff', -2.5, 11, 0, 17, 24, .5); b.add('prism', '#ffffff', 5.5, 8, 0, 10, 17, .4, Math.PI); b.add('box', '#c24a3a', 0, -.6, 0, 24.5, 1.2, 7.4); }
+function lfWaterSpot(X, R, deep, dmin, dmax){ const H = X.H, wl = X.wl; return X.spot({dmin, dmax, r:R, test:(y, x, z)=>{ if(y > wl - deep) return false; for(let a = 0; a < 8; a++) if(H(x + Math.cos(a*.785)*R, z + Math.sin(a*.785)*R) > wl - deep*.5) return false; return true; }}); }
+function lfBoats(X, n, o){ o = o || {}; const wl = X.wl, sb = new LBag(); lfSailboat(sb); const B = [], tints = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0', '#ffffff'], sz = o.s || 1;
+  for(let k = 0; k < n; k++){ const p = lfWaterSpot(X, 130, o.deep || 12, o.dmin || 170, o.dmax || 750); if(!p) continue; B.push({x:p.x, z:p.z, R:70 + LF.r()*50, ph:LF.r()*6.28, w:(.1 + LF.r()*.05)*(LF.r() < .5 ? 1 : -1), s:(1.3 + LF.r()*.5)*sz}); if(B.length < 3) X.site('sailboat', p.x, wl + 20, p.z, p.tx, p.tz); }
+  if(B.length) lfAnim(sb, B.length, (i, t, m)=>{ const b = B[i], a = b.ph + t*b.w, hd = a + (b.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, b.x + Math.cos(a)*b.R, wl + Math.sin(t*1.3 + i*2)*1.4, b.z + Math.sin(a)*b.R, -hd, .15*(b.w > 0 ? -1 : 1) + Math.sin(t*.9 + i)*.05, Math.sin(t*1.1 + i)*.04, b.s, b.s, b.s); }, [B[0].x, wl + 10, B[0].z, 7000], {name:'sailboats', tint:B.map((b, i)=>tints[i % tints.length]), f:3600}); return B.length; }
+/* a pier out into the sea with stalls and a ferris wheel at its end: o = {dmin, dmax, R (wheel radius)} (false if no shore fits) */
+function lfPier(X, st, o){ o = o || {}; const {H, wl} = X, R = o.R || 52;
+  const pp = X.spot({dmin:o.dmin || 200, dmax:o.dmax || 600, r:110, tries:600, test:(y, x, z)=>{ if(!(y > wl + 1 && y < wl + 16)) return false; const gx = H(x + 14, z) - H(x - 14, z), gz = H(x, z + 14) - H(x, z - 14), gl = Math.hypot(gx, gz); if(gl < 1) return false; const sx = -gx/gl, sz = -gz/gl; return H(x + sx*100, z + sz*100) < wl - (o.sea1 === undefined ? 6 : o.sea1) && H(x + sx*190, z + sz*190) < wl - (o.sea2 === undefined ? 6 : o.sea2); }});
+  if(!pp) return false;
+  const gx = H(pp.x + 14, pp.z) - H(pp.x - 14, pp.z), gz = H(pp.x, pp.z + 14) - H(pp.x, pp.z - 14), gl = Math.hypot(gx, gz) || 1, inx = gx/gl, inz = gz/gl, dx = -inx, dz = -inz;
+  for(let a = 0; a < 190; a += 10){ [-1, 1].forEach(sd=>{ const q = [pp.x + dx*a - dz*sd*10, pp.z + dz*a + dx*sd*10]; st.add('box', '#5a4a3a', q[0], wl - 14, q[1], 1.6, 20, 1.6); }); }
+  const c = [pp.x + dx*95, pp.z + dz*95]; st.add('box', '#b89a6e', c[0], wl + 5, c[1], 190, 1.6, 26, -Math.atan2(dz, dx));
+  [30, 70, 110].forEach((a, i)=>{ [-1, 1].forEach(sd=>{ const q = [pp.x + dx*a - dz*sd*8, pp.z + dz*a + dx*sd*8]; st.add('box', ['#e8353a', '#f4c20d', '#2f9fe0'][i], q[0], wl + 6.6, q[1], 12, 8, 9, -Math.atan2(dz, dx)); st.add('prism', ['#ffffff', '#f2f2f2', '#ffffff'][i], q[0], wl + 14.6, q[1], 10, 4, 14, -Math.atan2(dz, dx) + Math.PI/2); }); });
+  const hx = pp.x + dx*150, hz = pp.z + dz*150; lfFerris(X, st, hx, wl + R + 14, hz, -Math.atan2(dz, dx), R, wl + 4);
+  X.site('ferris', hx, wl + R + 14, hz, inx, inz); X.claim(pp.x + dx*90, pp.z + dz*90, 110); return true; }
 /* ===== course life: Farmfield Classic (windmills and wind turbines turning, farmyards with cows, sheep, hay and chimney smoke, tulip fields,
    a tractor at work, hot-air balloons, geese) ===== */
 function lfAt(x, y, z, ry, a, h, o){ const cs = Math.cos(ry), sn = Math.sin(ry); return [x + a*cs + o*sn, y + h, z - a*sn + o*cs]; }
@@ -7614,8 +7631,6 @@ LIFE.mountain = X=>{
 };
 /* ===== course life: Lighthouse Coast (a sweeping lighthouse beam, sailboats bobbing, a whale with its spout, surf breaking on sea stacks and
    the shore, seagulls, a seaside pier with a turning ferris wheel, a row of colourful cottages) ===== */
-function lfSailboat(b){ b.add('box', '#ffffff', 0, 1, 0, 24, 4, 7); b.add('prism', '#ffffff', 13, 1, 0, 7, 4, 4, Math.PI/2, 0, 0); b.add('box', '#e8e4da', 0, 5, 0, 13, 1.4, 5.6);
-  b.add('cyl6', '#d9d5c8', 1, 5, 0, .5, 34, .5); b.add('prism', '#ffffff', -2.5, 11, 0, 17, 24, .5); b.add('prism', '#ffffff', 5.5, 8, 0, 10, 17, .4, Math.PI); b.add('box', '#c24a3a', 0, -.6, 0, 24.5, 1.2, 7.4); }
 LIFE.coast = X=>{
   const {H, wl, K} = X, g = LF.g, st = new LBag();
   const sea = (y)=>y < wl - 14, beach = (y, x, z)=>y > wl + 1.5 && y < wl + 9;
@@ -7633,9 +7648,7 @@ LIFE.coast = X=>{
     const stripT = lfTex(256, 64, (c, w, h)=>{ c.clearRect(0, 0, w, h); for(let r = 0; r < 4; r++){ c.fillStyle = `rgba(255,255,255,${.85 - r*.18})`; c.beginPath(); for(let x = 0; x <= w; x += 8){ const y = 14 + r*12 + Math.sin(x*.07 + r)*5 + Math.random()*3; x ? c.lineTo(x, y) : c.moveTo(x, y); } c.lineTo(w, 20 + r*12); for(let x = w; x >= 0; x -= 8) c.lineTo(x, 20 + r*12 + Math.random()*3); c.fill(); } });
     if(surf.length) lfFoam(stripT, surf.length, [surf[0].x, wl, surf[0].z, 7000], (i, t, m)=>{ const s = surf[i], f = (t*.28 + i*.37) % 1, off = (1 - f)*34 - 8, sc = 150*(.9 + .3*Math.sin(i)), fd = Math.sin(Math.PI*f); lfPut(m, s.x - s.nx*off, wl + .8, s.z - s.nz*off, Math.atan2(-s.nx, -s.nz), 0, 0, sc, 1, sc*.22*(.15 + .85*fd)); }, {opacity:.8, name:'shore', f:3400}); }
   /* sailboats */
-  { const sb = new LBag(); lfSailboat(sb); const B = [], tints = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0', '#ffffff'];
-    for(let k = 0; k < 20; k++){ const p = X.spot({dmin:170, dmax:750, r:110, test:(y, x, z)=>y < wl - 20 && H(x + 130, z) < wl - 10 && H(x - 130, z) < wl - 10 && H(x, z + 130) < wl - 10 && H(x, z - 130) < wl - 10}); if(!p) continue; B.push({x:p.x, z:p.z, R:70 + LF.r()*50, ph:LF.r()*6.28, w:(.1 + LF.r()*.05)*(LF.r() < .5 ? 1 : -1), s:1.3 + LF.r()*.5}); if(B.length < 3) X.site('sailboat', p.x, wl + 20, p.z, p.tx, p.tz); }
-    if(B.length) lfAnim(sb, B.length, (i, t, m)=>{ const b = B[i], a = b.ph + t*b.w, hd = a + (b.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, b.x + Math.cos(a)*b.R, wl + Math.sin(t*1.3 + i*2)*1.4, b.z + Math.sin(a)*b.R, -hd, .15*(b.w > 0 ? -1 : 1) + Math.sin(t*.9 + i)*.05, Math.sin(t*1.1 + i)*.04, b.s, b.s, b.s); }, [B[0].x, wl + 10, B[0].z, 7000], {name:'sailboats', tint:B.map((b, i)=>tints[i % tints.length]), f:3600}); }
+  lfBoats(X, 20, {deep:20, dmin:170, dmax:750});
   /* whales: a back and a tail rolling through the water, a spout of spray at each breath */
   { const W = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:220, dmax:800, r:200, test:(y, x, z)=>y < wl - 50 && H(x + 160, z) < wl - 30 && H(x - 160, z) < wl - 30 && H(x, z + 160) < wl - 30 && H(x, z - 160) < wl - 30}); if(p){ W.push({x:p.x, z:p.z, R:100 + LF.r()*40, ph:LF.r()*6.28, w:.05*(k ? 1 : -1), c:6.5 + k*1.7}); X.site('whale', p.x, wl + 40, p.z, p.tx, p.tz); } }
     lfWhales(X, W); }
@@ -7645,15 +7658,7 @@ LIFE.coast = X=>{
   /* seagulls over the shore and the waves */
   for(let k = 0; k < 4; k++){ const p = X.spot({dmin:230, dmax:800, r:150, test:(y)=>true, claim:false}); if(p) lfBirds(6, p.x, wl + 80 + LF.r()*80, p.z, 120 + LF.r()*60, {col:'#fafafa', wing:'#f0f0f0', tip:'#3a3f48', beak:'#f2a22a', size:1.7, speed:.2, flap:8, bob:6, dir:k % 2 ? 1 : -1, name:'gulls', f:3000}); }
   /* a seaside pier with a ferris wheel, and a row of colourful cottages */
-  { const pp = X.spot({dmin:200, dmax:600, r:110, tries:400, test:(y, x, z)=>{ if(!(y > wl + 1 && y < wl + 16)) return false; const gx = H(x + 14, z) - H(x - 14, z), gz = H(x, z + 14) - H(x, z - 14), gl = Math.hypot(gx, gz); if(gl < 1) return false; const sx = -gx/gl, sz = -gz/gl; return H(x + sx*100, z + sz*100) < wl - 6 && H(x + sx*190, z + sz*190) < wl - 6; }}); 
-    if(pp){ const gx = H(pp.x + 14, pp.z) - H(pp.x - 14, pp.z), gz = H(pp.x, pp.z + 14) - H(pp.x, pp.z - 14), gl = Math.hypot(gx, gz) || 1, inx = gx/gl, inz = gz/gl, yaw = Math.atan2(-inz, inx), dx = -inx, dz = -inz;
-      for(let a = 0; a < 190; a += 10){ [-1, 1].forEach(sd=>{ const q = [pp.x + dx*a - dz*sd*10, pp.z + dz*a + dx*sd*10]; st.add('box', '#5a4a3a', q[0], wl - 14, q[1], 1.6, 20, 1.6); }); }
-      const c = [pp.x + dx*95, pp.z + dz*95]; st.add('box', '#b89a6e', c[0], wl + 5, c[1], 190, 1.6, 26, -Math.atan2(dz, dx));
-      [30, 70, 110].forEach((a, i)=>{ [-1, 1].forEach(sd=>{ const q = [pp.x + dx*a - dz*sd*8, pp.z + dz*a + dx*sd*8]; st.add('box', ['#e8353a', '#f4c20d', '#2f9fe0'][i], q[0], wl + 6.6, q[1], 12, 8, 9, -Math.atan2(dz, dx)); st.add('prism', ['#ffffff', '#f2f2f2', '#ffffff'][i], q[0], wl + 14.6, q[1], 10, 4, 14, -Math.atan2(dz, dx) + Math.PI/2); }); });
-      const hx = pp.x + dx*150, hz = pp.z + dz*150, R = 52;
-      lfFerris(X, st, hx, wl + R + 14, hz, -Math.atan2(dz, dx), R, wl + 4);
-      const hy = wl + R + 14;
-      X.site('ferris', hx, hy, hz, inx, inz); X.claim(pp.x + dx*90, pp.z + dz*90, 110); } }
+  lfPier(X, st, {});
   { const cz = X.spot({dmin:200, dmax:520, r:120, test:(y, x, z)=>y > wl + 4 && X.slope(x, z) < .3}); if(cz){ const pc = ['#f6c7c0', '#f4e2a0', '#bfe3d6', '#c6d4f2', '#f6d6a8', '#e6c0e6'];
       for(let k = 0; k < 8; k++){ const x = cz.x + cz.tx*(k - 3.5)*46, z = cz.z + cz.tz*(k - 3.5)*46; if(H(x, z) < wl + 3 || X.dist(x, z) < 170 || X.slope(x, z) > .5) continue; lfHouse(st, x, H(x, z), z, Math.atan2(-cz.tz, cz.tx), 30, 22, 16, pc[k % 6], ['#c7352e', '#d9682a', '#2f6fb0'][k % 3]); X.shade(x, z, 24, .3); }
       X.site('cottages', cz.x, cz.y + 20, cz.z, cz.tx, cz.tz); } }
@@ -7730,6 +7735,66 @@ LIFE.glacier = X=>{
   st.mesh(null, 'glacierstuff'); ice.mesh(LF.matG, 'glacierice'); if(sn.P.length) sn.mesh(LF.matG, 'drifts');
   { const p = X.spot({dmin:480, dmax:900, r:200, test:(y)=>y > wl}); if(p) lfHelis(X, [{x:p.x, z:p.z, y:p.y + 260, R:130, ph:0, w:.1}], {tints:['#e8353a'], s:3}); }
   for(let k = 0; k < 2; k++){ const p = X.spot({dmin:300, dmax:800, r:150, test:(y)=>y > wl}); if(p) lfBirds(6, p.x, p.y + 150, p.z, 150, {col:'#fafafa', wing:'#f4f4f4', tip:'#33383f', beak:'#f08a1c', size:2.2, speed:.16, flap:6, dir:k ? 1 : -1, name:'terns', f:4500}); }
+};
+/* ===== course life: Metro Spire Circuit (a monorail shuttling over the rooftops, blimps and a hot-air balloon drifting over the city, helicopters, a cruise ship, a fireboat with water jets
+   and sailboats in the harbour, a waterfront ferris wheel, rooftop beacons that blink, helipads, gardens and water tanks, pigeons and gulls) ===== */
+function lfBlimpBag(){ const b = new LBag(); b.add('sph', '#ffffff', 0, 0, 0, 36, 12, 12); [[-30, 0, 1], [-30, 0, -1]].forEach(([x, y, o])=>b.add('box', '#e8353a', x, y, o*7, 12, .6, 12, 0, o*.5)); b.add('box', '#e8353a', -30, 7, 0, 12, 12, .6, 0, 0); b.add('box', '#e8353a', -30, -7, 0, 12, 12, .6, 0, 0); b.add('box', '#333a44', 4, -13.5, 0, 14, 4, 5); b.add('box', '#7fd0f0', 4, -11, 0, 10, 1.4, 5.2); return b; }
+function lfCarBag(){ const b = new LBag(); b.add('box', '#ffffff', 0, 3, 0, 24, 9, 9); b.add('box', '#2a3d5c', 0, 7, 0, 24.4, 3, 9.4); b.add('box', '#ffffff', 12, 3, 0, 4, 7, 8.6, 0, 0, -.5); b.add('box', '#444b55', 0, 0, 0, 22, 3, 5); return b; }
+LIFE.skyline = X=>{
+  const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832, tw = [];
+  K.group.traverse(o=>{ if(o.name === 'city' && o.isInstancedMesh){ const a = o.instanceMatrix.array; for(let i = 0; i < o.count; i++){ const q = i*16; tw.push({x:a[q + 12], y:a[q + 13], z:a[q + 14], w:Math.hypot(a[q], a[q + 1], a[q + 2]), h:Math.hypot(a[q + 4], a[q + 5], a[q + 6]), d:Math.hypot(a[q + 8], a[q + 9], a[q + 10]), ry:Math.atan2(-a[q + 2], a[q])}); } } });
+  const clear = (x, z, m)=>{ for(let i = 0; i < tw.length; i++){ const t = tw[i]; if(Math.hypot(t.x - x, t.z - z) < Math.max(t.w, t.d)*.75 + m) return false; } return true; };
+  /* the rooftops: beacons that blink on the tall towers, helipads, gardens, water tanks and flags on the others */
+  const bl = []; let hp = 0;
+  tw.forEach((t, i)=>{ const top = t.y + t.h, w = t.w, d = t.d;
+    if(t.h > 190){ const ah = 50 + LF.r()*50; st.beam('cyl6', '#8a929a', t.x, top, t.z, t.x, top + ah, t.z, 2.2, .8); st.add('sph', '#d0d6dc', t.x, top + ah, t.z, 2.4); bl.push([t.x, top + ah + 3, t.z, LF.r()*PI2]); [-1, 1].forEach(o=>st.add('box', '#6e7680', t.x + o*w*.3, top, t.z, 3, 6, 3)); }
+    else if(t.h > 110){ const k = i % 5;
+      if(k === 0){ st.add('box', '#5fae5f', t.x, top, t.z, w*.72, 2.4, d*.72, t.ry); st.add('ico', '#3f8f4a', t.x + w*.15, top + 4, t.z, 6, 6, 6); st.add('ico', '#4aa457', t.x - w*.2, top + 4, t.z + d*.1, 5, 5, 5); }
+      else if(k === 1){ [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b])=>st.add('box', '#6d5a48', t.x + a*5, top, t.z + b*5, 1.4, 10, 1.4)); st.add('cyl', '#9a6a44', t.x, top + 10, t.z, 8, 12, 8); st.add('cone', '#5a4638', t.x, top + 22, t.z, 8.6, 5, 8.6); }
+      else if(k === 2 && hp < 6){ hp++; const r = Math.min(w, d)*.34; st.add('cyl', '#3d4650', t.x, top, t.z, r + 3, 1, r + 3); st.add('cyl', '#f4c20d', t.x, top + 1, t.z, r, .6, r); st.add('box', '#ffffff', t.x - r*.3, top + 1.6, t.z, 1.6, .3, r*.9); st.add('box', '#ffffff', t.x + r*.3, top + 1.6, t.z, 1.6, .3, r*.9); st.add('box', '#ffffff', t.x, top + 1.6, t.z, r*.7, .3, 1.4); X.site('helipad', t.x, top + 20, t.z); }
+      else if(k === 3){ st.add('box', '#1f3b6e', t.x, top, t.z, w*.6, 1.4, d*.4, t.ry, .25); st.add('box', '#6e7680', t.x, top, t.z, w*.62, .6, d*.42, t.ry); }
+      else { st.beam('cyl6', '#cfd4d9', t.x, top, t.z, t.x, top + 34, t.z, .7, .6); st.add('box', ['#e8353a', '#f4c20d', '#2f9fe0'][i % 3], t.x + 7, top + 24, t.z, 14, 9, .5, t.ry); } } });
+  if(bl.length) lfPuffs(bl.length, (i, t, p)=>{ const e = bl[i], k = Math.max(0, Math.sin(t*3 + e[3]*5)); p.x = e[0]; p.y = e[1]; p.z = e[2]; p.s = 14 + 12*k; p.a = .25 + .75*k; p.r = 1; p.g = .18; p.b = .15; }, {col:'#ff3a30', add:true, region:[1000, 200, 500, 2600], name:'beacons', f:6000});
+  /* a monorail: a track high over the rooftops on pylons, a train shuttling end to end */
+  { let best = null; for(let k = 0; k < 90 && !best; k++){ const p = X.spot({dmin:230, dmax:850, r:40, claim:false, test:(y)=>y > wl + 6}); if(!p) continue; const a = LF.r()*PI2, L = 1000, ux = Math.cos(a), uz = Math.sin(a); let ok = true, hm = -1e9;
+      for(let q = 0; q <= 25 && ok; q++){ const x = p.x + ux*L*q/25, z = p.z + uz*L*q/25, h = H(x, z); if(h < wl + 5 || X.dist(x, z) < 230 || X.runway(x, z, 120) || !clear(x, z, 48)) ok = false; hm = Math.max(hm, h); }
+      if(ok) best = {x:p.x, z:p.z, ux, uz, L, y:hm + 125, a}; }
+    if(best){ const {x, z, ux, uz, L, y, a} = best, yaw = -a, np = 10; X.claim(x + ux*L/2, z + uz*L/2, L/2);
+      st.beam('cyl6', '#aeb6c0', x, y, z, x + ux*L, y, z + uz*L, 4.4, 4.4); st.beam('cyl6', '#e8eef4', x, y + 5, z, x + ux*L, y + 5, z + uz*L, 1.5, 1.5);
+      for(let i = 0; i <= np; i++){ const px = x + ux*L*i/np, pz = z + uz*L*i/np, g = H(px, pz); st.beam('cyl', '#c9d0d8', px, g - 3, pz, px, y - 2, pz, 3.4, 2.6); st.add('box', '#9aa4ae', px, y - 6, pz, 14, 5, 14, yaw); }
+      [0, L].forEach(s=>{ const px = x + ux*s, pz = z + uz*s; st.add('box', '#e8353a', px, y - 12, pz, 56, 6, 22, yaw); st.add('prism', '#f4f4f4', px, y - 6, pz, 22, 8, 60, yaw + Math.PI/2); });
+      const NC = 5, v = 70, tr = t=>{ const ph = (t*v/(L - 160))%2, f = ph < 1 ? ph : 2 - ph; return 80 + (L - 160)*(f*f*(3 - 2*f)); };
+      lfAnim(lfCarBag(), NC, (i, t, m)=>{ const s = tr(t) - i*30, d = Math.cos(t*v/(L - 160)*Math.PI) ; lfPut(m, x + ux*s, y + 7, z + uz*s, yaw, 0, 0, 1.5, 1.5, 1.5); }, [x + ux*L/2, y, z + uz*L/2, L*.62], {name:'monorail', tint:['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#e86aa8'], f:4200});
+      X.site('monorail', x + ux*L/2, y + 30, z + uz*L/2, -uz, ux); } }
+  /* blimps and balloons over the city, helicopters between the towers */
+  { const B = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:380, dmax:900, r:250, test:(y)=>y > wl + 4}); if(p) B.push({x:p.x, z:p.z, R:200 + LF.r()*90, ph:LF.r()*PI2, w:(k ? -1 : 1)*.045, y:p.y + 430 + k*70}); }
+    if(B.length){ lfAnim(lfBlimpBag(), B.length, (i, t, m)=>{ const b = B[i], a = b.ph + t*b.w, hd = a + (b.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, b.x + Math.cos(a)*b.R, b.y + Math.sin(t*.4 + i)*8, b.z + Math.sin(a)*b.R, -hd, 0, Math.sin(t*.5 + i)*.05, 2.4, 2.4, 2.4); }, [B[0].x, B[0].y, B[0].z, 3500], {name:'blimps', tint:['#ffd84a', '#59b6ff'].slice(0, B.length), f:6200}); B.forEach(b=>X.site('blimp', b.x + b.R, b.y, b.z)); } }
+  { const bb = new LBag(); lfBalloon(bb, 30, '#ffffff', '#ffcf9a'); const tints = ['#e8353a', '#2f7fe0', '#f4c20d', '#2eb872'], B = [];
+    for(let k = 0; k < 4; k++){ const p = X.spot({dmin:260, dmax:800, r:120, test:(y)=>y > wl + 4}); if(!p) continue; B.push({x:p.x, z:p.z, y:p.y + 240 + LF.r()*120, ph:LF.r()*PI2, R:30 + LF.r()*50, w:.05 + LF.r()*.04}); }
+    if(B.length) lfAnim(bb, B.length, (i, t, m)=>{ const b = B[i], a = b.ph + t*b.w; lfPut(m, b.x + Math.cos(a)*b.R, b.y + Math.sin(t*.5 + b.ph)*7, b.z + Math.sin(a)*b.R, a*.3, Math.sin(t*.4 + i)*.04, Math.cos(t*.37 + i)*.04, 1, 1, 1); }, [B[0].x, B[0].y, B[0].z, 3200], {name:'balloons', tint:tints.slice(0, B.length), f:5000}); }
+  { const Hs = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:420, dmax:900, r:150, test:(y)=>y > wl + 4}); if(p) Hs.push({x:p.x, z:p.z, y:p.y + 230 + k*40, R:110, ph:k*3, w:(k ? -1 : 1)*.14}); } if(Hs.length) lfHelis(X, Hs, {tints:['#f4c20d', '#59b6ff'], s:2.6}); }
+  /* the harbour: a cruise ship, a fireboat with jets, sailboats, and a ferris wheel on the waterfront */
+  { const c = lfWaterSpot(X, 380, 8, 200, 1000); if(c){ lfShips(X, 'cruise', [{x:c.x, z:c.z, R:300, ph:LF.r()*PI2, w:-.012, s:1.3}], {region:3000}); X.site('cruise', c.x + 300, wl + 40, c.z, c.tx, c.tz); } }
+  { const f = lfWaterSpot(X, 220, 6, 180, 800); if(f){ lfShips(X, 'fireboat', [{x:f.x, z:f.z, R:130, ph:LF.r()*PI2, w:.05, s:2.4}], {region:2200}); X.site('fireboat', f.x + 130, wl + 40, f.z, f.tx, f.tz); } }
+  lfBoats(X, 14, {deep:8, dmin:180, dmax:800, s:1.7});
+  lfPier(X, st, {dmin:220, dmax:900, R:62, sea1:1, sea2:4});
+  for(let k = 0; k < 3; k++){ const p = X.spot({dmin:300, dmax:900, r:150, test:(y)=>true, claim:false}); if(p) lfBirds(k ? 7 : 9, p.x, (p.y > wl ? p.y : wl) + (k ? 70 : 210), p.z, 130, {col:k ? '#fafafa' : '#9aa2ad', wing:k ? '#f0f0f0' : '#7c848f', tip:k ? '#3a3f48' : '#5b6370', beak:k ? '#f2a22a' : '#c9a24a', size:k ? 1.8 : 1.5, speed:.2, flap:k ? 6 : 9, dir:k % 2 ? -1 : 1, name:k ? 'gulls' : 'pigeons', f:4200}); }
+  /* parks with trees and a roundabout with cars going round, big bright signs on the towers, neon lights that change colour */
+  { const gr = new LBag(), cars = []; let rb = null;
+    for(let k = 0; k < 14; k++){ const p = X.spot({dmin:170, dmax:900, r:130, tries:120, claim:false, test:(y, x, z)=>y > wl + 5 && X.slope(x, z) < .2 && clear(x, z, 140)}); if(!p) continue; X.claim(p.x, p.z, 120); const r = 70 + LF.r()*50;
+      gr.blob(H, p.x, p.z, r, '#5fae52', 14, 1); gr.blob(H, p.x + r*.1, p.z - r*.1, r*.62, '#79c463', 12, 1.5);
+      if(k % 4 === 1){ gr.blob(H, p.x, p.z, r*.3, '#4fb0e0', 10, 2.2); } else for(let q = 0; q < 9; q++){ const a = q*2.4 + LF.r(), rr = r*(.25 + LF.r()*.6), x = p.x + Math.cos(a)*rr, z = p.z + Math.sin(a)*rr, h = 22 + LF.r()*20; st.add('cyl6', '#6b4a2e', x, H(x, z) - 1, z, 2, h*.5, 2); st.add('ico', q % 3 ? '#3f9a45' : '#d98a3a', x, H(x, z) + h*.55, z, h*.42, h*.45, h*.42); }
+      if(!rb && k > 1 && X.slope(p.x, p.z) < .1){ rb = p; gr.blob(H, p.x, p.z, 8, '#cfd6dc', 8, 2.4); } if(k < 3) X.site('park', p.x, p.y + 40, p.z, p.tx, p.tz); }
+    gr.mesh(LF.matG, 'parks');
+    if(rb){ const R = 105, y0 = H(rb.x, rb.z) + 1.4; st.add('torus', '#3b4048', rb.x, y0, rb.z, R, R, 1.2, 0, Math.PI/2); st.add('torus', '#e8e2c0', rb.x, y0 + .5, rb.z, R, R, .3, 0, Math.PI/2);
+      lfAnim(lfCarBag(), 8, (i, t, m)=>{ const w = (i % 2 ? -1 : 1)*38/R, a = i*.78 + t*w, hd = a + (w > 0 ? Math.PI/2 : -Math.PI/2), r = R + (i % 2 ? -8 : 8); lfPut(m, rb.x + Math.cos(a)*r, y0 + 1.2, rb.z + Math.sin(a)*r, -hd, 0, 0, .55, .55, .55); }, [rb.x, y0, rb.z, R + 30], {name:'traffic', tint:['#e8353a', '#f4c20d', '#2f9fe0', '#ffffff', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0'], f:3600}); X.site('roundabout', rb.x, y0 + 50, rb.z, rb.tx, rb.tz); } }
+  { const sg = new LBag(), pal = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0'], nl = []; let n = 0;
+    tw.forEach((t, i)=>{ if(n > 70 || t.h < 120) return; const q = X.near(t.x, t.z), dd = Math.hypot(q.x - t.x, q.z - t.z); if(dd > 1500) return; const dx = (q.x - t.x)/dd, dz = (q.z - t.z)/dd, ry = Math.atan2(-dz, dx), hw = Math.abs(dx*Math.cos(t.ry) - dz*Math.sin(t.ry))*t.w/2 + Math.abs(dx*Math.sin(t.ry) + dz*Math.cos(t.ry))*t.d/2 + .6, c = pal[i % pal.length], c2 = pal[(i + 3) % pal.length], y = t.y + t.h*(.5 + LF.r()*.3), w = Math.min(t.w, t.d)*.6;
+      const bx = t.x + dx*hw, bz = t.z + dz*hw; sg.add('box', c, bx, y, bz, .8, 26, w, ry); sg.add('box', c2, bx + dx*.5, y + 16, bz + dz*.5, .6, 6, w*.8, ry); sg.add('box', '#ffffff', bx + dx*.5, y + 6, bz + dz*.5, .6, 5, w*.45, ry); n++;
+      if(n % 2 === 0) nl.push([bx + dx*3, y + 13, bz + dz*3, LF.r()*PI2]); });
+    if(sg.P.length) sg.mesh(LF.matE, 'signs');
+    if(nl.length) lfPuffs(nl.length, (i, t, p)=>{ const e = nl[i], k = t*.7 + e[3]; p.x = e[0]; p.y = e[1]; p.z = e[2]; p.s = 26 + 6*Math.sin(t*2 + e[3]*4); p.a = .55 + .3*Math.sin(t*3 + e[3]*3); p.r = .55 + .45*Math.sin(k); p.g = .55 + .45*Math.sin(k + 2.1); p.b = .55 + .45*Math.sin(k + 4.2); }, {col:'#ffffff', add:true, region:[500, 200, 500, 2800], name:'neon', f:6000}); }
+  st.mesh(null, 'metrostuff');
 };
 function useCourse(idx){
   ensureRaceScene();
@@ -16262,6 +16327,7 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
     return {id: L.id, meshes, tris: Math.round(tris), anim: L.anim.length, sites: L.sites, err: window.__lifeErr ? String(window.__lifeErr) : null}; },   // section "course life": what the course's scenery adds (tests)
   lifeRender: ()=>{ try{ renderer.render(rScene, rCam); return null; }catch(e){ return String(e.stack); } },   // (tests: a draw that says what failed)
   lifeProbe: (n, offs)=>{ const K = rCourse, out = []; for(let i = 0; i < n; i++){ const u = i/n, q = K.curve.getPointAt(u), tg = K.curve.getTangentAt(u), nl = Math.hypot(tg.x, tg.z) || 1; out.push([+u.toFixed(3), Math.round(q.x), Math.round(q.y), Math.round(q.z), ...offs.map(o=>Math.round(K.H(q.x - tg.z/nl*o, q.z + tg.x/nl*o)))]); } return out; },   // (tests: the ground beside the racing line)
+  lifeMap: (x0, z0, x1, z1, st)=>{ const K = rCourse, rows = []; for(let z = z0; z <= z1; z += st){ let r = ''; for(let x = x0; x <= x1; x += st){ const h = K.H(x, z); r += h < K.wl + 1 ? '~' : h < 40 ? '.' : h < 120 ? 'o' : h < 300 ? 'O' : '#'; } rows.push(r); } return rows.join('\n') + '\nwl ' + K.wl; },   // (tests: a character map of the ground, ~ water)
   lifeNear: (x, z)=>{ const K = rCourse; let b = 1e12, bu = 0; for(let i = 0; i < 600; i++){ const q = K.curve.getPointAt(i/600), d = (q.x - x)**2 + (q.z - z)**2; if(d < b){ b = d; bu = i/600; } } const q = K.curve.getPointAt(bu), tg = K.curve.getTangentAt(bu); return {x: q.x, y: q.y, z: q.z, tx: tg.x, ty: tg.y, tz: tg.z, d: Math.sqrt(b)}; },   // (tests: the racing line beside a place)
   lifeCam: a=>{ LF.dbg = a || null; if(!a){ rCam.fov = 52; rCam.updateProjectionMatrix(); } return !!a; },   // a free camera [x, y, z, lookX, lookY, lookZ, fov] over the race, for pictures of the scenery
   lifeBlock: ()=>{ const K = rCourse, L = K && K.life; if(!L || !RACE.on) return null; const rc = new T.Raycaster(), list = [], o = rCam.position, hits = [], dv = V(0,0,0);
