@@ -7422,7 +7422,7 @@ function lfFalls(X, n, o){ o = o || {}; const H = X.H, P = [], UV = [], IX = [],
   const tex = lfTex(64, 128, (c, w, h)=>{ c.fillStyle = '#a9dcf0'; c.fillRect(0, 0, w, h); for(let i = 0; i < 70; i++){ c.fillStyle = `rgba(255,255,255,${.35 + Math.random()*.5})`; const x = Math.random()*w, l = 14 + Math.random()*40, y = Math.random()*h; c.fillRect(x, y, 2 + Math.random()*4, l); c.fillRect(x, y - h, 2, l); c.fillRect(x, y + h, 2, l); } });
   tex.wrapS = tex.wrapT = T.RepeatWrapping;
   const mat = new T.MeshBasicMaterial({map:tex, transparent:true, opacity:.92, depthWrite:false, side:T.DoubleSide, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4}); LF.mats.push(mat);
-  lfReg(new T.Mesh(g, mat), g.boundingSphere.center, g.boundingSphere.radius, o.f || 4200).renderOrder = 4; LF.anim.push(t=>{ tex.offset.y = -t*.8; });
+  { const fm = new T.Mesh(g, mat); fm.name = 'waterfalls'; lfReg(fm, g.boundingSphere.center, g.boundingSphere.radius, o.f || 4200).renderOrder = 4; } LF.anim.push(t=>{ tex.offset.y = -t*.8; });
   const R0 = out[0], per = 10;
   lfPuffs(out.length*per, (i, t, p)=>{ const e = out[Math.floor(i/per)], age = (t/3 + i*.137) % 1, a = i*2.4; p.x = e.x + Math.cos(a)*(8 + age*22); p.z = e.z + Math.sin(a)*(8 + age*22); p.y = e.y + 4 + age*34; p.s = 18 + age*40; p.a = (1 - age)*.5; p.r = p.g = p.b = .96; }, {col:'#ffffff', region:[R0.x, R0.y + 20, R0.z, 3200], name:'fallmist', f:4200});
   return out; }
@@ -7860,6 +7860,47 @@ LIFE.pyramid = X=>{
   st.mesh(null, 'ruinsstuff');
   /* macaws and toucans flying over the canopy */
   [['#e8353a', '#2f6fe0', '#f4c20d', 6, 0], ['#2f6fe0', '#f4c20d', '#2f6fe0', 5, 1], ['#1c1c20', '#222226', '#1c1c20', 4, 0]].forEach(([c, w, tp, n, d], k)=>{ const p = X.spot({dmin:250, dmax:750, r:150, claim:false, test:(y)=>y > wl}); if(p) lfBirds(n, p.x, p.y + 80 + k*25, p.z, 140, {col:c, wing:w, tip:tp, head:k === 2 ? '#fafafa' : c, beak:k === 2 ? '#f08a1c' : '#f4f4f4', size:k === 2 ? 2.8 : 3.4, speed:.17, flap:7, dir:d ? 1 : -1, name:k === 2 ? 'toucans' : 'macaws', f:4200}); });
+};
+/* ===== course life: Lookout Ridge Trail (hang gliders soaring along the ridge, waterfalls with mist, a rainbow, deer in the meadows, hikers on the trail, a campsite with a campfire,
+   wildflower meadows, eagles circling, an anemometer spinning on the fire lookout) ===== */
+function lfGliderBag(){ const b = new LBag(); b.add('box', '#ffffff', -9, 0, 4, 18, .5, 10, .45); b.add('box', '#ffffff', 9, 0, 4, 18, .5, 10, -.45); b.add('box', '#ffffff', 0, 0, 2, 5, .6, 12); b.add('box', '#e8353a', -9, .3, 4, 5, .3, 9.6, .45); b.add('box', '#e8353a', 9, .3, 4, 5, .3, 9.6, -.45);
+  b.add('cyl6', '#333a44', 0, -8, 0, .8, 8, .8); b.add('cyl6', '#2f6fe0', 0, -14, 1, 1.6, 6, 1.6, 0, -1.2); b.add('sph', '#f2c9a0', 0, -10.4, -3.2, 1.4); b.add('sph', '#e8353a', 0, -10, -3.2, 1.6, 1.2, 1.6);
+  [-1, 1].forEach(o=>b.beam('cyl6', '#555', o*7, 0, 4, o*.6, -8, 0, .2, .2)); return b; }
+function lfDeerBag(){ const b = new LBag(); b.add('box', '#ffffff', 0, 6.4, 0, 9, 5, 4.6); b.beam('cyl6', '#ffffff', 3.4, 9, 0, 5.6, 14.6, 0, 1.5, 1.1); b.add('sph', '#ffffff', 6.4, 15, 0, 2.3, 1.8, 1.6); b.add('box', '#2a2a2a', 8.4, 14.6, 0, .6, .6, .8);
+  [-1, 1].forEach(o=>{ b.add('cone6', '#ffffff', 5.8, 15.6, o*1.3, .6, 1.8, .6); b.beam('cyl6', '#6b5a48', 6, 16.4, o*1, 5.4, 21, o*3, .3, .2); b.beam('cyl6', '#6b5a48', 5.7, 19, o*2.2, 7.6, 22, o*3.2, .25, .2); [-3.2, 3.2].forEach(a=>b.add('box', '#ffffff', a, 0, o*1.5, 1.1, 6.6, 1.1)); }); b.add('sph', '#f4ece0', -4.6, 8.2, 0, 1.2, 1.4, 1.2); return b; }
+function lfHikerBag(){ const b = new LBag(); b.add('cyl6', '#ffffff', 0, 3.2, 0, 1.5, 5, 1.5); b.add('sph', '#f2c9a0', 0, 9, 0, 1.5); b.add('cone6', '#7a5232', 0, 9.8, 0, 2.4, 1.4, 2.4); b.add('box', '#e8853a', -1.6, 4.2, 0, 1.6, 4.4, 2.8);
+  [-1, 1].forEach(o=>b.add('box', '#3d4c6b', 0, 0, o*.7, 1.1, 3.4, 1)); b.beam('cyl6', '#6b4a2e', 1.4, 5, 2.4, 2.8, 1.5, 2.4, .25, .25); return b; }
+LIFE.lookout = X=>{
+  const {H, wl, K} = X, st = new LBag(), fl = new LBag(), PI2 = 6.2832, sm = [], flm = [];
+  const flat = (r, hmax)=>(y, x, z)=>{ if(y < wl + 6 || y > hmax) return false; for(let a = 0; a < 8; a++){ if(Math.abs(H(x + Math.cos(a*.785)*r, z + Math.sin(a*.785)*r) - y) > 12) return false; } return X.slope(x, z) < .2; };
+  /* waterfalls down the steep slopes */
+  lfFalls(X, 5, {dmin:230, dmax:700, smin:.4, drop:90});
+  /* wildflower meadows */
+  for(let k = 0; k < 40; k++){ const p = X.spot({dmin:140, dmax:600, r:40, claim:false, test:(y, x, z)=>y > wl + 6 && X.slope(x, z) < .2 && X.slope(x + 40, z) < .25 && X.slope(x, z - 40) < .25}); if(!p) continue; fl.blob(H, p.x, p.z, 28 + LF.r()*34, ['#f08ab4', '#f4d23a', '#b48af0', '#ffffff', '#f09a3a'][k % 5], 10, .9); }
+  if(fl.P.length) fl.mesh(LF.matG, 'flowers');
+  /* a rainbow arching over the far valley */
+  { const p = X.spot({dmin:700, dmax:1400, r:300, claim:false, tries:40, test:(y)=>y > wl}); if(p){ const Rb = 460, c = [p.x, Math.max(p.y, wl) - 30, p.z], bag = new LBag(), cols = ['#ff4a4a', '#ff9a3a', '#ffe23a', '#4ad45a', '#3ab4ff', '#4a5aff', '#a24aff'], seg = 20, ux = p.tx, uz = p.tz, w = 20;
+      cols.forEach((col, b)=>{ const cc = lfCol(col), r0 = Rb + b*w, r1 = r0 + w; for(let i = 0; i < seg; i++){ const a0 = i/seg*Math.PI, a1 = (i + 1)/seg*Math.PI, P = (r, a)=>[c[0] + ux*Math.cos(a)*r, c[1] + Math.sin(a)*r, c[2] + uz*Math.cos(a)*r], q = [P(r0, a0), P(r1, a0), P(r1, a1), P(r0, a1)];
+          [[0, 1, 2], [0, 2, 3]].forEach(tr=>tr.forEach(j=>{ bag.P.push(q[j][0], q[j][1], q[j][2]); bag.N.push(0, 0, 1); bag.C.push(cc.r, cc.g, cc.b); })); } });
+      bag.mesh(lfMat('basic', {transparent:true, opacity:.5, depthWrite:false, side:T.DoubleSide}), 'rainbow', 9000); X.site('rainbow', c[0], c[1] + Rb, c[2], -uz, ux); } }
+  /* hang gliders soaring in wide circles */
+  { const G = []; for(let k = 0; k < 4; k++){ const p = X.spot({dmin:420, dmax:950, r:200, test:(y)=>y > wl + 10}); if(p) G.push({x:p.x, z:p.z, y:p.y + 150 + k*50, R:120 + k*25, ph:k*1.7, w:(k % 2 ? -1 : 1)*(.12 - k*.012)}); }
+    if(G.length){ lfAnim(lfGliderBag(), G.length, (i, t, m)=>{ const e = G[i], a = e.ph + e.w*t, hd = a + (e.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, e.x + Math.cos(a)*e.R, e.y + Math.sin(t*.5 + i)*10, e.z + Math.sin(a)*e.R, -hd - Math.PI/2, 0, (e.w > 0 ? -1 : 1)*.28 + Math.sin(t*.8 + i)*.06, 2.6, 2.6, 2.6); }, [G[0].x, G[0].y, G[0].z, 4200], {name:'gliders', tint:['#ffd23a', '#2fb7e8', '#ff6a8a', '#7ad35a'].slice(0, G.length), f:4800}); X.site('glider', G[0].x + G[0].R, G[0].y, G[0].z); } }
+  /* deer grazing the meadows, hikers on the trail, a campsite */
+  { const D = []; for(let k = 0; k < 3; k++){ const p = X.spot({dmin:170, dmax:520, r:80, test:flat(45, 700)}); if(!p) continue; for(let q = 0; q < 4; q++) D.push({x:p.x, z:p.z, R:26 + q*6, ph:q*1.5 + k, w:(q % 2 ? -1 : 1)*(.1 + q*.015)}); X.site('deer', p.x, p.y + 25, p.z, p.tx, p.tz); }
+    if(D.length) lfAnim(lfDeerBag(), D.length, (i, t, m)=>{ const e = D[i], a = e.ph + e.w*t, x = e.x + Math.cos(a)*e.R, z = e.z + Math.sin(a)*e.R, hd = a + (e.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, x, H(x, z) + Math.abs(Math.sin(t*2.6 + i*1.9))*.6, z, -hd, 0, Math.sin(t*2.6 + i)*.04, 2.2, 2.2, 2.2); }, [D[0].x, D[0].y, D[0].z, 3400], {name:'deer', tint:D.map((e, i)=>['#a8763e', '#8a5a2e', '#b98a52', '#7a4e28'][i % 4]), f:3600}); }
+  { const Hk = []; for(let k = 0; k < 3; k++){ const p = X.spot({dmin:160, dmax:420, r:70, test:flat(40, 800)}); if(!p) continue; for(let q = 0; q < 3; q++) Hk.push({x:p.x, z:p.z, R:30 + q*8, ph:q*.5 + k*2, w:(k % 2 ? -1 : 1)*(.16 - q*.02)}); X.site('hikers', p.x, p.y + 20, p.z, p.tx, p.tz); }
+    if(Hk.length) lfAnim(lfHikerBag(), Hk.length, (i, t, m)=>{ const e = Hk[i], a = e.ph + e.w*t, x = e.x + Math.cos(a)*e.R, z = e.z + Math.sin(a)*e.R, hd = a + (e.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, x, H(x, z) + Math.abs(Math.sin(t*5 + i))*.7, z, -hd, 0, Math.sin(t*5 + i)*.05, 2.2, 2.2, 2.2); }, [Hk[0].x, Hk[0].y, Hk[0].z, 3400], {name:'hikers', tint:Hk.map((e, i)=>['#e8353a', '#2f9fe0', '#f4c20d', '#2eb872', '#e86aa8'][i % 5]), f:3600}); }
+  { const c = X.spot({dmin:190, dmax:520, r:80, test:flat(40, 800)}); if(c){ const cc = ['#e8853a', '#2f9fe0', '#7fb05a']; for(let k = 0; k < 3; k++){ const a = k*2.1 + .5, rr = 36, x = c.x + Math.cos(a)*rr, z = c.z + Math.sin(a)*rr; lfTent(st, x, H(x, z), z, a + 1.57, 2.6, cc[k % 3]); }
+      [0, 1, 2].forEach(i=>{ const a = i*2.1; st.add('box', '#9a6a3a', c.x + Math.cos(a)*9, c.y, c.z + Math.sin(a)*9, 3, 12, .8, a, 0, .5); }); st.add('cyl', '#5a5a5e', c.x, c.y, c.z, 6, 1.5, 6); flm.push([c.x, c.y + 4, c.z]); sm.push([c.x, c.y + 8, c.z]);
+      [0, 1].forEach(i=>st.add('box', '#7a5232', c.x + 14 + i*18, c.y, c.z - 8, 14, 4, 4, .4 + i)); X.site('campsite', c.x, c.y + 30, c.z, c.tx, c.tz); } }
+  if(flm.length) lfPuffs(flm.length*3, (i, t, p)=>{ const e = flm[i % flm.length], f = (t*2.2 + i*.37) % 1; p.x = e[0] + Math.sin(t*5 + i*3)*1.2; p.y = e[1] + f*16; p.z = e[2] + Math.cos(t*4 + i*2)*1.2; p.s = 11 - f*8; p.a = 1 - f*.7; p.r = 1; p.g = .55 + .35*(1 - f); p.b = .12; }, {col:'#ffffff', add:true, region:[flm[0][0], flm[0][1], flm[0][2], 80], name:'campfire', f:3200});
+  if(sm.length) lfPuffs(sm.length*6, (i, t, p)=>{ const e = sm[i % sm.length], age = (t/4 + i*.17) % 1; p.x = e[0] + age*14 + Math.sin(i*3 + age*5)*2; p.y = e[1] + age*50; p.z = e[2] + age*5; p.s = 5 + age*16; p.a = (1 - age)*.5; p.r = p.g = p.b = .6; }, {col:'#d8d8d8', region:[sm[0][0], sm[0][1], sm[0][2], 120], name:'campsmoke', f:3200});
+  /* the anemometer spinning on top of the fire lookout */
+  { let tw = null; K.group.children.forEach(o=>{ if(o.name === 'tower') tw = o; }); if(tw){ const ab = new LBag(); [0, 1, 2].forEach(i=>{ const a = i*2.094; ab.beam('cyl6', '#cfd4d9', 0, 0, 0, Math.cos(a)*7, 0, Math.sin(a)*7, .5, .5); ab.add('sph', '#e8353a', Math.cos(a)*7, -1.6, Math.sin(a)*7, 2.4, 1.6, 2.4); });
+      lfSpin(ab, tw.position.x, tw.position.y + 110 + 44 + 6, tw.position.z, 0, 'y', 3.2, null, 'anemometer', 4200); X.site('lookouttop', tw.position.x, tw.position.y + 150, tw.position.z, 1, 0); } }
+  st.mesh(null, 'ridgestuff');
+  for(let k = 0; k < 2; k++){ const p = X.spot({dmin:300, dmax:800, r:150, claim:false, test:(y)=>y > wl}); if(p) lfBirds(4, p.x, p.y + 130 + k*60, p.z, 170, {col:'#6b4a2e', wing:'#5a3d26', tip:'#2a1c12', head:'#fafafa', beak:'#f2c230', size:3.4, speed:.12, flap:3.5, bob:10, dir:k ? 1 : -1, name:'eagles', f:4800}); }
 };
 function useCourse(idx){
   ensureRaceScene();
