@@ -7210,7 +7210,7 @@ const LF_PT_V = `#include <fog_pars_vertex>
 const LF_PT_F = `uniform vec3 uCol; varying float vA; varying vec3 vC;
   #include <fog_pars_fragment>
   void main(){ vec2 d = gl_PointCoord - .5; float r = dot(d, d)*4.0; if(r > 1.0 || vA < .01) discard;
-    gl_FragColor = vec4(uCol * vC, vA * (1.0 - r*r));
+    gl_FragColor = vec4(uCol * vC, vA * (1.0 - r) * 1.15);
     #include <tonemapping_fragment>
     #include <encodings_fragment>
     #include <fog_fragment>
@@ -7296,7 +7296,7 @@ function lfContext(K){
   /* a spot on the ground beside the racing line: o = {dmin, dmax, r (room it needs), test(y, x, z), u0, u1 (stretch of the lap), claim} */
   X.spot = o=>{ for(let k = 0; k < (o.tries || 80); k++){ const u = (o.u0 || 0) + LF.r()*((o.u1 === undefined ? 1 : o.u1) - (o.u0 || 0)), off = ((o.dmin || 150) + LF.r()*((o.dmax || 600) - (o.dmin || 150)))*(o.side || (LF.r() < .5 ? 1 : -1)), p = X.at(u, off);
       if(!X.free(p.x, p.z, o.r || 20, o.dmin || 150)) continue; if(o.test && !o.test(p.y, p.x, p.z)) continue; if(o.claim !== false) X.claim(p.x, p.z, o.r || 20); p.off = off; return p; } return null; };
-  X.site = (name, x, y, z)=>{ LF.sites.push([name, Math.round(x), Math.round(y), Math.round(z)]); };
+  X.site = (name, x, y, z, tx, tz)=>{ LF.sites.push(tx === undefined ? [name, Math.round(x), Math.round(y), Math.round(z)] : [name, Math.round(x), Math.round(y), Math.round(z), +tx.toFixed(3), +tz.toFixed(3)]); };
   X.shade = (x, z, r, a)=>{ if(K.shadeDot) K.shadeDot(x, z, r, a === undefined ? .4 : a); };
   return X; }
 function lifeBuild(K){
@@ -7401,6 +7401,81 @@ LIFE.farm = X=>{
     if(B.length) lfAnim(bb, B.length, (i, t, m)=>{ const b = B[i], a = b.ph + t*b.w; lfPut(m, b.x + Math.cos(a)*b.R, b.y + Math.sin(t*.5 + b.ph)*7, b.z + Math.sin(a)*b.R, a*.3, Math.sin(t*.4 + i)*.04, Math.cos(t*.37 + i)*.04, 1, 1, 1); }, [B[0].x, B[0].y, B[0].z, 2600], {name:'balloons', tint:tints.slice(0, B.length)}); }
   /* geese */
   for(let k = 0; k < 2; k++){ const p = X.spot({dmin:420, dmax:1100, r:200, test:(y)=>y > wl + 3}); if(p) lfBirds(7, p.x, p.y + 70 + LF.r()*50, p.z, 120 + LF.r()*40, {col:'#f4f4f0', wing:'#ecebe4', tip:'#3a3a3a', size:1.5, speed:.2, dir:k ? 1 : -1, name:'geese', f:2600}); }
+};
+/* ===== course life: Red Rock Canyon (a fly-through stone arch, rim arches and hoodoos, saguaro cacti, tumbleweeds rolling, a steam train
+   on a trestle high over the canyon, eagles, a geyser and dust devils) ===== */
+function lfArch(b, cx, cy, cz, yaw, hw, rise, th, dp, cols, legTo){
+  const n = 16, c = Math.cos(yaw), s = Math.sin(yaw), W = (lx, ly)=>[cx + lx*c, cy + ly, cz - lx*s], pts = [];
+  for(let i = 0; i <= n; i++){ const a = Math.PI*i/n; pts.push([-Math.cos(a)*hw, Math.sin(a)*rise]); }
+  for(let i = 0; i < n; i++){ const p0 = pts[i], p1 = pts[i + 1], dx = p1[0] - p0[0], dy = p1[1] - p0[1], len = Math.hypot(dx, dy)*1.1, ang = Math.atan2(dy, dx), nx = -Math.sin(ang), ny = Math.cos(ang);
+    const q = W((p0[0] + p1[0])/2 - nx*th/2, (p0[1] + p1[1])/2 - ny*th/2); b.add('box', cols[i % cols.length], q[0], q[1], q[2], len, th, dp*(1 - .25*Math.sin(Math.PI*i/n)), yaw, 0, ang); }
+  [-1, 1].forEach((sd, k)=>{ const q = W(sd*hw, 0), g = legTo ? legTo(q[0], q[2]) : cy - 60, h = cy - g + 8; b.add('box', cols[k % cols.length], q[0], g - 10, q[2], th*1.25, h, dp*1.1, yaw); }); }
+function lfHoodoo(b, x, y, z, s){ const cols = ['#c9754a', '#d98b58', '#b8623c', '#e2a273'];
+  let h = 0; for(let i = 0; i < 4; i++){ const r = s*(.9 - i*.12), hh = s*(2.4 - i*.2); b.add('cyl', cols[i % 4], x, y + h - 1, z, r, hh + 1, r*.9); h += hh*.9; }
+  b.add('cyl', '#a8552f', x, y + h, z, s*1.5, s*.7, s*1.3); b.add('cone', '#b8623c', x, y + h + s*.7, z, s*1.4, s*.9, s*1.2); }
+function lfSaguaro(b, x, y, z, s){ const g = '#4f8a3e', g2 = '#5c9a48';
+  b.add('cyl6', g, x, y - .5, z, s*.95, s*8.5, s*.95); b.add('sph', g, x, y + s*8.4, z, s*.95, s*.95, s*.95); b.add('sph', '#f08ac0', x, y + s*9.3, z, s*.35, s*.3, s*.35);
+  [[1, 4.2, 5.8], [-1, 3.2, 5.0]].forEach(([sd, h0, h1])=>{ b.add('cyl6', g2, x + sd*s*1.6, y + s*h0 - .5, z, s*.62, s*.9, s*.62, 0, 0, sd*Math.PI/2); b.add('box', g2, x + sd*s*1.2, y + s*h0, z, s*1.6, s*.9, s*.9);
+    b.add('cyl6', g2, x + sd*s*2.1, y + s*h0, z, s*.65, s*(h1 - h0), s*.65); b.add('sph', g2, x + sd*s*2.1, y + s*h1, z, s*.65, s*.65, s*.65); }); }
+function lfTruss(b, ax, az, bx, bz, y, w, hh, len0){ const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz), yaw = Math.atan2(-dz, dx), c = dx/L, s = dz/L, nb = Math.round(L/26), step = L/nb;
+  const P = (t, ly, lz)=>[ax + c*t - s*lz, y + ly, az + s*t + c*lz];   /* along the bridge, up, across */
+  const col = '#5a3a2a', col2 = '#7d5238';
+  b.add('box', '#3a2a22', ax + dx/2, y - 2.5, az + dz/2, L, 3, w + 8, yaw);
+  [-1, 1].forEach(sd=>{ const lz = sd*w/2; let q = P(L/2, hh, lz); b.add('box', col, q[0], q[1], q[2], L, 2.2, 2.2, yaw); q = P(L/2, 0, lz); b.add('box', col, q[0], q[1], q[2], L, 2.2, 2.2, yaw);
+    for(let i = 0; i <= nb; i++){ const a = P(i*step, 0, lz); b.add('box', col2, a[0], a[1], a[2], 1.6, hh, 1.6, yaw); if(i < nb){ const p0 = P(i*step, i % 2 ? hh : 0, lz), p1 = P((i + 1)*step, i % 2 ? 0 : hh, lz); b.beam('cyl6', col2, p0[0], p0[1], p0[2], p1[0], p1[1], p1[2], .9, .9); } } });
+  for(let i = 0; i <= nb; i += 2){ const q = P(i*step, hh, 0); b.add('box', col, q[0], q[1], q[2], 1.6, 1.6, w, yaw); }
+  for(let i = 0; i <= nb*2; i++){ const q = P(i*step/2, 0, 0); b.add('box', '#6b5a4a', q[0], q[1] + .4, q[2], .8, .9, w - 2, yaw); }
+  [-3.2, 3.2].forEach(lz=>{ const q = P(L/2, 1.6, lz); b.add('box', '#aaa8a0', q[0], q[1], q[2], L, .5, .6, yaw); }); }
+LIFE.canyon = X=>{
+  const {H, wl, K} = X, st = new LBag(), rockCols = ['#c9663f', '#e0a070', '#b8552f', '#d98b58'];
+  const floor = (y, x, z)=>{ const q = X.near(x, z); return Math.abs(y - (q.y - 52)) < 40 && X.slope(x, z) < .5 && y > wl + 1; };
+  const lg = (x, z)=>H(x, z) - 14;
+  /* a stone arch the racers fly through */
+  { let best = null; for(let k = 0; k < 90; k++){ const u = .16 + k*.0075, a = X.at(u, 270), b = X.at(u, -270); if(X.runway(a.x, a.z, 100)) continue;
+      const need = Math.max(a.y, b.y) - a.py; if(need < 90 && (!best || need < best.need)) best = {u, need, a, b}; }
+    if(best){ const {a, b} = best, mx = (a.x + b.x)/2, mz = (a.z + b.z)/2, yaw = Math.atan2(-(b.z - a.z), b.x - a.x), py = a.py - 55; lfArch(st, mx, py, mz, yaw, 275, 270, 62, 100, rockCols, lg); X.site('arch', mx, py + 120, mz, a.tx, a.tz); X.claim(mx, mz, 120);
+      X.shade(a.x, a.z, 60, .4); X.shade(b.x, b.z, 60, .4); } }
+  /* windows in the rock on the rims, hoodoos and balanced rocks */
+  for(let k = 0; k < 5; k++){ const p = X.spot({dmin:380, dmax:900, r:100, test:(y, x, z)=>X.slope(x, z) < .15 && y > wl + 200}); if(!p) continue; lfArch(st, p.x, p.y - 4, p.z, LF.r()*3.14, 70 + LF.r()*40, 80 + LF.r()*40, 30, 50, rockCols, lg); X.site('rimarch', p.x, p.y + 60, p.z); X.shade(p.x, p.z, 80, .35); }
+  for(let k = 0; k < 18; k++){ const p = X.spot({dmin:150, dmax:420, r:30, test:(y, x, z)=>X.slope(x, z) < .3 && y > wl + 1}); if(!p) continue; lfHoodoo(st, p.x, p.y, p.z, 7 + LF.r()*7); X.shade(p.x, p.z, 25, .35); if(k < 2) X.site('hoodoo', p.x, p.y + 20, p.z); }
+  for(let k = 0; k < 70; k++){ const p = X.spot({dmin:105, dmax:260, r:14, test:floor, tries:60}); if(!p) continue; lfSaguaro(st, p.x, p.y, p.z, 3.4 + LF.r()*2.2); if(k < 2) X.site('cactus', p.x, p.y + 15, p.z); }
+  /* the steam train on a trestle high over the canyon */
+  { let best = null; for(let k = 0; k < 70; k++){ const u = .12 + k*.011, a = X.at(u, 300), b = X.at(u, -300), top = Math.min(a.y, b.y); if(X.runway(a.x, a.z, 100) || a.y < a.py + 260 || b.y < b.py + 260) continue;
+      const a2 = X.at(u, 520), b2 = X.at(u, -520), flat = Math.max(Math.abs(a.y - b.y), Math.abs(a2.y - a.y)*.4, Math.abs(b2.y - b.y)*.4); if(!best || flat < best.flat) best = {u, flat, a, b, a2, b2, top}; }
+    if(best){ const {a, b} = best, ex = X.at(best.u, 430), ey = X.at(best.u, -430), dy = Math.max(a.y, b.y, ex.y, ey.y) + 10, ax = ex.x, az = ex.z, bx = ey.x, bz = ey.z, L = Math.hypot(bx - ax, bz - az), c = (bx - ax)/L, s = (bz - az)/L, yaw = Math.atan2(-s, c);
+      const tx0 = a.x, tz0 = a.z, tx1 = b.x, tz1 = b.z;
+      lfTruss(st, tx0, tz0, tx1, tz1, dy, 20, 30);
+      [[a, 1], [b, -1]].forEach(([e, sd])=>{ const g = Math.min(H(e.x, e.z), H(e.x + c*sd*40, e.z + s*sd*40)) - 10; st.add('box', '#9a8168', e.x, g, e.z, 60, dy - g + 3, 36, yaw);
+        const q = [e.x - c*sd*150, e.z - s*sd*150]; st.add('box', '#8a6f58', q[0], Math.min(H(q[0], q[1]), dy - 40) - 10, q[1], 90, dy + 36 - Math.min(H(q[0], q[1]), dy - 40), 60, yaw); st.add('box', '#14100e', q[0] + c*sd*45, dy - 1, q[1] + s*sd*45, 3, 24, 28, yaw); });
+      const span = Math.hypot(tx1 - tx0, tz1 - tz0), tot = span + 300, v = 80, cyc = (tot + 240)/v + 5, nC = 5, cl = 36, tcol = ['#2f6fb0', '#c8321f', '#e0a020', '#3f8f4a', '#8a4fd0'];
+      const ux = (tx1 - tx0)/span, uz = (tz1 - tz0)/span, x00 = tx0 - ux*150, z00 = tz0 - uz*150, dyaw = Math.atan2(-uz, ux), mid = [(tx0 + tx1)/2, dy, (tz0 + tz1)/2];
+      const lb = new LBag(); lb.add('cyl', '#26282b', 0, 5, 0, 5, 15, 5, 0, 0, -Math.PI/2); lb.add('box', '#c8321f', -8, 3, 0, 9, 11, 9); lb.add('prism', '#26282b', -8, 14, 0, 10, 3, 11, Math.PI/2); lb.add('cyl6', '#1a1a1a', 7, 10, 0, 1.8, 5, 1.8); lb.add('cone', '#1a1a1a', 7, 15, 0, 3.2, 2.5, 3.2);
+      lb.add('box', '#e0a020', 13, 1.5, 0, 3, 4, 8, 0, 0, .5); [[4, 4.6], [-4, 4.6], [4, -4.6], [-4, -4.6]].forEach(([x, z])=>lb.add('cyl', '#1a1a1a', x, 0, z, 3, 1.2, 3, 0, Math.PI/2));
+      const cb = new LBag(); cb.add('box', '#ffffff', 0, 2, 0, 31, 10, 8.4); cb.add('box', '#33302d', 0, .8, 0, 32, 1.6, 7); cb.add('prism', '#8a7a68', 0, 12, 0, 8.6, 2.2, 32, Math.PI/2);
+      const place = (m, t, back)=>{ const k = Math.floor(t/cyc), q = (t/cyc - k)*cyc*v - back, dir = k % 2 ? -1 : 1, sg = dir > 0 ? q : tot - q, sc = q < -40 || q > tot + 40 ? 0 : 1;
+        lfPut(m, x00 + ux*(sg + 150), dy + 3 + (back ? 2 : 0), z00 + uz*(sg + 150), dyaw + (dir > 0 ? 0 : Math.PI), 0, 0, sc, sc, sc); };
+      lfAnim(lb, 1, (i, t, m)=>place(m, t, 0), [mid[0], dy, mid[2], span*.7 + 200], {name:'train'});
+      lfAnim(cb, nC, (i, t, m)=>place(m, t, 26 + i*cl), [mid[0], dy, mid[2], span*.7 + 300], {name:'cars', tint:tcol});
+      lfPuffs(12, (i, t, p)=>{ const k = Math.floor(t/cyc), q = (t/cyc - k)*cyc*v, dir = k % 2 ? -1 : 1, age = ((t*.8 + i/12) % 1); if(q < 0 || q > tot + 40) return; const sg = (dir > 0 ? q : tot - q) + dir*(7 - age*60);
+        p.x = x00 + ux*(sg + 150); p.z = z00 + uz*(sg + 150); p.y = dy + 22 + age*30; p.s = 7 + age*20; p.a = (1 - age)*.8; p.r = p.g = p.b = .95 - age*.3; }, {col:'#ffffff', region:[mid[0], dy + 30, mid[2], span*.7 + 200], name:'steam', f:5200});
+      X.site('trestle', (tx0 + tx1)/2, dy, (tz0 + tz1)/2, best.a.tx || 0, best.a.tz || 0); } }
+  st.mesh(null, 'canyonstuff');
+  /* tumbleweeds rolling along the canyon floor */
+  { const tb = new LBag(); tb.add('ico', '#b79a62', 0, 3, 0, 3.4, 3.2, 3.4); tb.add('ico', '#9a7e4a', 0, 3, 0, 3.6, 2.6, 2.6, 1, 1); tb.add('ico', '#c8ac74', 0, 3, 0, 2.6, 3.6, 3, .6, 0, 1);
+    const W = [], N = 16; for(let i = 0; i < N; i++){ const u0 = LF.r(), off = (110 + LF.r()*110)*(LF.r() < .5 ? 1 : -1), pts = []; let ok = true; for(let k = 0; k <= 24; k++){ const p = X.at(u0 + k*.0045, off); if(p.y < wl + 1 || X.runway(p.x, p.z, 100)) ok = false; pts.push([p.x, p.y, p.z]); }
+      W.push({pts, ok, sp:.022 + LF.r()*.02, ph:LF.r(), sc:.9 + LF.r()*.7}); }
+    const good = W.filter(w=>w.ok), nn = good.length;
+    if(nn) lfAnim(tb, nn, (i, t, m)=>{ const w = good[i], q = ((t*w.sp + w.ph) % 1)*24, k = Math.min(23, Math.floor(q)), f = q - k, a = w.pts[k], b = w.pts[k + 1], x = a[0] + (b[0] - a[0])*f, z = a[2] + (b[2] - a[2])*f, y = a[1] + (b[1] - a[1])*f;
+      lfPut(m, x, y + Math.abs(Math.sin(t*3 + i*2))*3, z, Math.atan2(-(b[2] - a[2]), b[0] - a[0]), 0, -t*3 - i, w.sc, w.sc, w.sc); }, [K.centroid.x, 200, K.centroid.z, 5200], {name:'tumble', f:2600}); }
+  /* eagles over the rims */
+  for(let k = 0; k < 2; k++){ const p = X.spot({dmin:300, dmax:700, r:150, test:(y)=>y > wl + 100}); if(p){ lfBirds(k ? 3 : 4, p.x, p.y + 150 + LF.r()*80, p.z, 190, {size:3.6, col:'#5a3d26', wing:'#4a3220', tip:'#f0e8d8', head:'#f4f0e6', speed:.1, flap:3, bob:10, dir:k ? 1 : -1, name:'eagles', f:5000}); X.site('eagles', p.x, p.y + 180, p.z); } }
+  /* a geyser and dust devils on the floor */
+  { const gs = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:130, dmax:240, r:30, test:floor}); if(p){ gs.push(p); X.site('geyser', p.x, p.y + 40, p.z); } }
+    if(gs.length) lfPuffs(gs.length*22, (i, t, p)=>{ const g = gs[Math.floor(i/22)], j = i % 22, f = j/21, ph = (t + g.x*.01) % 8, er = ph < 3.2 ? Math.sin(ph/3.2*Math.PI) : 0, h = 40 + 170*er;
+      p.x = g.x + Math.sin(j*5 + t)*(2 + f*9)*(.3 + er); p.z = g.z + Math.cos(j*3 + t)*(2 + f*9)*(.3 + er); p.y = g.y + 1 + f*h; p.s = 9 + f*(18 + 34*er); p.a = .9*(1 - f*.6)*(.5 + .5*er); p.r = p.g = .95; p.b = 1; }, {col:'#ffffff', region:[gs[0].x, gs[0].y + 100, gs[0].z, 3400], name:'geyser', f:3000});
+    const dd = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:140, dmax:240, r:60, test:floor}); if(p){ dd.push(p); X.site('dustdevil', p.x, p.y + 40, p.z); } }
+    if(dd.length) lfPuffs(dd.length*26, (i, t, p)=>{ const g = dd[Math.floor(i/26)], j = i % 26, f = j/25, a = t*3.4 + f*11 + j, wx = Math.sin(t*.12 + g.x)*70, wz = Math.cos(t*.1 + g.z)*70, r = 3 + f*22;
+      p.x = g.x + wx + Math.cos(a)*r; p.z = g.z + wz + Math.sin(a)*r; p.y = g.y + 2 + f*110; p.s = 9 + f*20; p.a = .75*(1 - f*.4); p.r = .85; p.g = .62; p.b = .4; }, {col:'#e0b070', region:[dd[0].x, dd[0].y + 50, dd[0].z, 3400], name:'dust', f:3000}); }
 };
 function useCourse(idx){
   ensureRaceScene();
@@ -15933,6 +16008,7 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
     return {id: L.id, meshes, tris: Math.round(tris), anim: L.anim.length, sites: L.sites, err: window.__lifeErr ? String(window.__lifeErr) : null}; },   // section "course life": what the course's scenery adds (tests)
   lifeRender: ()=>{ try{ renderer.render(rScene, rCam); return null; }catch(e){ return String(e.stack); } },   // (tests: a draw that says what failed)
   lifeProbe: (n, offs)=>{ const K = rCourse, out = []; for(let i = 0; i < n; i++){ const u = i/n, q = K.curve.getPointAt(u), tg = K.curve.getTangentAt(u), nl = Math.hypot(tg.x, tg.z) || 1; out.push([+u.toFixed(3), Math.round(q.x), Math.round(q.y), Math.round(q.z), ...offs.map(o=>Math.round(K.H(q.x - tg.z/nl*o, q.z + tg.x/nl*o)))]); } return out; },   // (tests: the ground beside the racing line)
+  lifeNear: (x, z)=>{ const K = rCourse; let b = 1e12, bu = 0; for(let i = 0; i < 600; i++){ const q = K.curve.getPointAt(i/600), d = (q.x - x)**2 + (q.z - z)**2; if(d < b){ b = d; bu = i/600; } } const q = K.curve.getPointAt(bu), tg = K.curve.getTangentAt(bu); return {x: q.x, y: q.y, z: q.z, tx: tg.x, ty: tg.y, tz: tg.z, d: Math.sqrt(b)}; },   // (tests: the racing line beside a place)
   lifeCam: a=>{ LF.dbg = a || null; if(!a){ rCam.fov = 52; rCam.updateProjectionMatrix(); } return !!a; },   // a free camera [x, y, z, lookX, lookY, lookZ, fov] over the race, for pictures of the scenery
   lifeBlock: ()=>{ const K = rCourse, L = K && K.life; if(!L || !RACE.on) return null; const rc = new T.Raycaster(), list = [], o = rCam.position, hits = [], dv = V(0,0,0);
     L.g.traverse(m=>{ if(m.isMesh && m.visible) list.push(m); });
