@@ -7410,6 +7410,22 @@ function lfPier(X, st, o){ o = o || {}; const {H, wl} = X, R = o.R || 52;
   [30, 70, 110].forEach((a, i)=>{ [-1, 1].forEach(sd=>{ const q = [pp.x + dx*a - dz*sd*8, pp.z + dz*a + dx*sd*8]; st.add('box', ['#e8353a', '#f4c20d', '#2f9fe0'][i], q[0], wl + 6.6, q[1], 12, 8, 9, -Math.atan2(dz, dx)); st.add('prism', ['#ffffff', '#f2f2f2', '#ffffff'][i], q[0], wl + 14.6, q[1], 10, 4, 14, -Math.atan2(dz, dx) + Math.PI/2); }); });
   const hx = pp.x + dx*150, hz = pp.z + dz*150; lfFerris(X, st, hx, wl + R + 14, hz, -Math.atan2(dz, dx), R, wl + 4);
   X.site('ferris', hx, wl + R + 14, hz, inx, inz); X.claim(pp.x + dx*90, pp.z + dz*90, 110); return true; }
+/* waterfalls pouring down steep slopes beside the course: a ribbon of moving white water hugging the ground, mist at the foot. Returns where they are. */
+function lfFalls(X, n, o){ o = o || {}; const H = X.H, P = [], UV = [], IX = [], out = [], mist = [];
+  for(let k = 0; k < n; k++){ const p = X.spot({dmin:o.dmin || 190, dmax:o.dmax || 650, r:70, tries:500, claim:false, test:(y, x, z)=>{ const sl = X.slope(x, z); return y > X.wl + 6 && sl > (o.smin || .3) && sl < 1.7; }}); if(!p) continue;
+    const gx = H(p.x + 18, p.z) - H(p.x - 18, p.z), gz = H(p.x, p.z + 18) - H(p.x, p.z - 18), gl = Math.hypot(gx, gz) || 1, dx = -gx/gl, dz = -gz/gl, sx = -dz, sz = dx, N = 16, st = 13; let ok = H(p.x - dx*80, p.z - dz*80) - H(p.x + dx*(N*st - 80), p.z + dz*(N*st - 80)) > (o.drop || 80);
+    for(let i = 0; i < N && ok; i++){ const a = -80 + i*st, b = a + st; if(H(p.x + dx*a, p.z + dz*a) < H(p.x + dx*b, p.z + dz*b) - 5) ok = false; } if(!ok) continue; X.claim(p.x, p.z, 80);
+    const base = P.length/3; for(let i = 0; i <= N; i++){ const a = -80 + i*st, x = p.x + dx*a, z = p.z + dz*a, y = H(x, z) + 2.6, w = 10 + 3*Math.sin(i*.9 + k) + i*.5; P.push(x - sx*w, y, z - sz*w, x + sx*w, y, z + sz*w); UV.push(0, i*.32, 1, i*.32); if(i < N){ const q = base + i*2; IX.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }
+    const ex = p.x + dx*(N*st - 80), ez = p.z + dz*(N*st - 80); out.push({x:ex, y:H(ex, ez), z:ez, tx:p.tx, tz:p.tz}); X.site('waterfall', p.x, H(p.x, p.z) + 20, p.z, p.tx, p.tz); }
+  if(!out.length) return out;
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(UV, 2)); g.setIndex(IX); g.computeBoundingSphere(); LF.geos.push(g);
+  const tex = lfTex(64, 128, (c, w, h)=>{ c.fillStyle = '#a9dcf0'; c.fillRect(0, 0, w, h); for(let i = 0; i < 70; i++){ c.fillStyle = `rgba(255,255,255,${.35 + Math.random()*.5})`; const x = Math.random()*w, l = 14 + Math.random()*40, y = Math.random()*h; c.fillRect(x, y, 2 + Math.random()*4, l); c.fillRect(x, y - h, 2, l); c.fillRect(x, y + h, 2, l); } });
+  tex.wrapS = tex.wrapT = T.RepeatWrapping;
+  const mat = new T.MeshBasicMaterial({map:tex, transparent:true, opacity:.92, depthWrite:false, side:T.DoubleSide, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4}); LF.mats.push(mat);
+  lfReg(new T.Mesh(g, mat), g.boundingSphere.center, g.boundingSphere.radius, o.f || 4200).renderOrder = 4; LF.anim.push(t=>{ tex.offset.y = -t*.8; });
+  const R0 = out[0], per = 10;
+  lfPuffs(out.length*per, (i, t, p)=>{ const e = out[Math.floor(i/per)], age = (t/3 + i*.137) % 1, a = i*2.4; p.x = e.x + Math.cos(a)*(8 + age*22); p.z = e.z + Math.sin(a)*(8 + age*22); p.y = e.y + 4 + age*34; p.s = 18 + age*40; p.a = (1 - age)*.5; p.r = p.g = p.b = .96; }, {col:'#ffffff', region:[R0.x, R0.y + 20, R0.z, 3200], name:'fallmist', f:4200});
+  return out; }
 /* ===== course life: Farmfield Classic (windmills and wind turbines turning, farmyards with cows, sheep, hay and chimney smoke, tulip fields,
    a tractor at work, hot-air balloons, geese) ===== */
 function lfAt(x, y, z, ry, a, h, o){ const cs = Math.cos(ry), sn = Math.sin(ry); return [x + a*cs + o*sn, y + h, z - a*sn + o*cs]; }
@@ -7795,6 +7811,55 @@ LIFE.skyline = X=>{
     if(sg.P.length) sg.mesh(LF.matE, 'signs');
     if(nl.length) lfPuffs(nl.length, (i, t, p)=>{ const e = nl[i], k = t*.7 + e[3]; p.x = e[0]; p.y = e[1]; p.z = e[2]; p.s = 26 + 6*Math.sin(t*2 + e[3]*4); p.a = .55 + .3*Math.sin(t*3 + e[3]*3); p.r = .55 + .45*Math.sin(k); p.g = .55 + .45*Math.sin(k + 2.1); p.b = .55 + .45*Math.sin(k + 4.2); }, {col:'#ffffff', add:true, region:[500, 200, 500, 2800], name:'neon', f:6000}); }
   st.mesh(null, 'metrostuff');
+};
+/* ===== course life: Sun Temple Ruins (a sacred pool with a fountain, butterflies, golden dust, macaws and toucans flying, llamas wandering the hillsides, a golden sun disc turning over the great temple,
+   flaming torches round the temples, colourful totem poles, an explorers' camp with a campfire, mist rising from the canopy) ===== */
+function lfLlamaBag(){ const b = new LBag(); b.add('box', '#ffffff', 0, 5.4, 0, 12, 7.4, 6.6); b.add('sph', '#ffffff', -5.6, 9.4, 0, 3.6, 4, 3.6); b.beam('cyl6', '#ffffff', 3.4, 11, 0, 6.6, 18, 0, 1.7, 1.2); b.add('sph', '#ffffff', 7.4, 19, 0, 2.2, 1.9, 1.7); b.add('box', '#e8d6b8', 8.8, 17.6, 0, 1.6, 1.4, 1.4);
+  [-1, 1].forEach(o=>{ b.add('cone6', '#ffffff', 6.8, 20.4, o*1, .5, 1.8, .5); [-4.2, 4.2].forEach(a=>b.add('box', '#e8d6b8', a, 0, o*2.2, 1.5, 6, 1.5)); }); b.add('box', '#e8353a', 0, 12.6, 0, 3.4, .6, 6.8); return b; }
+function lfTotem(b, x, y, z, ry, s){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o), cs = [['#d9402e', '#f4c20d'], ['#2f9fa8', '#f08a1c'], ['#f4c20d', '#2f6fb0']][Math.floor(LF.r()*3)];
+  [0, 1, 2, 3].forEach(i=>{ const c = cs[i % 2]; b.add('box', c, x, y + i*12*s, z, 11*s, 12.4*s, 11*s, ry); b.add('box', '#ffffff', ...at(5.6*s, (i*12 + 8)*s, -2.6*s), .6*s, 2.6*s, 2.6*s, ry); b.add('box', '#ffffff', ...at(5.6*s, (i*12 + 8)*s, 2.6*s), .6*s, 2.6*s, 2.6*s, ry); b.add('box', '#1c1c20', ...at(5.9*s, (i*12 + 8.4)*s, -2.6*s), .4*s, 1.2*s, 1.2*s, ry); b.add('box', '#1c1c20', ...at(5.9*s, (i*12 + 8.4)*s, 2.6*s), .4*s, 1.2*s, 1.2*s, ry); b.add('box', '#1c1c20', ...at(5.8*s, (i*12 + 3.4)*s, 0), .4*s, 2*s, 5*s, ry); });
+  b.add('cone6', '#f2c230', ...at(5*s, 49*s, 0), 3.4*s, 8*s, 3.4*s, ry); [-1, 1].forEach(o=>b.add('box', cs[1], ...at(0, 30*s, o*11*s), 1*s, 3*s, 12*s, ry, 0, 0)); }
+LIFE.pyramid = X=>{
+  const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832, fl = [], sm = [], tmp = V(0, 0, 0);
+  const flat = (r, hmax)=>(y, x, z)=>{ if(y < wl + 4 || y > hmax) return false; for(let a = 0; a < 8; a++){ if(Math.abs(H(x + Math.cos(a*.785)*r, z + Math.sin(a*.785)*r) - y) > 14) return false; } return X.slope(x, z) < .22; };
+  /* the great temple: a golden sun disc turning on top, torches burning at the corners of every temple */
+  const temples = []; K.group.traverse(o=>{ if(o.name === 'temple' && o.isGroup) temples.push(o); }); K.group.updateMatrixWorld(true);
+  temples.forEach((g, ti)=>{ const c0 = g.children[0], w = c0 && c0.geometry && c0.geometry.parameters ? c0.geometry.parameters.width : 120, big = w > 200, hw = w/2 - 6;
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b])=>{ tmp.set(a*hw, 0, b*hw); g.localToWorld(tmp); const gy = H(tmp.x, tmp.z); st.add('cyl6', '#7d6e57', tmp.x, gy - 4, tmp.z, 3.2, 20, 3.2); st.add('cyl', '#c9a24a', tmp.x, gy + 15, tmp.z, 5.4, 4.5, 5.4); fl.push([tmp.x, gy + 22, tmp.z, LF.r()*PI2]); });
+    if(big){ tmp.set(0, 270, 0); g.localToWorld(tmp); const q = X.near(tmp.x, tmp.z), ry = Math.atan2(-(q.z - tmp.z), q.x - tmp.x) + Math.PI/2, sb = new LBag();
+      sb.add('cyl', '#f4c20d', 0, 0, 0, 40, 4, 40, 0, Math.PI/2); sb.add('cyl', '#e8353a', 0, 0, 2, 24, 3, 24, 0, Math.PI/2); sb.add('sph', '#ffe27a', 0, 0, 5, 10, 10, 5);
+      for(let i = 0; i < 14; i++){ const a = i/14*PI2; sb.add('prism', i % 2 ? '#f4c20d' : '#f08a1c', Math.cos(a)*44, Math.sin(a)*44, 0, 14, 30, 4, 0, 0, a - Math.PI/2); }
+      lfSpin(sb, tmp.x, tmp.y, tmp.z, ry, 'z', .45, LF.matS, 'sundisc', 6500); st.beam('cyl6', '#7d6e57', tmp.x, tmp.y - 38, tmp.z, tmp.x, tmp.y, tmp.z, 3, 3); X.site('sundisc', tmp.x, tmp.y + 10, tmp.z, q.x - tmp.x, q.z - tmp.z); } });
+  if(fl.length) lfPuffs(fl.length*3, (i, t, p)=>{ const e = fl[i % fl.length], k = Math.floor(i/fl.length), f = (t*2.2 + i*.37) % 1; p.x = e[0] + Math.sin(t*5 + i*3)*1.2; p.y = e[1] + f*18 + k*2; p.z = e[2] + Math.cos(t*4 + i*2)*1.2; p.s = (11 - f*8)*(1 - k*.2); p.a = 1 - f*.7; p.r = 1; p.g = .55 + .35*(1 - f); p.b = .12; }, {col:'#ffffff', add:true, region:[fl[0][0], fl[0][1], fl[0][2], 3400], name:'flames', f:4200});
+  /* totem poles beside the course */
+  for(let k = 0; k < 14; k++){ const p = X.spot({dmin:150, dmax:420, r:26, test:(y, x, z)=>y > wl + 4 && X.slope(x, z) < .5}); if(!p) continue; const q = X.near(p.x, p.z); lfTotem(st, p.x, H(p.x, p.z) - 1, p.z, Math.atan2(-(q.z - p.z), q.x - p.x), 1.5 + LF.r()*.5); X.shade(p.x, p.z, 14, .35); if(k < 2) X.site('totem', p.x, p.y + 50, p.z, p.tx, p.tz); }
+  /* an explorers' camp: tents round a campfire */
+  { const c = X.spot({dmin:200, dmax:520, r:80, test:flat(40, 160)}); if(c){ const cc = ['#e8d6a0', '#d98a3a', '#7fb05a']; for(let k = 0; k < 4; k++){ const a = k*1.7 + .5, rr = 38, x = c.x + Math.cos(a)*rr, z = c.z + Math.sin(a)*rr; lfTent(st, x, H(x, z), z, a + 1.57, 2.4, cc[k % 3]); }
+      [0, 1, 2].forEach(i=>{ const a = i*2.1; st.add('box', '#9a6a3a', c.x + Math.cos(a)*9, c.y, c.z + Math.sin(a)*9, 3, 12, .8, a, 0, .5); }); st.add('cyl', '#5a5a5e', c.x, c.y, c.z, 6, 1.5, 6); fl.push([c.x, c.y + 4, c.z, 0]); sm.push([c.x, c.y + 8, c.z]);
+      [0, 1].forEach(i=>st.add('box', '#8a5a2a', c.x + 20 + i*10, c.y, c.z - 20, 8, 7, 7, i)); st.beam('cyl6', '#ddd', c.x - 14, c.y, c.z + 30, c.x - 14, c.y + 36, c.z + 30, .7, .6); st.add('box', '#e8353a', c.x - 6, c.y + 28, c.z + 30, 14, 8, .5); X.site('camp', c.x, c.y + 30, c.z, c.tx, c.tz); } }
+  /* llamas wandering the gentle hillsides */
+  { const L = []; for(let k = 0; k < 5; k++){ const p = X.spot({dmin:160, dmax:480, r:90, test:flat(55, 220)}); if(!p) continue; for(let q = 0; q < 4; q++) L.push({x:p.x, z:p.z, R:34 + q*7, ph:q*1.6 + k, w:(q % 2 ? -1 : 1)*(.12 + q*.012)}); X.site('llamas', p.x, p.y + 25, p.z, p.tx, p.tz); }
+    if(L.length) lfAnim(lfLlamaBag(), L.length, (i, t, m)=>{ const e = L[i], a = e.ph + e.w*t, x = e.x + Math.cos(a)*e.R, z = e.z + Math.sin(a)*e.R, hd = a + (e.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, x, H(x, z) + Math.abs(Math.sin(t*3 + i*1.7))*.7, z, -hd, 0, Math.sin(t*3 + i*1.7)*.04, 2, 2, 2); }, [L[0].x, L[0].y, L[0].z, 3400], {name:'llamas', tint:L.map((e, i)=>['#f1e2c4', '#b88c5c', '#ffffff', '#6b4a32', '#d8c4a0'][i % 5]), f:3600}); }
+  if(sm.length) lfPuffs(sm.length*6, (i, t, p)=>{ const e = sm[i % sm.length], age = (t/4 + i*.17) % 1; p.x = e[0] + age*14 + Math.sin(i*3 + age*5)*2; p.y = e[1] + age*50; p.z = e[2] + age*5; p.s = 5 + age*16; p.a = (1 - age)*.5; p.r = p.g = p.b = .55; }, {col:'#d8d8d8', region:[sm[0][0], sm[0][1], sm[0][2], 2800], name:'campsmoke', f:3200});
+  /* mist rising from the jungle valleys */
+  { const M = []; for(let k = 0; k < 5; k++){ const p = X.spot({dmin:200, dmax:700, r:80, claim:false, test:(y)=>y > wl + 4}); if(p) M.push(p); }
+    if(M.length) lfPuffs(M.length*8, (i, t, p)=>{ const e = M[Math.floor(i/8)], age = (t/9 + i*.123) % 1, a = i*2.1; p.x = e.x + Math.cos(a)*50 + age*30; p.y = e.y + 12 + age*60; p.z = e.z + Math.sin(a)*50; p.s = 70 + age*60; p.a = Math.sin(age*3.1416)*.28; p.r = .9; p.g = 1; p.b = .95; }, {col:'#ffffff', region:[M[0].x, M[0].y, M[0].z, 3400], name:'mist', f:4000}); }
+  /* broken colonnades: rows of stone pillars, some fallen */
+  for(let k = 0; k < 6; k++){ const p = X.spot({dmin:160, dmax:460, r:60, tries:150, test:(y, x, z)=>y > wl + 4 && X.slope(x, z) < .3}); if(!p) continue; const q = X.near(p.x, p.z), ang = Math.atan2(q.z - p.z, q.x - p.x) + Math.PI/2, ux = Math.cos(ang), uz = Math.sin(ang);
+    for(let i = -3; i <= 3; i++){ const x = p.x + ux*i*22, z = p.z + uz*i*22, y = H(x, z), h = 40 + LF.r()*34, br = LF.r() < .3; if(br){ st.add('cyl', '#b9aa8a', x, y - 1, z, 5, 14, 5); st.add('cyl', '#a89a7a', x + 8, y + 2, z + 6, 5, 30, 5, 0, 0, Math.PI/2 - .1); } else { st.add('cyl', '#b9aa8a', x, y - 2, z, 5.4, h, 5.4); st.add('box', '#9a8c6e', x, y + h - 2, z, 13, 4, 13); st.add('box', '#c9bc9c', x, y - 2, z, 11, 4, 11); } }
+    X.shade(p.x, p.z, 50, .25); if(k < 2) X.site('colonnade', p.x, p.y + 40, p.z, p.tx, p.tz); }
+  /* a sacred pool with a stone fountain, golden dust and butterflies in the sunlight */
+  { const pl = X.spot({dmin:190, dmax:520, r:110, tries:300, test:flat(70, 200)}); if(pl){ const R = 62, gr = new LBag(), y0 = H(pl.x, pl.z); let hm = y0; for(let q = 0; q < 8; q++) hm = Math.max(hm, H(pl.x + Math.cos(q*.785)*R, pl.z + Math.sin(q*.785)*R)); const ly = hm + 1;
+      gr.blob(()=>ly - 1.2, pl.x, pl.z, R + 8, '#a89a80', 14, 1.2); gr.blob(()=>ly - 1, pl.x, pl.z, R, '#2fb7c0', 14, 1.7); gr.mesh(LF.matG, 'pool');
+      for(let q = 0; q < 16; q++){ const a = q/16*PI2; st.add('ico', q % 2 ? '#8d7f66' : '#a89a80', pl.x + Math.cos(a)*(R + 6), ly, pl.z + Math.sin(a)*(R + 6), 7, 6, 7, a); }
+      st.add('cyl', '#a89a80', pl.x, ly, pl.z, 16, 5, 16); st.add('cyl', '#b8aa90', pl.x, ly + 5, pl.z, 9, 6, 9); st.add('cyl', '#c9bca2', pl.x, ly + 11, pl.z, 4, 8, 4);
+      lfPuffs(36, (i, t, p)=>{ const j = i % 12, k = Math.floor(i/12), f = ((t*.9 + j/12)%1), a = k*2.094 + j*.2; p.x = pl.x + Math.cos(a)*f*34; p.z = pl.z + Math.sin(a)*f*34; p.y = ly + 19 + 26*Math.sin(f*Math.PI) - f*f*20; p.s = 5 + f*3; p.a = .85*(1 - f*.5); p.r = .85; p.g = .97; p.b = 1; }, {col:'#ffffff', region:[pl.x, ly + 20, pl.z, 160], name:'fountain', f:3400});
+      X.site('pool', pl.x, ly + 40, pl.z, pl.tx, pl.tz); lfBirds(8, pl.x, ly + 40, pl.z, 90, {col:'#f08a1c', wing:'#f4c20d', tip:'#1c1c20', head:'#1c1c20', beak:'#1c1c20', size:.7, speed:.3, flap:16, bob:5, name:'butterflies', f:3400}); } }
+  if(temples.length){ const T0 = temples[0]; tmp.set(0, 80, 0); T0.localToWorld(tmp); const cx = tmp.x, cy = tmp.y, cz = tmp.z, D = []; for(let i = 0; i < 45; i++){ const a = LF.r()*PI2, r = Math.sqrt(LF.r())*260; D.push([cx + Math.cos(a)*r, cy + (LF.r() - .3)*200, cz + Math.sin(a)*r, LF.r()*PI2, 3 + LF.r()*3]); }
+    lfPuffs(D.length, (i, t, p)=>{ const e = D[i], k = Math.pow(Math.max(0, Math.sin(t*1.3 + e[3]*3)), 2); p.x = e[0] + Math.sin(t*.4 + e[3])*14; p.y = e[1] + Math.sin(t*.5 + e[3]*2)*9; p.z = e[2] + Math.cos(t*.35 + e[3])*14; p.s = e[4]*(.6 + k); p.a = .15 + .6*k; p.r = 1; p.g = .85; p.b = .4; }, {col:'#ffffff', add:true, region:[cx, cy, cz, 360], name:'dust', f:3800}); }
+  st.mesh(null, 'ruinsstuff');
+  /* macaws and toucans flying over the canopy */
+  [['#e8353a', '#2f6fe0', '#f4c20d', 6, 0], ['#2f6fe0', '#f4c20d', '#2f6fe0', 5, 1], ['#1c1c20', '#222226', '#1c1c20', 4, 0]].forEach(([c, w, tp, n, d], k)=>{ const p = X.spot({dmin:250, dmax:750, r:150, claim:false, test:(y)=>y > wl}); if(p) lfBirds(n, p.x, p.y + 80 + k*25, p.z, 140, {col:c, wing:w, tip:tp, head:k === 2 ? '#fafafa' : c, beak:k === 2 ? '#f08a1c' : '#f4f4f4', size:k === 2 ? 2.8 : 3.4, speed:.17, flap:7, dir:d ? 1 : -1, name:k === 2 ? 'toucans' : 'macaws', f:4200}); });
 };
 function useCourse(idx){
   ensureRaceScene();
@@ -16328,6 +16393,7 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
   lifeRender: ()=>{ try{ renderer.render(rScene, rCam); return null; }catch(e){ return String(e.stack); } },   // (tests: a draw that says what failed)
   lifeProbe: (n, offs)=>{ const K = rCourse, out = []; for(let i = 0; i < n; i++){ const u = i/n, q = K.curve.getPointAt(u), tg = K.curve.getTangentAt(u), nl = Math.hypot(tg.x, tg.z) || 1; out.push([+u.toFixed(3), Math.round(q.x), Math.round(q.y), Math.round(q.z), ...offs.map(o=>Math.round(K.H(q.x - tg.z/nl*o, q.z + tg.x/nl*o)))]); } return out; },   // (tests: the ground beside the racing line)
   lifeMap: (x0, z0, x1, z1, st)=>{ const K = rCourse, rows = []; for(let z = z0; z <= z1; z += st){ let r = ''; for(let x = x0; x <= x1; x += st){ const h = K.H(x, z); r += h < K.wl + 1 ? '~' : h < 40 ? '.' : h < 120 ? 'o' : h < 300 ? 'O' : '#'; } rows.push(r); } return rows.join('\n') + '\nwl ' + K.wl; },   // (tests: a character map of the ground, ~ water)
+  lifeX: ()=>LF.X,   // (tests: the course-life context)
   lifeNear: (x, z)=>{ const K = rCourse; let b = 1e12, bu = 0; for(let i = 0; i < 600; i++){ const q = K.curve.getPointAt(i/600), d = (q.x - x)**2 + (q.z - z)**2; if(d < b){ b = d; bu = i/600; } } const q = K.curve.getPointAt(bu), tg = K.curve.getTangentAt(bu); return {x: q.x, y: q.y, z: q.z, tx: tg.x, ty: tg.y, tz: tg.z, d: Math.sqrt(b)}; },   // (tests: the racing line beside a place)
   lifeCam: a=>{ LF.dbg = a || null; if(!a){ rCam.fov = 52; rCam.updateProjectionMatrix(); } return !!a; },   // a free camera [x, y, z, lookX, lookY, lookZ, fov] over the race, for pictures of the scenery
   lifeBlock: ()=>{ const K = rCourse, L = K && K.life; if(!L || !RACE.on) return null; const rc = new T.Raycaster(), list = [], o = rCam.position, hits = [], dv = V(0,0,0);
