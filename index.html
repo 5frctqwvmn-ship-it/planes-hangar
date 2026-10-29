@@ -9775,8 +9775,8 @@ function wmFx(r, kind){ if(kind === 'cone') return csCone(r); const K = WM_FXK[k
    he already says, so they are recorded), when the show is over (celebrate, gsWinKind). A tap: the flags wave harder, a red, white and blue star
    and sparks (INK_TAP.flag), with the dances' chime and wing wag. All made in code when the show starts (a canvas for the flag, a few primitives),
    freed when it ends or stops (gsEnd: wmFinish, wmStop). ['flags', at] in the routine: def.flags, the seconds when they pop. */
-const GS = {g: null, arms: [], geos: [], mats: [], tex: [], r: null, bus: null, till: 0, boost: 0, lt: 0, played: false, beta: 0, st: null, nb: null, nbA: null};
-const GSR = {x: 1.0, y: -.03, z: 6.45, pole: 2.5, w: 3.6, h: 1.8, tin: .32, fin: .38, fd: .16, tout: .4, amp: .2, k: 1.25, w0: 8.5, nx: 12, ny: 4};   // metres in the Comet's model (x ahead, y up, z out along the wing; his tips are 6.68 out): the pole's foot, its height, the flag (2:1), the pop (s), the unfurl after it, the tuck; the wave: its size (of the flag's height), waves along it, speed (rad/s)
+const GS = {g: null, arms: [], geos: [], mats: [], tex: [], r: null, bus: null, till: 0, boost: 0, lt: 0, played: false, beta: 0, z: 6.45, st: null, nb: null, nbA: null};
+const GSR = {x: 1.0, y: -.03, z: 6.45, zc: 3.9, pole: 2.5, w: 3.6, h: 1.8, tin: .32, fin: .38, fd: .16, tout: .4, amp: .2, k: 1.25, w0: 8.5, nx: 12, ny: 4};   // metres in the Comet's model (x ahead, y up, z out along the wing; his tips are 6.68 out): the pole's foot (zc: in Sky City), its height, the flag (2:1), the pop (s), the unfurl after it, the tuck; the wave: its size (of the flag's height), waves along it, speed (rad/s)
 const GS_TUNE = {q: .42, rit: 1.12, roll: .45, lead: .2, vol: .45};   // the band: a beat (s), the last bar slower by rit, the snare roll before it (s), its start after the pop (s), the level
 /* the anthem's opening (G major, 3/4; MIDI notes, beats): "God save our gracious Queen, long live our noble Queen" (bars 1 to 4), and the whole first
    part to "God save the Queen" (6 bars: gsAnthem's bars). Melody, an alto under it, a bass; hymn-book harmony (G, Em, D, ... D7, G) */
@@ -9831,12 +9831,13 @@ function gsMake(c){
       const fm = new T.MeshBasicMaterial({map: tx, side: T.DoubleSide, vertexColors: true}); GS.mats.push(fm);
       const piv = new T.Group(), pl = new T.Mesh(pole, pm), kn = new T.Mesh(knob, km), fg = new T.Group(), fl = new T.Mesh(geo, fm);
       kn.position.y = R.pole + .08; fl.position.y = 0; fg.position.y = R.pole - .06; fg.rotation.y = sd*GS.beta; fg.add(fl); piv.add(pl, kn, fg);
-      piv.position.set(R.x, R.y, sd*R.z); piv.scale.set(1, .001, 1); fg.scale.set(.001, 1, 1); piv.visible = false; g.add(piv);
+      piv.position.set(R.x, R.y, sd*GS.z); piv.scale.set(1, .001, 1); fg.scale.set(.001, 1, 1); piv.visible = false; g.add(piv);
       GS.arms.push({piv, fg, fl, kn, geo, P, rest, col, sd, ph: i*1.7}); });
   g.traverse(o=>{ o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; });
   c.model.add(g); return g; }
 function gsBegin(r){ gsEnd(true); const W = WM, K = rCourse, C = K && K.city && !W.def.flat ? WM_CAM.city : WM_CAM[W.cam] || WM_CAM.q;
   GS.r = r; GS.boost = 0; GS.lt = 0; GS.played = false; GS.beta = Math.min(46, Math.max(8, 62 - C[0]))*Math.PI/180;   // (the flags turn out a little, more for a camera near the nose: Sky City's avenue, so they show their faces)
+  GS.z = C === WM_CAM.city ? GSR.zc : GSR.z;   // (Sky City's camera is close, his wingtips at the screen's edges: there the poles stand halfway out the wing, so the flags fly inside his span)
   GS.st = {pop: 0, tuck: 0, shown: 0, peak: 0, notes: 0, taps: 0, out: 0}; gsMake(r.c); }
 function gsEnd(fast){ const g = GS.g; if(g){ if(g.parent) g.parent.remove(g); GS.geos.forEach(x=>x.dispose()); GS.mats.forEach(x=>x.dispose()); GS.tex.forEach(x=>x.dispose()); }
   GS.g = null; GS.r = null; GS.arms = []; GS.geos = []; GS.mats = []; GS.tex = [];
