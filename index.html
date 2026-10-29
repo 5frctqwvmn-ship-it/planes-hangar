@@ -9328,7 +9328,7 @@ const INK_STYLE = {
   corkscrew: {pal: ['#ffffff', '#fff1c2'], mode: 'cycle', cyc: 2, size: .2, sp: .09, life: 3.4, grow: .5, rise: .02},
   navy:    {pal: ['#ef3b4a', '#ffffff', '#2f6df0'], mode: 'bands', bw: .13, size: .15, sp: .09, life: 4.2, grow: .25, rise: .01},
   sparkle: {pal: ['#ffd23f', '#ff6bd6', '#35e0ff', '#b388ff', '#fff6b8'], mode: 'cycle', cyc: 1, size: .17, sp: .04, life: 2.7, grow: .1, rise: .05, tw: 1, jit: .08},
-  road:    {pal: ['#7b8290', '#ffd60a', '#7b8290'], mode: 'bands', bw: .13, dash: 1, size: .15, sp: .095, life: 4.4, grow: .1, rise: 0}};
+  road:    {pal: ['#5f6675', '#ffd60a', '#5f6675'], mode: 'bands', at: 'mid', bw: .17, dash: 1, size: .13, sp: .07, life: 4.4, grow: .1, rise: 0}};
 /* the puff pool, made on first use */
 function inkMake(){ const I = INK; if(I.P) return; const n = I.n; I.P = new Float32Array(n*3); I.O = new Float32Array(n*3); I.V = new Float32Array(n*3); I.C = new Float32Array(n*3);
   I.B = new Float32Array(n).fill(-99); I.L = new Float32Array(n); I.Z = new Float32Array(n*2); I.A = new Float32Array(n); I.K = new Uint8Array(n); I.T = new Float32Array(n); }
@@ -9363,7 +9363,7 @@ const INK_SEGS = {
   one: ()=>[['A', .45, 90], ['pen', 1], ['L', 1.9], ['A', .14, 138], ['L', 1], ['pen', 0], ['A', .35, 132]],   // a "1": up the stem, a flick, down the flag
   oneM: ()=>[['A', .45, 90], ['pen', 1], ['L', 1.9], ['A', .14, -138], ['L', 1], ['pen', 0], ['A', .35, 48]],   // the same "1" for a camera on the other side: its flag goes the way the plane flies, so the number reads the right way round on the screen
   rainbow: ()=>[['A', .45, 90], ['pen', 1], ['A', 1.1, -180], ['pen', 0], ['A', .45, 90]],   // a pull up, an arch over the top, a pull out
-  road: ()=>[['A', .4, 30], ['pen', 1], ['A', .9, -60], ['A', .9, 60], ['A', .9, -60], ['A', .9, 60], ['pen', 0], ['A', .4, -30]]};   // a winding road: S-curves climbing into the sky   // a pull up, an arch over the top, a pull out
+  road: ()=>[['A', .45, 90], ['pen', 1], ['A', .6, -50], ['A', .6, 100], ['A', .6, -100], ['A', .6, 100], ['A', .6, -50], ['pen', 0], ['A', .45, -90]]};   // a winding road seen from above: it climbs the screen in S-curves into the sky
 function inkShape(name){ if(WM.side < 0 && INK_SEGS[name + 'M']) name += 'M'; let S = INK_PATH[name]; if(S) return S; const segs = INK_SEGS[name](), N = 240, X = new Float32Array(N), Y = new Float32Array(N), H = new Float32Array(N), pens = [];
   let L = 0, Wt = 0; segs.forEach(g=>{ g.len = g[0] === 'L' ? Math.max(0, g[1]) : g[0] === 'A' ? g[1]*Math.abs(g[2])*Math.PI/180 : 0; g.k = g[0] === 'A' && g[1] < .2 ? 5 : 1; g.s0 = L; g.w0 = Wt; L += g.len; Wt += g.len*g.k; });   // (a tight corner takes five times its length in time: the nose turns at a rate the eye can follow)
   const adv = (g, d, st)=>{ if(g[0] === 'L'){ st.x += Math.cos(st.h)*d; st.y += Math.sin(st.h)*d; } else if(g[0] === 'A'){ const k = Math.sign(g[2])/g[1], h2 = st.h + k*d; st.x += (Math.sin(h2) - Math.sin(st.h))/k; st.y += (Math.cos(st.h) - Math.cos(h2))/k; st.h = h2; } };
@@ -9390,7 +9390,7 @@ function inkEmit(pen, ST, T, dx, dy, fr, b, sz){
   I.pc++; }
 const _inkLerp = new T.Color();
 function inkPen(r, dt){ const W = WM, I = INK; if(!W.pens || !W.pens.length) return; let pen = null; for(let i = 0; i < W.pens.length; i++){ const p = W.pens[i]; if(W.t >= p.t0 && W.t <= p.t1){ pen = p; break; } }
-  if(!pen){ I.penOn = null; return; } inkMake(); I.on = true; I.r = r; const ST = INK_STYLE[pen.st], sz = r.c.size, T = ST.at === 'mid' ? I.mid : I.tail, fr = Math.min(1, Math.max(0, (W.t - pen.t0)/(pen.t1 - pen.t0 || 1)));
+  if(!pen){ I.penOn = null; return; } inkMake(); I.on = true; I.r = r; const ST = INK_STYLE[pen.st], sz = r.c.size*(.55 + .45*Math.min(1, W.k)), T = ST.at === 'mid' ? I.mid : I.tail, fr = Math.min(1, Math.max(0, (W.t - pen.t0)/(pen.t1 - pen.t0 || 1)));
   if(I.penOn !== pen){ I.penOn = pen; I.pp.copy(T); I.acc = 0; I.pc = 0; I.pd.set(1, 0, 0); inkEmit(pen, ST, T, I.pd.x, I.pd.y, fr, I.t, sz); return; }
   _ikD.subVectors(T, I.pp); const d = _ikD.length(); if(d < 1e-3) return; const hl = Math.hypot(_ikD.x, _ikD.y); if(hl > 1e-3){ I.pd.set(_ikD.x/hl, _ikD.y/hl, 0); }   // (its way in the picture's plane, for the ribbon's sideways)
   const sp = ST.sp*sz; let at = sp - I.acc; while(at <= d){ const e = at/d; _ikC.copy(I.pp).addScaledVector(_ikD, e); inkEmit(pen, ST, _ikC, I.pd.x, I.pd.y, fr, I.t + dt*e, sz); at += sp; }
@@ -9474,9 +9474,9 @@ function inkBeamMake(c){ const I = INK, bb = c.bb, L = (bb.max.x - bb.min.x)/FT*
   const sm = inkMat(new T.SpriteMaterial({map: sg, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, opacity: .9})), sp = new T.Sprite(sm); sp.scale.set(L*.12, L*.12, 1); sp.position.set(L*Math.cos(.62)*.9, -L*Math.sin(.62)*.9, 0); sp.frustumCulled = false; sp.renderOrder = 7; piv.add(sp);
   grp.add(piv); grp.position.set(bb.max.x/FT*.55, bb.min.y/FT + (bb.max.y - bb.min.y)/FT*.32, 0); grp.visible = false; c.model.add(grp); grp.traverse(o=>{ o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; });
   return {grp, piv, mo, mi, sm, sp, L, base: [.3, .42]}; }
-function inkTrophyMake(c){ const bb = c.bb, S = (bb.max.x - bb.min.x)/FT, grp = new T.Group(), sw = new T.Group(), H = S*.2; grp.name = 'trophy';
-  const gold = inkMat(new T.MeshLambertMaterial({color: '#ffcf33', emissive: '#a86a00', emissiveIntensity: .55})), dark = inkMat(new T.MeshLambertMaterial({color: '#7a5a1e', emissive: '#2a1c06', emissiveIntensity: .4})), cab = inkMat(new T.MeshLambertMaterial({color: '#2b2f38'}));
-  const Lc = S*.3, cable = new T.Mesh(inkGeo(new T.CylinderGeometry(.05, .05, Lc, 6)), cab); cable.position.y = -Lc/2; sw.add(cable);
+function inkTrophyMake(c){ const bb = c.bb, S = (bb.max.x - bb.min.x)/FT, grp = new T.Group(), sw = new T.Group(), H = S*.34; grp.name = 'trophy';
+  const gold = inkMat(new T.MeshLambertMaterial({color: '#ffb800', emissive: '#c77c00', emissiveIntensity: .8, fog: false})), dark = inkMat(new T.MeshLambertMaterial({color: '#7a5a1e', emissive: '#2a1c06', emissiveIntensity: .4})), cab = inkMat(new T.MeshLambertMaterial({color: '#2b2f38'}));
+  const Lc = S*.26, cable = new T.Mesh(inkGeo(new T.CylinderGeometry(.05, .05, Lc, 6)), cab); cable.position.y = -Lc/2; sw.add(cable);
   const prof = [[0, 0], [.34, 0], [.34, .05], [.2, .1], [.1, .16], [.08, .42], [.14, .5], [.34, .62], [.42, 1.05], [.4, 1.1], [.3, 1.0], [.0, .95]].map(p=>new T.Vector2(p[0]*H*.42, p[1]*H));
   const cup = new T.Mesh(inkGeo(new T.LatheGeometry(prof, 20)), gold); cup.position.y = -Lc - H*1.05; sw.add(cup);
   const hd = inkGeo(new T.TorusGeometry(H*.17, H*.03, 6, 14)); [1, -1].forEach(sd=>{ const h = new T.Mesh(hd, gold); h.position.set(0, -Lc - H*.55, sd*H*.42); h.rotation.y = Math.PI/2; sw.add(h); });
@@ -9504,8 +9504,8 @@ function inkMwah(){ if(WL.m) return; INK.st.sounds++; tone(740, .12, 'sine', .1,
 function inkPuffSnd(){ if(WL.m) return; INK.st.sounds++; noiseHit(700, 220, .22, .14, .8); tone(300, .12, 'sine', .08, 520); }
 function inkPing(k){ if(WL.m) return; INK.st.sounds++; tone(1568 + (k % 3)*180, .45, 'sine', .08); tone(2349, .3, 'sine', .035, null, .02); }
 /* ---- the tap: where a plane's own show joins in */
-const INK_SPOT = [[-.8, .75], [.85, .85], [0, 1.15], [-1, .1], [1.05, .25], [-.45, 1.0], [.5, 1.1]];
-const INK_TSPOT = [[-.3, .7], [.35, .78], [-.35, -.5], [.4, -.58], [0, .95], [-.1, -.8], [.15, .5]];
+const INK_SPOT = [[-.7, .6], [.75, .65], [0, .85], [-.9, .05], [.95, .15], [-.4, .75], [.45, .8]];
+const INK_TSPOT = [[-.3, .55], [.35, .62], [-.35, -.5], [.4, -.58], [0, .72], [-.1, -.72], [.15, .4]];
 function inkAround(k, out, rad, tab){ const I = INK, TB = tab || INK_SPOT, sp = TB[k % TB.length], sz = I.r.c.size*(rad || 1); inkCamAxes();
   return out.set(I.mid.x + (I.cr.x*sp[0] + I.cu.x*sp[1])*sz, I.mid.y + (I.cr.y*sp[0] + I.cu.y*sp[1])*sz, I.mid.z + (I.cr.z*sp[0] + I.cu.z*sp[1])*sz); }
 const INK_PAL = {party: ['#ffd23f', '#ff6b9d', '#35b8ff', '#7ee081', '#ffffff'], pink: ['#ff9ac0', '#ff5c93', '#ff2d6f'], rainbow: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff'], gold: ['#fff6b8', '#ffd740', '#ffffff', '#ffb300'],
@@ -9516,7 +9516,7 @@ function inkShow(shape, k, pal, scale, o){ inkAround(k, _ikA, 1); inkStamp(shape
 function inkBurst(r, cols){ const L = cols.map(c=>typeof c === 'string' ? inkCol(c) : c); inkWorld(INK.mid.x, INK.mid.y, INK.mid.z, _ikA); fxBurst(_ikA, 22, 44, Math.max(3, r.c.size*.085), L, 1.1, 14); }
 /* a toy sent from the plane: a parachute from under its tail, a balloon from over its cockpit, a cup or an umbrella round it */
 function inkDrop(r, kind, k){ const I = INK, sz = r.c.size; let T0 = null;
-  if(kind === 'chute') T0 = inkToy('chute', I.tail.x, I.tail.y - .06*sz, I.tail.z, {vf: -1.1, vu: -.05, life: 4.2, n: k});
+  if(kind === 'chute') T0 = inkToy('chute', I.mid.x + (I.tail.x - I.mid.x)*.55, I.tail.y - .06*sz, I.tail.z, {vf: -.45, vu: -.05, life: 4.2, n: k});
   else if(kind === 'balloon') T0 = inkToy('balloon', I.mid.x + (Math.random() - .5)*.4*sz, I.mid.y + .15*sz, I.mid.z, {vf: -.3 - Math.random()*.3, vu: .25 + Math.random()*.2, life: 4.2, n: k});
   else { inkAround(k, _ikA, .9, INK_TSPOT); T0 = inkToy(kind, _ikA.x, _ikA.y, _ikA.z, {vf: -.05, vu: .02, life: 3.2, n: k}); }
   return T0; }
