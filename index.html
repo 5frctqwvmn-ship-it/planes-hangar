@@ -9321,7 +9321,7 @@ const _ikA = V(0,0,0), _ikB = V(0,0,0), _ikD = V(0,0,0), _ikC = V(0,0,0), _ikE =
 const INK_COL = {};
 const inkCol = h=>INK_COL[h] || (INK_COL[h] = new T.Color(h).convertSRGBToLinear());   // (the smoke mesh takes linear colours)
 const INK_STYLE = {
-  star:    {pal: ['#ff4d6d', '#ffb703', '#3ddc84', '#35b8ff', '#b46bff'], mode: 'seg', at: 'mid', size: .23, sp: .075, life: 4.8, grow: .25, rise: .015},
+  star:    {pal: ['#ff4d6d', '#ffb703', '#3ddc84', '#35b8ff', '#b46bff'], mode: 'seg', at: 'mid', size: .17, sp: .06, life: 4.8, grow: .25, rise: .015},
   heart:   {pal: ['#ff9ac0', '#ff5c93', '#ff2d6f', '#ff5c93'], mode: 'grad', size: .24, sp: .075, life: 4.8, grow: .25, rise: .015},
   rainbow: {pal: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff', '#9b5cff'], mode: 'bands', bw: .1, size: .15, sp: .085, life: 4.6, grow: .2, rise: .01},
   one:     {pal: ['#ff3b30', '#ffd60a', '#ff3b30', '#ffffff'], mode: 'cycle', cyc: 3, at: 'mid', size: .25, sp: .07, life: 4.8, grow: .2, rise: .01},
@@ -9358,8 +9358,8 @@ function inkPoly(P, rho){ const n = P.length, ph = [], ln = [], segs = [];
   return {segs, h0: ph[0]*180/Math.PI}; }
 const INK_SEGS = {
   heart: ()=>[['A', .3, 45], ['pen', 1], ['L', 1], ['A', .5, 180], ['A', .07, -90], ['A', .5, 180], ['L', 1], ['pen', 0], ['A', .3, 45]],   // up the right edge, over the right lobe, the notch, over the left lobe, down the left edge to the tip (a heart whose sides are a square's, 1 on a side)
-  star: ()=>{ const P = [[-.588, -.809], [0, 1], [.588, -.809], [-.951, .309], [.951, .309]], Q = inkPoly(P, .08);
-    return [['A', .3, Q.h0], ['pen', 1]].concat(Q.segs, [['pen', 0], ['A', .3, -Q.h0]]); },   // the five-pointed star in one stroke (a circle of radius 1), the corners rounded a little
+  star: ()=>{ const P = [], o = [4, 5, 6, 7, 8, 9, 0, 1, 2, 3]; o.forEach(i=>{ const a = (90 + 36*i)*Math.PI/180, r = i%2 ? .5 : 1; P.push([r*Math.cos(a), r*Math.sin(a)]); }); const Q = inkPoly(P, .05);
+    return [['A', .3, Q.h0], ['pen', 1]].concat(Q.segs, [['pen', 0], ['A', .3, -Q.h0]]); },   // the five-pointed star outline in one stroke (a circle of radius 1), the corners rounded a little
   one: ()=>[['A', .45, 90], ['pen', 1], ['L', 1.9], ['A', .14, 138], ['L', .75], ['pen', 0], ['A', .35, 132]],   // a "1": up the stem, a flick, down the flag
   rainbow: ()=>[['A', .45, 90], ['pen', 1], ['A', 1.1, -180], ['pen', 0], ['A', .45, 90]],   // a pull up, an arch over the top, a pull out
   road: ()=>[['A', .4, 30], ['pen', 1], ['A', .9, -60], ['A', .9, 60], ['A', .9, -60], ['A', .9, 60], ['pen', 0], ['A', .4, -30]]};   // a winding road: S-curves climbing into the sky   // a pull up, an arch over the top, a pull out
