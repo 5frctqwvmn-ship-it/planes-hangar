@@ -3572,7 +3572,7 @@ function navPush(){ try{ history.pushState({hangar: NAV.depth + 1}, ''); NAV.dep
 function navPop(){ NAV.depth--; NAV.ignore++; try{ history.back(); }catch(e){ NAV.ignore--; } }
 function syncUI(){
   const m = uiMode(); if(app.dataset.mode !== m){ app.dataset.mode = m; FR = null; }
-  try{ soloBtnSync(); }catch(e){}   // the hangar's Win show button (not yet declared at the very start) (section "win show from the hangar")
+  try{ soloBtnSync(); showBtnSync(); }catch(e){}   // the hangar's Win show and Open up! buttons (a mode change: the Win show goes straight from the hangar to a race, where the hangar's frame no longer syncs them; not yet declared at the very start) (section "win show from the hangar")
   if(NAV.hold) return;
   $('designBtn').setAttribute('aria-expanded', !!studioTab);
   const want = ({city:1, story:1, hide:1, field:0, home:0, tour:0, build:1, design:1, race:1, racing:1, busy:1, ce:2})[m] + ($('hangarSheet').hidden ? 0 : 1) + ($('learnSheet').hidden ? 0 : 1);
