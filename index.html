@@ -9327,7 +9327,7 @@ const INK_STYLE = {
   one:     {pal: ['#ff3b30', '#ffd60a', '#ff3b30', '#ffffff'], mode: 'cycle', cyc: 3, at: 'mid', size: .25, sp: .07, life: 4.8, grow: .2, rise: .01},
   corkscrew: {pal: ['#ffffff', '#fff1c2'], mode: 'cycle', cyc: 2, size: .2, sp: .09, life: 3.4, grow: .5, rise: .02},
   navy:    {pal: ['#ef3b4a', '#ffffff', '#2f6df0'], mode: 'bands', bw: .13, size: .15, sp: .09, life: 4.2, grow: .25, rise: .01},
-  sparkle: {pal: ['#fff6b8', '#ffffff', '#ffd740', '#ffc4ef', '#b8f0ff'], mode: 'cycle', cyc: 1, size: .1, sp: .06, life: 2.4, grow: .1, rise: .05, tw: 1, jit: .08},
+  sparkle: {pal: ['#ffd23f', '#ff6bd6', '#35e0ff', '#b388ff', '#fff6b8'], mode: 'cycle', cyc: 1, size: .17, sp: .04, life: 2.7, grow: .1, rise: .05, tw: 1, jit: .08},
   road:    {pal: ['#7b8290', '#ffd60a', '#7b8290'], mode: 'bands', bw: .13, dash: 1, size: .15, sp: .095, life: 4.4, grow: .1, rise: 0}};
 /* the puff pool, made on first use */
 function inkMake(){ const I = INK; if(I.P) return; const n = I.n; I.P = new Float32Array(n*3); I.O = new Float32Array(n*3); I.V = new Float32Array(n*3); I.C = new Float32Array(n*3);
@@ -9360,8 +9360,8 @@ const INK_SEGS = {
   heart: ()=>[['A', .3, 45], ['pen', 1], ['L', 1], ['A', .5, 180], ['A', .07, -90], ['A', .5, 180], ['L', 1], ['pen', 0], ['A', .3, 45]],   // up the right edge, over the right lobe, the notch, over the left lobe, down the left edge to the tip (a heart whose sides are a square's, 1 on a side)
   star: ()=>{ const P = [], o = [4, 5, 6, 7, 8, 9, 0, 1, 2, 3]; o.forEach(i=>{ const a = (90 + 36*i)*Math.PI/180, r = i%2 ? .5 : 1; P.push([r*Math.cos(a), r*Math.sin(a)]); }); const Q = inkPoly(P, .05);
     return [['A', .3, Q.h0], ['pen', 1]].concat(Q.segs, [['pen', 0], ['A', .3, -Q.h0]]); },   // the five-pointed star outline in one stroke (a circle of radius 1), the corners rounded a little
-  one: ()=>[['A', .45, 90], ['pen', 1], ['L', 1.9], ['A', .14, 138], ['L', .75], ['pen', 0], ['A', .35, 132]],   // a "1": up the stem, a flick, down the flag
-  oneM: ()=>[['A', .45, 90], ['pen', 1], ['L', 1.9], ['A', .14, -138], ['L', .75], ['pen', 0], ['A', .35, 48]],   // the same "1" for a camera on the other side: its flag goes the way the plane flies, so the number reads the right way round on the screen
+  one: ()=>[['A', .45, 90], ['pen', 1], ['L', 1.9], ['A', .14, 138], ['L', 1], ['pen', 0], ['A', .35, 132]],   // a "1": up the stem, a flick, down the flag
+  oneM: ()=>[['A', .45, 90], ['pen', 1], ['L', 1.9], ['A', .14, -138], ['L', 1], ['pen', 0], ['A', .35, 48]],   // the same "1" for a camera on the other side: its flag goes the way the plane flies, so the number reads the right way round on the screen
   rainbow: ()=>[['A', .45, 90], ['pen', 1], ['A', 1.1, -180], ['pen', 0], ['A', .45, 90]],   // a pull up, an arch over the top, a pull out
   road: ()=>[['A', .4, 30], ['pen', 1], ['A', .9, -60], ['A', .9, 60], ['A', .9, -60], ['A', .9, 60], ['pen', 0], ['A', .4, -30]]};   // a winding road: S-curves climbing into the sky   // a pull up, an arch over the top, a pull out
 function inkShape(name){ if(WM.side < 0 && INK_SEGS[name + 'M']) name += 'M'; let S = INK_PATH[name]; if(S) return S; const segs = INK_SEGS[name](), N = 240, X = new Float32Array(N), Y = new Float32Array(N), H = new Float32Array(N), pens = [];
@@ -9458,7 +9458,7 @@ function inkToysFrame(dt){ const I = INK; if(!I.toys.length || !I.r) return; con
     let f = t.f, up = t.u, s = t.s0, w = t.w*sz*KK, h = t.h*sz*KK, op = 1, rot = 0;
     if(t.kind === 'chute'){ const open = shEz(Math.min(1, a/.4)), d = (1 - Math.exp(-1.1*a))/1.1; f += t.vf*d - .12*sz*a*u; up += -.34*sz*Math.max(0, a - .15) + t.vu*d; w *= .35 + .65*open; h *= .35 + .65*open; rot = .16*Math.sin(a*2.1 + t.ph)*open; f += Math.sin(a*1.4 + t.ph)*.06*sz*open; op = Math.min(1, a/.12)*Math.min(1, (1 - u)/.35); }
     else if(t.kind === 'balloon'){ const d = (1 - Math.exp(-.9*a))/.9; f += t.vf*d - .06*sz*a; up += t.vu*d + .2*sz*a; f += Math.sin(a*2 + t.ph)*.05*sz; rot = .12*Math.sin(a*2.6 + t.ph); const pop = shEz(Math.min(1, a/.25)); w *= .3 + .7*pop; h *= .3 + .7*pop; op = Math.min(1, a/.1)*Math.min(1, (1 - u)/.3); }
-    else { const pop = Math.min(1, a/.35), ov = pop < 1 ? 1 + .3*Math.sin(Math.PI*pop) : 1, d = (1 - Math.exp(-1.2*a))/1.2; up += t.vu*d + .1*sz*a; f += t.vf*d - .05*sz*a; w *= shEz(pop)*ov + .05; h *= shEz(pop)*ov + .05; rot = .12*Math.sin(a*3 + t.ph)*(t.kind === 'cup' ? 1 : .5); op = Math.min(1, a/.1)*Math.min(1, (1 - u)/.3); }
+    else { const pop = Math.min(1, a/.35), ov = pop < 1 ? 1 + .3*Math.sin(Math.PI*pop) : 1, d = (1 - Math.exp(-1.2*a))/1.2; up += t.vu*d + .04*sz*a; f += t.vf*d - .05*sz*a; w *= shEz(pop)*ov + .05; h *= shEz(pop)*ov + .05; rot = .12*Math.sin(a*3 + t.ph)*(t.kind === 'cup' ? 1 : .5); op = Math.min(1, a/.1)*Math.min(1, (1 - u)/.3); }
     inkWorld(f, up, s, _ikE); if(K && !city){ const g = Math.max(K.H(_ikE.x, _ikE.z), K.wl) + 3; if(_ikE.y < g){ _ikE.y = g; op *= .6; } }
     t.s.position.copy(_ikE); t.s.scale.set(w, h, 1); t.m.rotation = rot; t.m.opacity = op; }
   if(!any && !I.live && !WM.on && I.g && I.g.parent){ inkEnd(); } }
@@ -9505,7 +9505,8 @@ function inkPuffSnd(){ if(WL.m) return; INK.st.sounds++; noiseHit(700, 220, .22,
 function inkPing(k){ if(WL.m) return; INK.st.sounds++; tone(1568 + (k % 3)*180, .45, 'sine', .08); tone(2349, .3, 'sine', .035, null, .02); }
 /* ---- the tap: where a plane's own show joins in */
 const INK_SPOT = [[-.8, .75], [.85, .85], [0, 1.15], [-1, .1], [1.05, .25], [-.45, 1.0], [.5, 1.1]];
-function inkAround(k, out, rad){ const I = INK, sp = INK_SPOT[k % INK_SPOT.length], sz = I.r.c.size*(rad || 1); inkCamAxes();
+const INK_TSPOT = [[-.3, .7], [.35, .78], [-.35, -.5], [.4, -.58], [0, .95], [-.1, -.8], [.15, .5]];
+function inkAround(k, out, rad, tab){ const I = INK, TB = tab || INK_SPOT, sp = TB[k % TB.length], sz = I.r.c.size*(rad || 1); inkCamAxes();
   return out.set(I.mid.x + (I.cr.x*sp[0] + I.cu.x*sp[1])*sz, I.mid.y + (I.cr.y*sp[0] + I.cu.y*sp[1])*sz, I.mid.z + (I.cr.z*sp[0] + I.cu.z*sp[1])*sz); }
 const INK_PAL = {party: ['#ffd23f', '#ff6b9d', '#35b8ff', '#7ee081', '#ffffff'], pink: ['#ff9ac0', '#ff5c93', '#ff2d6f'], rainbow: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff'], gold: ['#fff6b8', '#ffd740', '#ffffff', '#ffb300'],
   navy: ['#ef3b4a', '#ffffff', '#2f6df0'], water: ['#d4f0ff', '#ffffff', '#7cc8f0', '#35b8ff'], flash: ['#ffffff', '#fff6b8', '#ffffff']};
@@ -9517,7 +9518,7 @@ function inkBurst(r, cols){ const L = cols.map(c=>typeof c === 'string' ? inkCol
 function inkDrop(r, kind, k){ const I = INK, sz = r.c.size; let T0 = null;
   if(kind === 'chute') T0 = inkToy('chute', I.tail.x, I.tail.y - .06*sz, I.tail.z, {vf: -1.1, vu: -.05, life: 4.2, n: k});
   else if(kind === 'balloon') T0 = inkToy('balloon', I.mid.x + (Math.random() - .5)*.4*sz, I.mid.y + .15*sz, I.mid.z, {vf: -.3 - Math.random()*.3, vu: .25 + Math.random()*.2, life: 4.2, n: k});
-  else { inkAround(k, _ikA, .9); T0 = inkToy(kind, _ikA.x, _ikA.y, _ikA.z, {vf: -.05, vu: .1, life: 3.2, n: k}); }
+  else { inkAround(k, _ikA, .9, INK_TSPOT); T0 = inkToy(kind, _ikA.x, _ikA.y, _ikA.z, {vf: -.05, vu: .02, life: 3.2, n: k}); }
   return T0; }
 /* the plane's own part in a tap, by the number of the tap (k): maracas shake, a flare pair, else nothing more */
 const INK_EXTRA = {
