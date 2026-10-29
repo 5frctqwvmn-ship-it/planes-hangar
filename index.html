@@ -2248,7 +2248,7 @@ function buildSkycrane(T, lod){
       const nl = new T.SphereGeometry(.16, 8, 6); put(body, H.at(nl, 9.4, 8.0, s*3.75), s > 0 ? grn : red);   // nav lights: green on the right, red on the left
       H.tube(body, metal, [1.2, 14.1, s*2.4], [-.9, 14.0, s*2.4], .05, .05, 6); });   // the pitot tubes
     // inside: the cab's dark lining, the instrument panel under its glare shield, the two pilots' seats
-    put(body, H.flip(loft(CS, .4, CX - .1, 14, 0, 2*PI, 24, {ease: 1, grow: -.25})), cabin);
+    put(body, H.flip(loft(CS, .4, CX - .1, 14, 0, 2*PI, 24, {ease: 1, grow: -.25})), cabin); put(body, K.disc(CX - .15, YC, 0, 0, 4.2, 1, 16), cabin);   // (its back bulkhead)
     put(body, H.at(new T.BoxGeometry(.8, 1.3, 5.6), 3.2, 11.6, 0), cabin); put(body, H.at(new T.BoxGeometry(1.4, .18, 5.8), 3.0, 12.35, 0), dark);
     [-1.5, 1.5].forEach(z=>{ put(body, H.at(new T.BoxGeometry(1.7, .35, 1.6), 6.2, 9.7, z), seatM); put(body, H.at(new T.BoxGeometry(.35, 2.6, 1.6), 7.2, 11.1, z), seatM); });
     const sl = new T.CylinderGeometry(.45, .38, .3, 12); put(body, H.at(sl, 2.6, 8.55, 0), metal); put(body, H.at(new T.CircleGeometry(.36, 12).rotateX(PI/2), 2.6, 8.39, 0), lamp); }   // the searchlight under the nose
@@ -2292,7 +2292,7 @@ function buildSkycrane(T, lod){
   put(rotor, H.at(new T.CylinderGeometry(1.05, 1.15, .95, n(24, 6)), 26, MH, 0), metal, 'mr_hub');
   const cap = new T.SphereGeometry(.9, n(18, 6), n(6, 2), 0, 2*PI, 0, PI/2); cap.scale(1, .55, 1); put(rotor, H.at(cap, 26, MH + .45, 0), metal, 'mr_hub');
   const bst = [[25.5, MH + .05, 3.5, 1.95, .15], [25.42, MH + .05, 5.4, 2.3, .12], [25.42, MH - .35, 33.2, 2.3, .1], [25.5, MH - .4, 35.0, 2.05, .09], [25.62, MH - .41, 35.4, 1.75, .004]];
-  for(let k = 0; k < 6; k++){ const ry = k*PI/3, R = g=>{ g.rotateY(ry); return g; };
+  for(let k = 0; k < 6; k++){ const ry = k*PI/3 + PI/2, R = g=>{ g.rotateY(ry); return g; };
     [1, -1].forEach(sd=>{ put(rotor, R(H.foil(bst, [0, 1, 0], sd, 0, 1, n(9, 3), n(12, 4))), blade, 'mrb'); if(D) put(rotor, R(H.foil(H.slice(bst, .5, .74), [0, 1, 0], sd, 0, 1, 9, 3)), tipW, 'mrb'); });
     if(L > 1) continue;
     const arm = H.tube(rotor, metal, [26, MH, 0], [26, MH, 3.0], .36, .3, n(12, 5), 'mr_hub'); arm.rotateY(ry);
@@ -2305,12 +2305,12 @@ function buildSkycrane(T, lod){
   const hs = [[68.9, 24.6, .3, 4.4, .13], [69.6, 24.7, 8.35, 3.6, .11], [69.75, 24.7, 8.6, 3.3, .004]];
   [1, -1].forEach(sd=>put(tail, H.foil(hs, [0, 1, 0], sd, 0, 1, n(14, 3), n(8, 2)), wingC));
   const gb = new T.SphereGeometry(.85, n(16, 6), n(10, 4)); gb.scale(1, 1, .75); put(tail, H.at(gb, 72.4, 25.2, -.45), main);
-  const SF = x=>[Tsp(x) - .1, .42, .42*sm((x - 41)/2) + .01, .2, 2.2, 2];
-  if(L < 2) put(tail, loft(SF, 41, 64, n(16, 3), -PI/2, PI/2, n(12, 3)), main);
+  const SF = x=>[Tsp(x) - .1, .42, .42*sm((x - 48)/2) + .01, .2, 2.2, 2];
+  if(L < 2) put(tail, loft(SF, 48, 64, n(16, 3), -PI/2, PI/2, n(12, 3)), main);
   if(D){ const st = new T.SphereGeometry(.22, 8, 6); put(tail, H.at(st, 72.2, 28.35, 0), lamp); }   // the strobe on the pylon's top
   // the tail rotor: four 16 ft blades on its left, red tips, a hub with its pitch spider
   const TRx = 72.4, TRy = 25.2, TRz = -1.95, tst = [[72.0, TRy + .75, TRz, .95, .14], [71.92, TRy + 1.5, TRz, 1.08, .11], [71.92, TRy + 7.3, TRz, 1.08, .1], [72.0, TRy + 7.85, TRz, .85, .004]];
-  for(let k = 0; k < 4; k++){ const R = g=>H.rotAbout(g, new T.Vector3(0, 0, 1), PI/4 + k*PI/2, [X(TRx), TRy, 0]);
+  for(let k = 0; k < 4; k++){ const R = g=>H.rotAbout(g, new T.Vector3(0, 0, 1), k*PI/2, [X(TRx), TRy, 0]);
     [1, -1].forEach(sd=>{ put(trG, R(H.foil(tst, [0, 0, 1], sd, 0, 1, n(8, 3), n(10, 3))), tipW, 'trb'); if(D) put(trG, R(H.foil(H.slice(tst, .7, .9), [0, 0, 1], sd, 0, 1, 8, 2)), tipR, 'trb'); }); }
   const th = new T.CylinderGeometry(.42, .48, 1.2, n(16, 6)); th.rotateX(PI/2); put(trG, H.at(th, TRx, TRy, -1.45), metal, 'tr_hub');
   const tc = new T.SphereGeometry(.36, n(12, 5), n(6, 3), 0, 2*PI, 0, PI/2); tc.rotateX(-PI/2); put(trG, H.at(tc, TRx, TRy, -2.1), metal, 'tr_hub');
@@ -2360,10 +2360,10 @@ function buildBoxcar(T, lod){
   const YC = 10, XE = 61.6, fN = x=>nose(x, 5.5, 2.3), fE = x=>nose(XE - x, 2.6, 2.4);
   const PS = x=>{ const f = fN(x), t = YC + (T0(x) - YC)*f, b = YC - (YC - B0(x))*f, e = fE(x), h = (t - b)/2*e + .01; return [(t + b)/2, W0(x)*f*e + .01, h, h, 2.3 + .8*sm((x - 6)/10), 3.4]; };
   const aBl = x=>H.angAt(PS(x), 7.0, false);   // the light belly below 7 ft
-  const win = [[4.2, 8.6, -1.15, 1.15], [8.9, 13.2, .9, 1.45], [8.9, 13.2, -1.45, -.9], [1.3, 3.5, 1.75, 2.35], [1.3, 3.5, -2.35, -1.75]];   // windscreens and eyebrow windows, side windows, chin windows
-  put(body, loft(PS, 0, XE, n(54, 8), x=>-aBl(x), L > 1 ? x=>2*PI - aBl(x) : aBl, n(50, 10), {ease: 1, holes: D ? win : null}), main);
+  const win = [[4.2, 8.6, -1.15, 1.15], [8.9, 13.2, .9, 1.45], [8.9, 13.2, -1.45, -.9], [1.3, 3.5, 1.75, 2.35], [1.3, 3.5, -2.35, -1.75]];   // windscreens and eyebrow windows, side windows, chin windows (tinted: the windshield eyes find the windscreens alone)
+  put(body, loft(PS, 0, XE, n(54, 8), x=>-aBl(x), L > 1 ? x=>2*PI - aBl(x) : aBl, n(50, 10), {ease: 1, holes: D ? win.slice(0, 3) : null}), main);
   if(L < 2) put(body, loft(PS, 0, XE, n(54, 8), aBl, x=>2*PI - aBl(x), n(10, 2), {ease: 1}), belly);
-  win.forEach((w, i)=>put(body, loft(PS, w[0], w[1], n(10, 2), w[2], w[3], n(12, 2), {ease: 1, grow: D ? -.05 : .04}), glassM, i > 2 ? 'glass-nose' : 'glass'));
+  win.forEach((w, i)=>i > 2 ? put(body, loft(PS, w[0], w[1], n(6, 2), w[2], w[3], n(6, 2), {ease: 1, grow: .03}), winD) : put(body, loft(PS, w[0], w[1], n(10, 2), w[2], w[3], n(12, 2), {ease: 1, grow: D ? -.05 : .04}), glassM, 'glass'));
   if(D){ const fr = (x0, x1, a0, a1, nx, na)=>put(body, loft(PS, x0, x1, nx || 6, a0, a1, na || 3, {ease: 1, grow: .07}), main);   // the frames over the windows' edges
     [[4.06, 4.34], [8.46, 8.74], [6.45, 6.62]].forEach(([a, b])=>fr(a, b, -1.2, 1.2, 2, 26));
     [-1, 1].forEach(s=>{ const A = (a, b)=>s > 0 ? [a, b] : [-b, -a];
@@ -2377,19 +2377,19 @@ function buildBoxcar(T, lod){
       // the clamshell doors: the seam at their front edge, along their tops and down the middle, the hinges
       put(body, loft(PS, 47.5, 47.58, 1, ...A(.55, PI), 16, {grow: .025}), dark); put(body, loft(PS, 47.5, XE, 18, ...A(.53, .57), 1, {ease: 3, grow: .025}), dark);
       [50, 54, 58].forEach(x=>put(body, H.at(new T.BoxGeometry(1.1, .3, .3), x, PS(x)[0] + PS(x)[2]*Math.pow(Math.cos(.55), 2/PS(x)[4]) + .05, s*PS(x)[1]*Math.pow(Math.sin(.55), 2/PS(x)[4])), trim));
-      H.tube(body, metal, [1.4, 13.6, s*2.6], [-.9, 13.6, s*2.6], .05, .05, 6);   // the pitot tubes
+      H.tube(body, metal, [1.6, 13.6, s*2.6], [-.1, 13.6, s*2.6], .05, .05, 6);   // the pitot tubes
       const wp = new T.CylinderGeometry(.04, .04, 2.2, 5); wp.rotateZ(.5); put(body, H.at(wp, 5.6, 15.0, s*1.4), dark); });   // a wiper
     put(body, loft(PS, 47.5, XE, 18, PI - .02, PI + .02, 1, {ease: 3, grow: .025}), dark); put(body, loft(PS, 57, XE, 8, -.02, .02, 1, {ease: 3, grow: .025}), dark);
     const dome = new T.SphereGeometry(.75, 14, 6, 0, 2*PI, 0, PI/2); dome.scale(1, .8, 1); put(body, H.at(dome, 12.4, 17.1, 0), glassM, 'glass-dome');   // the navigator's astrodome
     const bc = new T.SphereGeometry(.35, 10, 6, 0, 2*PI, 0, PI/2), bc2 = bc.clone(); bc2.rotateX(PI); put(body, H.at(bc, 42, 16.45, 0), red); put(body, H.at(bc2, 30, 4.78, 0), red);   // the beacons
     H.tube(body, dark, [21, 17.1, 0], [22.2, 19.6, 0], .1, .05, 6); put(body, H.at(new T.BoxGeometry(1.0, .7, .1), 36, 4.6, 1.2), dark);   // antennas
     // inside the flight deck: the dark lining, the panel and its glare shield, two seats
-    put(body, H.flip(loft(PS, 2.6, 15, 12, 0, 2*PI, 24, {ease: 1, grow: -.25})), cabin);
+    put(body, H.flip(loft(PS, 2.6, 15, 12, 0, 2*PI, 24, {ease: 1, grow: -.25})), cabin); put(body, K.disc(14.9, PS(14.9)[0], 0, 0, 5.6, 1, 16), cabin);   // (its back bulkhead)
     put(body, H.at(new T.BoxGeometry(.8, 1.2, 6.4), 6.4, 13.4, 0), cabin); put(body, H.at(new T.BoxGeometry(1.3, .16, 6.8), 6.0, 14.1, 0), black);
     [-1.6, 1.6].forEach(z=>{ put(body, H.at(new T.BoxGeometry(1.7, .35, 1.6), 9.6, 12.6, z), seatM); put(body, H.at(new T.BoxGeometry(.35, 2.4, 1.6), 10.6, 13.9, z), seatM); }); }
   BK_SHOW.boxcar = {door: [X(XE)*.3048, PS(XE - .3)[0]*.3048, 0], hinge: X(47.5)*.3048, C};
   // the wing: 109 ft across, straight to the booms and tapering outside them, black boots on the leading edges
-  [1, -1].forEach(s=>{ const st = [[25.4, 16.95, 1.0*s, 14.2, .17], [25.4, 16.95, 13.5*s, 14.2, .165], [25.6, 17.05, 17*s, 13.6, .16], [30.2, 18.25, 54*s, 6.3, .11], [30.5, 18.27, 54.6*s, 5.7, .004]];
+  [1, -1].forEach(s=>{ const st = [[25.4, 16.95, 1.0*s, 14.2, .17], [25.4, 16.95, 13.5*s, 14.2, .165], [25.6, 17.05, 17*s, 13.6, .16], [30.2, 18.25, 54.15*s, 6.3, .11], [30.5, 18.27, 54.75*s, 5.7, .004]];
     put(wing, H.foil(st, [0, 1, 0], 1, 0, 1, n(22, 5), n(20, 4)), main); put(wing, H.foil(st, [0, 1, 0], -1, 0, 1, n(22, 5), n(20, 4), .9), main);
     if(L < 2) [[.04, .23], [.52, .74]].forEach(([a, b])=>[1, -1].forEach(sd=>put(wing, H.foil(H.slice(st, a, b, 1.035), [0, 1, 0], sd, 0, .06, n(4, 1), n(10, 2), sd < 0 ? .9 : 1), boot)));
     if(D){ [1, -1].forEach(sd=>put(wing, H.foil(H.slice(st, .52, .74, 1.012), [0, 1, 0], sd, .735, .745, 1, 10, sd < 0 ? .9 : 1), dark));   // the ailerons' and flaps' hinge line
@@ -2421,10 +2421,10 @@ function buildBoxcar(T, lod){
     for(let k = 0; k < 4; k++){ const R = g=>{ H.rotAbout(g, new T.Vector3(0, 1, 0), .5*s, [X(px), 0, z]); return H.rotAbout(g, new T.Vector3(1, 0, 0), k*PI/2 + PI/4, [0, y, z]); };
       [1, -1].forEach(sd=>{ put(prop, R(H.foil(bs, [0, 0, 1], sd, 0, 1, n(7, 3), n(8, 3))), dark, 'prop'); if(D) put(prop, R(H.foil(H.slice(bs, .82, .97), [0, 0, 1], sd, 0, 1, 8, 2)), yel, 'prop'); }); } });
   // the tail: the booms from the nacelles back to two tall fins, one tailplane between them, boots on their leading edges
-  const by = K.curve([42, 82.3], [16.2, 16.8]), bw = K.curve([42, 60, 82.3], [1.85, 1.4, 1.05]), bt = K.curve([42, 60, 82.3], [2.1, 1.62, 1.25]), bb = K.curve([42, 60, 82.3], [1.95, 1.5, 1.15]);
-  const BS = x=>{ const e = nose(82.4 - x, 1.4, 2.2); return [by(x), bw(x)*e + .01, bt(x)*e + .01, bb(x)*e + .01, 2.1, 2.1]; };
+  const by = K.curve([42, 83], [16.2, 16.8]), bw = K.curve([42, 60, 83], [1.85, 1.4, 1.05]), bt = K.curve([42, 60, 83], [2.1, 1.62, 1.25]), bb = K.curve([42, 60, 83], [1.95, 1.5, 1.15]);
+  const BS = x=>{ const e = nose(83.2 - x, 1.4, 2.2); return [by(x), bw(x)*e + .01, bt(x)*e + .01, bb(x)*e + .01, 2.1, 2.1]; };
   [1, -1].forEach(s=>{ const z = 13.5*s;
-    put(tail, loft(BS, 42, 82.4, n(22, 4), 0, 2*PI, n(22, 6), {zc: z, ease: 3}), main);
+    put(tail, loft(BS, 42, 83.2, n(22, 4), 0, 2*PI, n(22, 6), {zc: z, ease: 3}), main);
     const fin = [[74.4, 13.4, z, 6.8, .1], [72.2, 16.8, z, 10.0, .11], [74.6, 19.6, z, 8.2, .1], [75.6, 25.4, z, 6.9, .09], [76.5, 27.3, z, 5.4, .08], [77.6, 27.7, z, 3.6, .004]];
     [1, -1].forEach(sd=>{ put(tail, H.foil(L > 1 ? fin : fin.slice(0, 4).concat([[75.62, 25.42, z, 6.88, .09]]), [0, 0, 1], sd, 0, 1, n(16, 4), n(12, 3)), main);
       if(L < 2) put(tail, H.foil([[75.6, 25.4, z, 6.9, .09], [76.5, 27.3, z, 5.4, .08], [77.6, 27.7, z, 3.6, .004]], [0, 0, 1], sd, 0, 1, n(16, 4), n(4, 2)), belly);   // the light fin tips
