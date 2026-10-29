@@ -9862,8 +9862,8 @@ function gsPose(r, t){
 const _gsV = V(0, 0, 0);
 WIN_MOVE.dh88q = {cam: 'q', tap: 'flag', ov: 'wag', flags: .12, line: 'anthem',
   cs: [[1.3, ['wag', .08, 1]], [2.5, ['pose', .3], ['nod', .05, 2]], [2.3, ['roll', 1, 1]], [1.3, ['bow', .15], ['wag', .22, .5]]],
-  s: [[1.3, ['hop', .06, 1], ['wag', .08, 1]], [2.5, ['pose', .45], ['nod', .06, 2]], [2.3, ['roll', 1, 1]], [1.3, ['bow', .2], ['wag', .25, .5]]]};   // Bulldog 2, God Save the Queen: a polite little hop as his Union Jacks spring up out of his wingtips, a proud level pass banked to show them off, a slow, stately roll with them, a bow and a wing dipped in salute (a tap: the flags wave harder, a red, white and blue star)
-Object.assign(INK_TAP, {flag: (r, k)=>{ if(GS.r === r && GS.g){ GS.boost = 1; GS.st.taps++; } inkShow('star', k, INK_PAL.navy, .5, {size: .16}); inkBurst(r, INK_PAL.navy); }});
+  s: [[1.3, ['hop', .06, 1], ['wag', .08, 1]], [2.5, ['pose', .45], ['nod', .06, 2]], [2.3, ['roll', 1, 1]], [1.3, ['bow', .2], ['wag', .25, .5]]]};   // Bulldog 2, God Save the Queen: a polite little hop as his Union Jacks spring up out of his wingtips, a proud level pass banked to show them off, a slow, stately roll with them, a bow and a wing dipped in salute (a tap: the flags wave harder and he dips a wing)
+Object.assign(INK_TAP, {flag: (r, k)=>{ if(GS.r === r && GS.g){ GS.boost = 1; GS.st.taps++; } }});   /* (owner, 2026-10-28: no stickers or bursts, so a tap is his own: the flags whip harder and he dips a wing) */
 /* ---- Echo & Bravo's flares (owner, 2026-10-17: "I think the celebration for Echo and Bravo should be when he, as he goes up and does a bunch
    of things, he should shoot flares out, similar to how jets do"): ['fl', pairs, at] in a routine's step fires a ripple of flare pairs, one
    pair (left and right) every FLR.gap s with a soft pop, as a fighter's dispensers do at an airshow. A light show and nothing more: no
