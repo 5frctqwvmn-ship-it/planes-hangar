@@ -7902,6 +7902,59 @@ LIFE.lookout = X=>{
   st.mesh(null, 'ridgestuff');
   for(let k = 0; k < 2; k++){ const p = X.spot({dmin:300, dmax:800, r:150, claim:false, test:(y)=>y > wl}); if(p) lfBirds(4, p.x, p.y + 130 + k*60, p.z, 170, {col:'#6b4a2e', wing:'#5a3d26', tip:'#2a1c12', head:'#fafafa', beak:'#f2c230', size:3.4, speed:.12, flap:3.5, bob:10, dir:k ? 1 : -1, name:'eagles', f:4800}); }
 };
+/* ===== course life: Ocean Armada Run and Carrier Launch (warships steaming with wakes and funnel smoke, helicopters on plane guard, jets parked and deck crew at work on the carriers, a spinning radar, a yellow submarine,
+   bobbing buoys with blinking lights, bursts of colourful flares, dolphins, whales, gulls; on the Carrier Launch deck: chasing edge lights, steam, tractors) ===== */
+function lfJetBag(b, x, y, z, ry, s){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o);
+  b.add('cyl', '#9aa3ab', ...at(-14*s, 4*s, 0), 2.6*s, 30*s, 2.6*s, ry, 0, -Math.PI/2); b.add('cone6', '#9aa3ab', ...at(16*s, 4*s, 0), 2.6*s, 9*s, 2.6*s, ry, 0, -Math.PI/2); b.add('sph', '#2f6fb0', ...at(6*s, 6*s, 0), 5*s, 1.9*s, 1.7*s, ry);
+  [-1, 1].forEach(o=>{ b.add('box', '#aab2ba', ...at(-4*s, 3.6*s, o*8*s), 9*s, .6*s, 11*s, ry + o*.5, 0, 0); b.add('box', '#aab2ba', ...at(-12*s, 5*s, o*2.6*s), 6*s, 5*s, .5*s, ry, o*.3, 0); b.add('box', '#e8353a', ...at(-4*s, 4.1*s, o*11*s), 4*s, .3*s, 4*s, ry); }); }
+function lfCrewBag(){ const b = new LBag(); b.add('cyl6', '#ffffff', 0, 2.4, 0, 1.4, 4.4, 1.4); b.add('sph', '#f2c9a0', 0, 8, 0, 1.4, 1.4, 1.4); b.add('sph', '#ffffff', 0, 8.8, 0, 1.55, 1.1, 1.55); [-1, 1].forEach(o=>b.add('box', '#2a3a5a', 0, 0, o*.6, 1.1, 3, 1)); b.beam('cyl6', '#f2c9a0', 0, 6, 1.3, 1.6, 8.4, 2.4, .35, .3); return b; }
+function lfSubBag(){ const b = new LBag(); b.add('sph', '#f4c20d', 0, 0, 0, 38, 8, 8); b.add('box', '#f4c20d', 4, 5, 0, 10, 8, 5); b.add('box', '#e8353a', 4, 11, 0, 11, 1.2, 5.4); b.beam('cyl6', '#555', 6, 12, 0, 6, 22, 0, .5, .5); b.add('box', '#555', 6.8, 21, 0, 2.4, .6, .6); [-1, 1].forEach(o=>{ [-3, 6].forEach(a=>b.add('sph', '#7fd0f0', 4 + a, 1.6, o*7.3, 1.5, 1.5, .8)); b.add('box', '#e8353a', -34, 0, o*6, 5, .6, 7); }); b.add('box', '#e8353a', -36, 0, 0, 5, 7, .6); b.add('cyl', '#444', -40, -.6, 0, 3, 1.4, 3, 0, 0, Math.PI/2); return b; }
+function lfTractorBag(){ const b = new LBag(); b.add('box', '#f4c20d', 0, 2, 0, 9, 3, 5); b.add('box', '#f4c20d', -1.6, 5, 0, 4, 3.6, 4.4); b.add('box', '#7fd0f0', -1.6, 6.2, 0, 4.2, 2, 4.6); [[-3, 2.4], [3, 2.4], [-3, -2.4], [3, -2.4]].forEach(([a, o])=>b.add('cyl', '#222222', a, 1.2, o, 1.3, 1.1, 1.3, 0, Math.PI/2)); return b; }
+function lfBuoys(X, n, o){ o = o || {}; const wl = X.wl, bb = new LBag(), P = []; bb.add('cyl', '#e8353a', 0, -2, 0, 7, 11, 7); bb.add('cone', '#f4f4f4', 0, 8, 0, 6, 9, 6); bb.add('cyl6', '#555555', 0, 16, 0, .6, 8, .6); bb.add('cyl', '#ffffff', 0, 5, 0, 7.2, 2, 7.2);
+  for(let k = 0; k < n; k++){ const p = lfWaterSpot(X, 20, 6, o.dmin || 120, o.dmax || 320); if(p) P.push(p); }
+  if(!P.length) return 0; lfAnim(bb, P.length, (i, t, m)=>{ const e = P[i]; lfPut(m, e.x, wl + Math.sin(t*1.4 + i*2)*1.6, e.z, 0, Math.sin(t*1.1 + i)*.08, Math.cos(t*.9 + i)*.08, 1.4, 1.4, 1.4); }, [P[0].x, wl, P[0].z, 6000], {name:'buoys', f:3600});
+  lfPuffs(P.length, (i, t, p)=>{ const e = P[i], k = Math.max(0, Math.sin(t*3 + i*1.3)); p.x = e.x; p.y = wl + 25 + Math.sin(t*1.4 + i*2)*1.6; p.z = e.z; p.s = 10 + 8*k; p.a = .2 + .8*k; p.r = 1; p.g = .3; p.b = .25; }, {col:'#ffffff', add:true, region:[P[0].x, wl, P[0].z, 6000], name:'buoylights', f:3600}); return P.length; }
+function lfFlares(X, sites, o){ o = o || {}; const N = 36, dirs = []; for(let i = 0; i < N; i++){ const a = LF.r()*6.2832, b = Math.acos(2*LF.r() - 1); dirs.push([Math.sin(b)*Math.cos(a), Math.cos(b), Math.sin(b)*Math.sin(a)]); }
+  const cols = [[1, .25, .25], [1, .85, .2], [.3, .9, .4], [.3, .7, 1], [1, .4, .9]], T0 = o.period || 5.5;
+  lfPuffs(sites.length*N, (i, t, p)=>{ const si = Math.floor(i/N), j = i % N, e = sites[si], f = ((t + e.off)/T0) % 1; if(f > .6) return; const q = f/.6, d = dirs[j], c = cols[(si + Math.floor((t + e.off)/T0)) % 5];
+    p.x = e.x + d[0]*q*95; p.y = e.y + d[1]*q*95 - q*q*38; p.z = e.z + d[2]*q*95; p.s = 9*(1 - q*.5); p.a = (1 - q)*1; p.r = c[0]; p.g = c[1]; p.b = c[2]; }, {col:'#ffffff', add:false, region:[sites[0].x, sites[0].y, sites[0].z, 6000], name:'flares', f:4800}); }
+function lfFleet(X, o){ const wl = X.wl;
+  const fr = []; for(let k = 0; k < (o.frigates || 4); k++){ const R = 210 + LF.r()*120, c = lfWaterSpot(X, R + 110, 8, o.dmin || 300, o.dmax || 1300); if(c){ fr.push({x:c.x, z:c.z, R, ph:LF.r()*6.28, w:(k % 2 ? -1 : 1)*(.035 + LF.r()*.01), s:1.4}); X.site('frigate', c.x + R, wl + 40, c.z, c.tx, c.tz); } }
+  if(fr.length) lfShips(X, 'frigate', fr, {region:5200});
+  const W = []; for(let k = 0; k < 2; k++){ const p = lfWaterSpot(X, 200, 40, 250, 900); if(p){ W.push({x:p.x, z:p.z, R:100 + LF.r()*40, ph:LF.r()*6.28, w:.05*(k ? 1 : -1), c:6.5 + k*1.7}); X.site('whale', p.x, wl + 40, p.z, p.tx, p.tz); } } if(W.length) lfWhales(X, W);
+  const A = []; for(let k = 0; k < 4; k++){ const p = lfWaterSpot(X, 70, 20, 170, 450); if(!p) continue; for(let q = 0; q < 3; q++) A.push({x:p.x + (LF.r() - .5)*60, z:p.z + (LF.r() - .5)*60, ph:LF.r()}); if(k < 2) X.site('dolphins', p.x, wl + 30, p.z, p.tx, p.tz); } if(A.length) lfDolphins(X, A, {cyc:5.2, D:70, H:28, s:1.7});
+  for(let k = 0; k < 3; k++){ const p = X.spot({dmin:230, dmax:800, r:150, test:()=>true, claim:false}); if(p) lfBirds(6, p.x, wl + 80 + LF.r()*80, p.z, 120 + LF.r()*60, {col:'#fafafa', wing:'#f0f0f0', tip:'#3a3f48', beak:'#f2a22a', size:1.9, speed:.2, flap:8, dir:k % 2 ? -1 : 1, name:'gulls', f:4200}); }
+  lfBuoys(X, o.buoys || 12, {dmin:130, dmax:330}); }
+LIFE.armada = X=>{
+  const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832; let car = null; K.group.updateMatrixWorld(true);
+  K.group.children.forEach(o=>{ if(o.name === 'ship' && o.isGroup){ const sz = new T.Box3().setFromObject(o).getSize(V(0, 0, 0)); if(sz.x > 600 || sz.z > 600) car = o; } });
+  lfFleet(X, {frigates:4, buoys:12});
+  if(car){ const th = car.rotation.y, W = (lx, ly, lz)=>car.localToWorld(V(lx, ly, lz)); X.site('carrier', car.position.x, car.position.y + 90, car.position.z, Math.cos(th), -Math.sin(th));
+    [-300, -230, -160, -90, -20, 50].forEach((lx, i)=>{ const q = W(lx, 49.4, i % 2 ? -34 : -4); lfJetBag(st, q.x, q.y, q.z, th + (i % 2 ? .5 : -.4), 1.4); });
+    const cr = lfCrewBag(), pos = [[-250, 42], [-120, 38], [20, -50], [-60, 44], [150, -30], [-200, -60]].map(([a, b])=>W(a, 49.4, b));
+    lfAnim(cr, pos.length, (i, t, m)=>{ const q = pos[i]; lfPut(m, q.x + Math.cos(t*.6 + i*2)*7, q.y + Math.abs(Math.sin(t*4 + i))*.5, q.z + Math.sin(t*.6 + i*2)*7, -(t*.6 + i*2) - 1.57, 0, Math.sin(t*4 + i)*.08, 1.6, 1.6, 1.6); }, [car.position.x, car.position.y + 49, car.position.z, 520], {name:'deckcrew', tint:['#f4c20d', '#3d9b4a', '#c8382e', '#f4f4f4', '#f4c20d', '#2f7fe0'], f:3400});
+    const rb = new LBag(); rb.add('box', '#cfd4d9', 0, 0, 0, 32, 1.6, 5); rb.add('cyl6', '#cfd4d9', 0, -3, 0, 1.4, 4, 1.4); rb.add('sph', '#e8353a', 16, .8, 0, 1.6); const rp = W(120, 164, 62); lfSpin(rb, rp.x, rp.y, rp.z, 0, 'y', 1.8, null, 'radar', 5200);
+    const Hs = [], cc = W(0, 0, 0); for(let k = 0; k < 2; k++) Hs.push({x:cc.x, z:cc.z, y:car.position.y + 150 + k*30, R:540 + k*70, ph:k*3.1, w:(k ? -1 : 1)*.08}); lfHelis(X, Hs, {tints:['#aab2ba', '#f08a1c'], s:2.4, region:3000}); }
+  { const c = lfWaterSpot(X, 330, 8, 250, 1000); if(c){ const R = 250, sub = {x:c.x, z:c.z}; lfAnim(lfSubBag(), 1, (i, t, m)=>{ const a = 1 + t*.045, hd = a + Math.PI/2; lfPut(m, sub.x + Math.cos(a)*R, wl + 1.5 + Math.sin(t*.7)*1.5, sub.z + Math.sin(a)*R, -hd, 0, 0, 2.4, 2.4, 2.4); }, [sub.x, wl, sub.z, R + 140], {name:'submarine', f:4200});
+      lfPuffs(14, (i, t, p)=>{ const a = 1 + t*.045 - i*.012, age = i/14; p.x = sub.x + Math.cos(a)*R; p.z = sub.z + Math.sin(a)*R; p.y = wl + 1; p.s = 14 - age*4; p.a = .55*(1 - age); p.r = p.g = p.b = .95; }, {col:'#ffffff', region:[sub.x, wl, sub.z, R + 100], name:'subwake', f:4200}); X.site('submarine', sub.x + R, wl + 30, sub.z, c.tx, c.tz); } }
+  { const F = [], so = [[0, 0], [1.7, 1.2], [3.4, 2.5]]; for(let k = 0; k < 3; k++){ const p = lfWaterSpot(X, 120, 8, 260, 800); if(p) F.push({x:p.x, y:wl + 280 + k*40, z:p.z, off:so[k][1]}); } if(F.length) lfFlares(X, F); }
+  st.mesh(null, 'fleetstuff');
+};
+LIFE.carrier = X=>{
+  const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832, dk = K.C.deck || 62, bow = CARRIER.bow, stern = CARRIER.stern, L = bow - stern;
+  lfFleet(X, {frigates:3, buoys:10, dmin:350, dmax:1400});
+  /* the flight deck at work: crew walking the deck edges, tractors, a radar turning on the island, steam, running lights */
+  { const cr = lfCrewBag(), N = 10, tn = ['#f4c20d', '#3d9b4a', '#c8382e', '#f4f4f4', '#f4c20d', '#2f7fe0', '#3d9b4a', '#c8382e', '#f4c20d', '#f4f4f4'];
+    lfAnim(cr, N, (i, t, m)=>{ const side = i % 2 ? 1 : -1, x0 = stern + 200 + (i*131)%700, rg = 140 + (i % 3)*40, sp = .35 + (i % 4)*.05, f = .5 - .5*Math.cos(t*sp + i*1.3), x = x0 + f*rg - rg*.5, dir = Math.sin(t*sp + i*1.3) > 0 ? 0 : Math.PI;
+      lfPut(m, x, dk + Math.abs(Math.sin(t*4.4 + i))*.5, side*(86 + (i % 3)*8), dir, 0, Math.sin(t*4.4 + i)*.07, 1.7, 1.7, 1.7); }, [stern + L/2, dk, 0, L*.6], {name:'deckcrew', tint:tn, f:3600}); }
+  { const tb = lfTractorBag(); lfAnim(tb, 2, (i, t, m)=>{ const f = .5 - .5*Math.cos(t*.22 + i*2), x = stern + 300 + i*60 + f*380, dir = Math.sin(t*.22 + i*2) > 0 ? 0 : Math.PI; lfPut(m, x, dk, -100 - i*10, dir, 0, 0, 1.6, 1.6, 1.6); }, [stern + L/2, dk, 0, L*.6], {name:'tractors', f:3600}); }
+  { const rb = new LBag(); rb.add('box', '#cfd4d9', 0, 0, 0, 34, 1.8, 5); rb.add('cyl6', '#cfd4d9', 0, -3, 0, 1.4, 4, 1.4); rb.add('sph', '#e8353a', 17, .8, 0, 1.7); lfSpin(rb, stern + 515, dk + 173, 104, 0, 'y', 1.8, null, 'radar', 5200); X.site('radar', stern + 515, dk + 190, 104, 1, 0); }
+  { const lt = []; for(let x = stern + 60; x < bow - 10; x += 32){ lt.push([x, dk + 2, 114, 0]); lt.push([x, dk + 2, -114, 1]); }
+    lfPuffs(lt.length, (i, t, p)=>{ const e = lt[i], k = Math.pow(Math.max(0, Math.sin((e[0] - t*240)*.026)), 3); p.x = e[0]; p.y = e[1]; p.z = e[2]; p.s = 5 + 4*k; p.a = .35 + .65*k; if(e[3]){ p.r = 1; p.g = .25; p.b = .2; } else { p.r = .25; p.g = 1; p.b = .4; } }, {col:'#ffffff', add:true, region:[stern + L/2, dk, 0, L*.6], name:'deckrow', f:3600}); }
+  { const sv = []; [-1, 1].forEach(sd=>[bow - 170, bow - 120, bow - 70].forEach(x=>sv.push([x, dk, sd*118]))); lfPuffs(sv.length*4, (i, t, p)=>{ const e = sv[i % sv.length], age = (t/2.2 + i*.23) % 1; p.x = e[0] - age*14; p.y = e[1] + 2 + age*30; p.z = e[2] + Math.sign(e[2])*age*10; p.s = 5 + age*16; p.a = (1 - age)*.55; p.r = p.g = p.b = .96; }, {col:'#ffffff', region:[bow - 100, dk, 0, 300], name:'steam', f:3000}); }
+  { const Hs = []; for(let k = 0; k < 2; k++) Hs.push({x:stern + L*(.35 + k*.3), z:(k ? -1 : 1)*400, y:dk + 150 + k*30, R:150, ph:k*3.1, w:(k ? -1 : 1)*.12}); lfHelis(X, Hs, {tints:['#aab2ba', '#f08a1c'], s:2.4, region:3000}); }
+  st.mesh(null, 'fleetstuff');
+};
 function useCourse(idx){
   ensureRaceScene();
   const K = rCourses[idx]; if(!K) return;
