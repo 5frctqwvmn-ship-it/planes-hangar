@@ -9013,8 +9013,8 @@ Object.assign(UI.en, {showOpen: 'Open up!'}); Object.assign(UI.es, {showOpen: 'Â
 const WM = {r: null, run: -1, id: '', at: 0, t: 0, len: 0, on: false, done: true, pend: null, steps: null, t0: null, carry: null, ev: null, ei: 0,
   k: 1, lift: 0, tw: false, why: '', cam: 'q', side: 1, S: 28, D: 0, bc: V(0,0,0), cd: V(0,0,0), yawC: 0, A: V(0,0,0), ctr: V(0,0,0), band: [0, 844, 844], ms: 0, nearN: 0, rec: null, recOn: false, log: []};
 const WM_LEAD = 1, WM_GAP = .5, WM_N = 36, WM_UP = .6, WM_DOWN = .9, WM_SETTLE = .9;   // lead: s after the finish when the blimp does not call it; gap: s from its end to the show's doors; N: samples for the plan; up, down: the safety climb's ramps (s); settle: s to come back to the racing line after a climb
-const WM_CAM = {car: [58, 20], q: [50, 12], front: [28, 10], side: [78, 8], rear: [140, 15], fl: [125, 4], drop: [42, 9], city: [16, 12]};   // the camera, degrees: round from the nose toward the routine's side, and up (Sky City: down its avenue, which is only 68 m wide; fl: Echo & Bravo's flares, from behind and low, the fan against the sky; drop: Lil' Dipper's water drop, from her side so the curtain shows face on)
-const WM_FIT = {drop: .76};   // a camera's distance, times: Lil' Dipper's drop is fitted a little closer than the box asks (the plane big on a phone; the curtain's far end is at the box's edge)
+const WM_CAM = {car: [72, 15], q: [50, 12], front: [28, 10], side: [78, 8], rear: [140, 15], fl: [125, 4], drop: [42, 9], city: [16, 12]};   // the camera, degrees: round from the nose toward the routine's side, and up (Sky City: down its avenue, which is only 68 m wide; fl: Echo & Bravo's flares, from behind and low, the fan against the sky; drop: Lil' Dipper's water drop, from her side so the curtain shows face on)
+const WM_FIT = {drop: .76, car: .8};   // a camera's distance, times: Lil' Dipper's drop is fitted a little closer than the box asks (the plane big on a phone; the curtain's far end is at the box's edge)
 const wmEnv = u=>shEz(Math.min(1, u*5))*shEz(Math.min(1, (1 - u)*5));   // in and out softly
 /* the moves: o += the move at u (0 to 1) of its step. Offsets in sizes of the plane (o.f ahead, o.u up, o.s to its right), angles in radians
    (o.roll: its right wing down, o.pitch: nose up, o.yaw: nose left). Every move but rise and spiral ends where it began. */
@@ -9296,19 +9296,22 @@ const wmTurn = (k, a, b)=>{ const n = +saveGet(k) ? 1 : 0; saveSet(k, String(1 -
 /* ---- the dances (owner, 2026-10-28: "better interactive celebration dances for each plane, similar to the Concorde, El Chupacabra, and the others that
    have distinct ones"). Every plane's win show now tells a little story of its character, and any tap on the screen during it joins in. Nothing but
    code: no new picture, model or sound file, and no new voice line.
+   Owner, 2026-10-28, later: "I don't want any more smoke signals ... I don't want stickers ... It needs to be something unique to them that makes sense to
+   the characters". So no sky drawings, stamps, balloons or bursts, but two: Dusty's crop-dusted star and Rochelle's pink heart. Every other show is built on
+   what the character is and does, with props made of a few primitives and small canvases (WP_KIND, section below: Franz's car, Ripslinger's shades,
+   trophy and paparazzi, Skipper's medal and signal flags, Ishani's garland and petals, Leadbottom's mulch garden, Windlifter's log, Blade Ranger's hoist,
+   Cabbie's parachutes, WPC), and Fire Dusty's water drop (the drop section, DD).
    The air art ("ink"): a pool of INK.n soft puffs that go into the smoke system's one instanced mesh (inkSmoke, after the flares' trails), so no new
    draw call and no new shader. They live in the routine's frame (WM.A, WM.yawC), like Echo & Bravo's flares: the art flies on with the plane and the
-   camera, so a heart or a star drawn in the air stays whole in the picture. Three ways in:
-   1. the pen: a routine's step ['shape', name, size, style] flies a path (INK_SEGS: lines and arcs, the heart, the star, a "1", a rainbow arch) and the pen,
-      at the plane's tail, paints the stroke in puffs (INK_STYLE: colours along the stroke, or a ribbon of bands for a rainbow or a road); ['pen', style, from, to]
-      paints a stretch of any other move (a spiral);
-   2. stamps: a small shape of puffs (INK_STAMP: heart, star, ring, "1", rainbow, burst) that pops out facing the camera: ['stamp', shape, at, colours, size]
-      in a step, or from a tap;
-   3. toys: a few paper-doll sprites (parachutes with a smokejumper, teacups, umbrellas, balloons), drawn on small canvases when the show starts and freed
-      when it ends (inkToy); and two 3D props made of a few primitives (Blade Ranger's searchlight beam, Windlifter's trophy on its cable).
+   camera, so a heart or a star drawn in the air stays whole in the picture; Leadbottom's spray uses them too. The ways in:
+   1. the pen: a routine's step ['shape', name, size, style] flies a path (INK_SEGS: lines and arcs, the heart, the star, a rainbow arch) and the pen,
+      at the plane's tail, paints the stroke in puffs (INK_STYLE: colours along the stroke, or a ribbon of bands for the rainbow);
+   2. stamps (Dusty's alone): a small star of puffs that pops out facing the camera: ['stamp', shape, at, colours, size] in a step, or from a tap;
+   3. toys: a few paper-doll sprites (Rochelle's love letters and kiss, Bulldog's teacups and umbrellas), drawn on small canvases when the show starts and
+      freed when it ends (inkToy).
    The tap (inkTap, a listener on the stage): any tap anywhere, big and forgiving, counts. Each tap rings a note of a pentatonic scale, shows a ripple under the
-   finger, makes a burst of sparks at the plane, does what the plane's own show says (WIN_MOVE.tap: INK_TAP: a heart, a star, a parachute, a honk, a camera
-   flash) and gives the plane one more flip, spin or hop (WIN_MOVE.ov, inkOv: only with room under it). A small tapping hand shows while it plays.
+   finger, does what the plane's own show says (WIN_MOVE.tap: INK_TAP, 'prop': its props' own part, WP_KIND.tap: a beep, a flash, a bugle note, a jumper)
+   and gives the plane one more flip, spin or hop (WIN_MOVE.ov, inkOv: only with room under it). A small tapping hand shows while it plays.
    Cost and safety: the pool, the toys and the props are made the first time a show needs them, nothing is allocated per frame, and everything is put back
    by inkEnd (the show's end) and inkStop (wmStop: Race again, Back, a new race, the next routine). Sounds are WebAudio tones, as the maracas'. */
 const INK = {n: 640, P: null, O: null, V: null, C: null, B: null, L: null, Z: null, A: null, K: null, T: null, head: 0, t: 0, on: false, live: 0, r: null,
@@ -9323,12 +9326,7 @@ const inkCol = h=>INK_COL[h] || (INK_COL[h] = new T.Color(h).convertSRGBToLinear
 const INK_STYLE = {
   star:    {pal: ['#ff4d6d', '#ffb703', '#3ddc84', '#35b8ff', '#b46bff'], mode: 'seg', at: 'mid', size: .17, sp: .06, life: 4.8, grow: .25, rise: .015},
   heart:   {pal: ['#ff9ac0', '#ff5c93', '#ff2d6f', '#ff5c93'], mode: 'grad', size: .24, sp: .075, life: 4.8, grow: .25, rise: .015},
-  rainbow: {pal: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff', '#9b5cff'], mode: 'bands', bw: .1, size: .15, sp: .085, life: 4.6, grow: .2, rise: .01},
-  one:     {pal: ['#ff3b30', '#ffd60a', '#ff3b30', '#ffffff'], mode: 'cycle', cyc: 3, at: 'mid', size: .25, sp: .07, life: 4.8, grow: .2, rise: .01},
-  corkscrew: {pal: ['#ffffff', '#fff1c2'], mode: 'cycle', cyc: 2, size: .2, sp: .09, life: 3.4, grow: .5, rise: .02},
-  navy:    {pal: ['#ef3b4a', '#ffffff', '#2f6df0'], mode: 'bands', bw: .13, size: .15, sp: .09, life: 4.2, grow: .25, rise: .01},
-  sparkle: {pal: ['#ffd23f', '#ff6bd6', '#35e0ff', '#b388ff', '#fff6b8'], mode: 'cycle', cyc: 1, size: .17, sp: .04, life: 2.7, grow: .1, rise: .05, tw: 1, jit: .08},
-  road:    {pal: ['#5f6675', '#ffd60a', '#5f6675'], mode: 'bands', at: 'mid', bw: .17, dash: 1, size: .13, sp: .07, life: 4.4, grow: .1, rise: 0}};
+  rainbow: {pal: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff', '#9b5cff'], mode: 'bands', bw: .1, size: .15, sp: .085, life: 4.6, grow: .2, rise: .01}};
 /* the puff pool, made on first use */
 function inkMake(){ const I = INK; if(I.P) return; const n = I.n; I.P = new Float32Array(n*3); I.O = new Float32Array(n*3); I.V = new Float32Array(n*3); I.C = new Float32Array(n*3);
   I.B = new Float32Array(n).fill(-99); I.L = new Float32Array(n); I.Z = new Float32Array(n*2); I.A = new Float32Array(n); I.K = new Uint8Array(n); I.T = new Float32Array(n); }
@@ -9360,10 +9358,7 @@ const INK_SEGS = {
   heart: ()=>[['A', .3, 45], ['pen', 1], ['L', 1], ['A', .5, 180], ['A', .07, -90], ['A', .5, 180], ['L', 1], ['pen', 0], ['A', .3, 45]],   // up the right edge, over the right lobe, the notch, over the left lobe, down the left edge to the tip (a heart whose sides are a square's, 1 on a side)
   star: ()=>{ const P = [], o = [4, 5, 6, 7, 8, 9, 0, 1, 2, 3]; o.forEach(i=>{ const a = (90 + 36*i)*Math.PI/180, r = i%2 ? .5 : 1; P.push([r*Math.cos(a), r*Math.sin(a)]); }); const Q = inkPoly(P, .05);
     return [['A', .3, Q.h0], ['pen', 1]].concat(Q.segs, [['pen', 0], ['A', .3, -Q.h0]]); },   // the five-pointed star outline in one stroke (a circle of radius 1), the corners rounded a little
-  one: ()=>[['A', .45, 90], ['pen', 1], ['L', 1.9], ['A', .14, 138], ['L', 1], ['pen', 0], ['A', .35, 132]],   // a "1": up the stem, a flick, down the flag
-  oneM: ()=>[['A', .45, 90], ['pen', 1], ['L', 1.9], ['A', .14, -138], ['L', 1], ['pen', 0], ['A', .35, 48]],   // the same "1" for a camera on the other side: its flag goes the way the plane flies, so the number reads the right way round on the screen
-  rainbow: ()=>[['A', .45, 90], ['pen', 1], ['A', 1.1, -180], ['pen', 0], ['A', .45, 90]],   // a pull up, an arch over the top, a pull out
-  road: ()=>[['A', .45, 90], ['pen', 1], ['A', .6, -50], ['A', .6, 100], ['A', .6, -100], ['A', .6, 100], ['A', .6, -50], ['pen', 0], ['A', .45, -90]]};   // a winding road seen from above: it climbs the screen in S-curves into the sky
+  rainbow: ()=>[['A', .45, 90], ['pen', 1], ['A', 1.1, -180], ['pen', 0], ['A', .45, 90]]};   // a pull up, an arch over the top, a pull out
 function inkShape(name){ if(WM.side < 0 && INK_SEGS[name + 'M']) name += 'M'; let S = INK_PATH[name]; if(S) return S; const segs = INK_SEGS[name](), N = 240, X = new Float32Array(N), Y = new Float32Array(N), H = new Float32Array(N), pens = [];
   let L = 0, Wt = 0; segs.forEach(g=>{ g.len = g[0] === 'L' ? Math.max(0, g[1]) : g[0] === 'A' ? g[1]*Math.abs(g[2])*Math.PI/180 : 0; g.k = g[0] === 'A' && g[1] < .2 ? 5 : 1; g.s0 = L; g.w0 = Wt; L += g.len; Wt += g.len*g.k; });   // (a tight corner takes five times its length in time: the nose turns at a rate the eye can follow)
   const adv = (g, d, st)=>{ if(g[0] === 'L'){ st.x += Math.cos(st.h)*d; st.y += Math.sin(st.h)*d; } else if(g[0] === 'A'){ const k = Math.sign(g[2])/g[1], h2 = st.h + k*d; st.x += (Math.sin(h2) - Math.sin(st.h))/k; st.y += (Math.cos(st.h) - Math.cos(h2))/k; st.h = h2; } };
@@ -9400,13 +9395,7 @@ const INK_STAMPS = {};
 function inkPolySample(P, closed, n){ const m = P.length, segN = closed ? m : m - 1; let L = 0; const ls = []; for(let i = 0; i < segN; i++){ const a = P[i], b = P[(i + 1) % m], d = Math.hypot(b[0] - a[0], b[1] - a[1]); ls.push(d); L += d; }
   const out = []; for(let i = 0; i < n; i++){ let s = L*i/(closed ? n : n - 1), j = 0; while(j < segN - 1 && s > ls[j]){ s -= ls[j]; j++; } const a = P[j], b = P[(j + 1) % m], t = ls[j] ? s/ls[j] : 0; out.push([a[0] + (b[0] - a[0])*t, a[1] + (b[1] - a[1])*t, 0]); } return out; }
 function inkStampPts(name){ let S = INK_STAMPS[name]; if(S) return S; let pts = [];
-  if(name === 'heart'){ for(let i = 0; i < 26; i++){ const t = i/26*2*Math.PI; pts.push([16*Math.pow(Math.sin(t), 3)/16.5, (13*Math.cos(t) - 5*Math.cos(2*t) - 2*Math.cos(3*t) - Math.cos(4*t))/16.5 + .12, 0]); } }
-  else if(name === 'star'){ const P = []; for(let i = 0; i < 10; i++){ const a = Math.PI/2 + i*Math.PI/5, r = i % 2 ? .42 : 1; P.push([r*Math.cos(a), r*Math.sin(a)]); } pts = inkPolySample(P, true, 30); }
-  else if(name === 'ring'){ for(let i = 0; i < 20; i++){ const a = i/20*2*Math.PI; pts.push([Math.cos(a), Math.sin(a), 0]); } }
-  else if(name === 'one'){ pts = inkPolySample([[-.55, .45], [0, 1], [0, -1]], false, 18).concat(inkPolySample([[-.5, -1], [.5, -1]], false, 6)); }
-  else if(name === 'rainbow'){ for(let b = 0; b < 5; b++) for(let i = 0; i < 9; i++){ const a = Math.PI*i/8, r = 1 - b*.14; pts.push([r*Math.cos(a), r*Math.sin(a) - .35, b]); } }
-  else if(name === 'burst'){ for(let k = 0; k < 8; k++){ const a = k*Math.PI/4 + .2; for(let j = 0; j < 3; j++) pts.push([Math.cos(a)*(.45 + j*.28), Math.sin(a)*(.45 + j*.28), 0]); } }
-  else if(name === 'cross'){ for(let k = 0; k < 4; k++){ const a = k*Math.PI/2; for(let j = 0; j < 4; j++) pts.push([Math.cos(a)*(.25 + j*.25), Math.sin(a)*(.25 + j*.25), 0]); } }
+  if(name === 'star'){ const P = []; for(let i = 0; i < 10; i++){ const a = Math.PI/2 + i*Math.PI/5, r = i % 2 ? .42 : 1; P.push([r*Math.cos(a), r*Math.sin(a)]); } pts = inkPolySample(P, true, 30); }   // (Dusty's)
   return (INK_STAMPS[name] = pts); }
 function inkCamAxes(){ const I = INK; if(!rCam) return; rCam.updateMatrixWorld(); const e = rCam.matrixWorld.elements, c = Math.cos(I.yaw), sn = Math.sin(I.yaw);
   I.cr.set(c*e[0] - sn*e[2], e[1], sn*e[0] + c*e[2]).normalize(); I.cu.set(c*e[4] - sn*e[6], e[5], sn*e[4] + c*e[6]).normalize(); }
@@ -9417,16 +9406,8 @@ function inkStamp(name, f, u, s, scale, pal, o){ const I = INK; inkMake(); I.on 
     I.O[j] = (I.cr.x*p[0] + I.cu.x*p[1])*R; I.O[j + 1] = (I.cr.y*p[0] + I.cu.y*p[1])*R; I.O[j + 2] = (I.cr.z*p[0] + I.cu.z*p[1])*R; I.T[k] = op.pop || .28; } }
 /* ---- the toys: a few paper-doll sprites, drawn when the show starts (def.toys), freed at its end */
 const INK_TOYK = {cup: {w: .55, h: .55, n: 2}, umb: {w: .62, h: .62, n: 2}, letter: {w: .3, h: .22, n: 3}, kiss: {w: .5, h: .36, n: 1}};   // (letter, kiss: Rochelle's love letters and her blown kiss)
-const INK_CHUTE = ['#ff3b30', '#ffd60a', '#35b8ff', '#34c759', '#ff7ab8'];
 function inkCv(w, h, f){ const cv = document.createElement('canvas'); cv.width = w; cv.height = h; f(cv.getContext('2d'), w, h); const t = new T.CanvasTexture(cv); INK.tex.push(t); return t; }
 function inkDrawToy(kind, i){
-  if(kind === 'chute') return inkCv(96, 120, (x, w, h)=>{ const c = INK_CHUTE[i % INK_CHUTE.length], cx = w/2; x.lineJoin = 'round'; x.lineCap = 'round';
-      x.strokeStyle = 'rgba(40,40,60,.85)'; x.lineWidth = 1.6; [[8, 52], [26, 56], [48, 58], [70, 56], [88, 52]].forEach(([px, py])=>{ x.beginPath(); x.moveTo(px, py); x.lineTo(cx, 82); x.stroke(); });
-      x.beginPath(); x.moveTo(5, 52); x.bezierCurveTo(5, 8, w - 5, 8, w - 5, 52); [0, 1, 2, 3].forEach(k=>{ const px = w - 5 - (w - 10)*(k + 1)/4; x.quadraticCurveTo(px + (w - 10)/8, 62, px, 52); }); x.closePath(); x.fillStyle = c; x.fill(); x.lineWidth = 2.4; x.strokeStyle = 'rgba(40,40,60,.9)'; x.stroke();
-      x.fillStyle = 'rgba(255,255,255,.5)'; x.beginPath(); x.moveTo(cx - 12, 14); x.quadraticCurveTo(cx - 8, 30, cx - 14, 52); x.lineTo(cx - 4, 52); x.quadraticCurveTo(cx - 2, 30, cx - 5, 12); x.fill(); x.beginPath(); x.moveTo(cx + 12, 14); x.quadraticCurveTo(cx + 8, 30, cx + 14, 52); x.lineTo(cx + 4, 52); x.quadraticCurveTo(cx + 2, 30, cx + 5, 12); x.fill();
-      x.fillStyle = '#ff8c1a'; x.strokeStyle = 'rgba(40,40,60,.9)'; x.lineWidth = 2; x.beginPath(); x.roundRect ? x.roundRect(cx - 7, 90, 14, 16, 4) : x.rect(cx - 7, 90, 14, 16); x.fill(); x.stroke();
-      x.strokeStyle = '#ff8c1a'; x.lineWidth = 4; x.beginPath(); x.moveTo(cx - 5, 94); x.lineTo(cx - 12, 84); x.moveTo(cx + 5, 94); x.lineTo(cx + 12, 84); x.moveTo(cx - 3, 106); x.lineTo(cx - 6, 116); x.moveTo(cx + 3, 106); x.lineTo(cx + 6, 116); x.stroke();
-      x.fillStyle = '#ffd60a'; x.strokeStyle = 'rgba(40,40,60,.9)'; x.lineWidth = 2; x.beginPath(); x.arc(cx, 84, 7.5, 0, 7); x.fill(); x.stroke(); x.fillStyle = '#ffe3c2'; x.beginPath(); x.arc(cx, 86, 4, 0, 7); x.fill(); });
   if(kind === 'cup') return inkCv(96, 96, (x, w, h)=>{ x.lineJoin = 'round'; x.lineCap = 'round';
       x.strokeStyle = 'rgba(255,255,255,.85)'; x.lineWidth = 4; [30, 48, 66].forEach((px, k)=>{ x.beginPath(); x.moveTo(px, 44); x.bezierCurveTo(px - 8, 34, px + 8, 26, px, 14 - k*0); x.stroke(); });
       x.fillStyle = '#ffffff'; x.strokeStyle = '#3b4a6b'; x.lineWidth = 3; x.beginPath(); x.ellipse(48, 82, 36, 8, 0, 0, 7); x.fill(); x.stroke();
@@ -9444,10 +9425,6 @@ function inkDrawToy(kind, i){
   if(kind === 'kiss') return inkCv(96, 64, (x, w, h)=>{ x.fillStyle = '#ff2d6f'; x.strokeStyle = '#b3003c'; x.lineWidth = 2.5; x.lineJoin = 'round';
       x.beginPath(); x.moveTo(10, 30); x.bezierCurveTo(24, 6, 40, 8, 48, 20); x.bezierCurveTo(56, 8, 72, 6, 86, 30); x.bezierCurveTo(70, 34, 30, 34, 10, 30); x.fill(); x.stroke();
       x.beginPath(); x.moveTo(10, 32); x.bezierCurveTo(30, 38, 66, 38, 86, 32); x.bezierCurveTo(74, 58, 22, 58, 10, 32); x.fill(); x.stroke(); x.fillStyle = 'rgba(255,255,255,.55)'; x.beginPath(); x.ellipse(30, 44, 9, 3, -.15, 0, 7); x.fill(); });   // lips: the blown kiss
-  if(kind === 'balloon') return inkCv(64, 96, (x, w, h)=>{ const c = ['#ff3b30', '#ffd60a', '#35b8ff', '#34c759', '#ff7ab8', '#b46bff'][i % 6]; x.lineCap = 'round';
-      x.strokeStyle = 'rgba(60,60,80,.8)'; x.lineWidth = 1.8; x.beginPath(); x.moveTo(32, 70); x.bezierCurveTo(26, 78, 38, 86, 32, 94); x.stroke();
-      x.fillStyle = c; x.strokeStyle = 'rgba(40,40,60,.85)'; x.lineWidth = 2.4; x.beginPath(); x.moveTo(32, 70); x.bezierCurveTo(2, 56, 2, 8, 32, 6); x.bezierCurveTo(62, 8, 62, 56, 32, 70); x.fill(); x.stroke();
-      x.beginPath(); x.moveTo(32, 70); x.lineTo(27, 76); x.lineTo(37, 76); x.closePath(); x.fill(); x.stroke(); x.fillStyle = 'rgba(255,255,255,.55)'; x.beginPath(); x.ellipse(22, 26, 5, 10, .4, 0, 7); x.fill(); });
   return null; }
 /* the sprites of this show's toys (def.toys: kinds), a few of each, hidden until they are sent */
 function inkToysMake(kinds){ const I = INK; if(!I.g){ I.g = new T.Group(); I.g.name = 'dance-toys'; }
@@ -9463,16 +9440,14 @@ function inkToy(kind, f, u, s, o){ const I = INK; if(!I.toys.length || !I.r) ret
 function inkToysFrame(dt){ const I = INK; if(!I.toys.length || !I.r) return; const sz = I.r.c.size, KK = inkK(), K = rCourse, city = !!(K && K.city); let any = false;
   for(let i = 0; i < I.toys.length; i++){ const t = I.toys[i]; if(t.b < -50) continue; const a = I.t - t.b, u = a/t.life; if(u >= 1 || a < 0){ t.s.visible = false; t.m.opacity = 0; t.b = -99; continue; } any = true;
     let f = t.f, up = t.u, s = t.s0, w = t.w*sz*KK, h = t.h*sz*KK, op = 1, rot = 0;
-    if(t.kind === 'chute'){ const open = shEz(Math.min(1, a/.4)), d = (1 - Math.exp(-1.1*a))/1.1; f += t.vf*d - .12*sz*a*u; up += -.34*sz*Math.max(0, a - .15) + t.vu*d; w *= .35 + .65*open; h *= .35 + .65*open; rot = .16*Math.sin(a*2.1 + t.ph)*open; f += Math.sin(a*1.4 + t.ph)*.06*sz*open; op = Math.min(1, a/.12)*Math.min(1, (1 - u)/.35); }
-    else if(t.kind === 'letter'){ const d = (1 - Math.exp(-1.3*a))/1.3, pop = shEz(Math.min(1, a/.25)); f += t.vf*d - .1*sz*a; up += t.vu*d - .16*sz*a*a*.5; s += Math.sin(a*1.7 + t.ph)*.08*sz;   // a letter: thrown out, then fluttering down, turning over and over
+    if(t.kind === 'letter'){ const d = (1 - Math.exp(-1.3*a))/1.3, pop = shEz(Math.min(1, a/.25)); f += t.vf*d - .1*sz*a; up += t.vu*d - .16*sz*a*a*.5; s += Math.sin(a*1.7 + t.ph)*.08*sz;   // a letter: thrown out, then fluttering down, turning over and over
       rot = .5*Math.sin(a*3.1 + t.ph); w *= pop*(.25 + .75*Math.abs(Math.cos(a*3.8 + t.ph))); h *= pop; op = Math.min(1, a/.1)*Math.min(1, (1 - u)/.3); }
     else if(t.kind === 'kiss'){ const e = shEz(Math.min(1, a/.9)); up += .25*sz*e; f -= .05*sz*a; w *= .3 + 1.5*e; h *= .3 + 1.5*e; rot = .2*Math.sin(a*4); op = Math.min(1, a/.1)*(1 - Math.max(0, (u - .45)/.55)); }   // the kiss floats up toward us, growing, and fades
-    else if(t.kind === 'balloon'){ const d = (1 - Math.exp(-.9*a))/.9; f += t.vf*d - .06*sz*a; up += t.vu*d + .2*sz*a; f += Math.sin(a*2 + t.ph)*.05*sz; rot = .12*Math.sin(a*2.6 + t.ph); const pop = shEz(Math.min(1, a/.25)); w *= .3 + .7*pop; h *= .3 + .7*pop; op = Math.min(1, a/.1)*Math.min(1, (1 - u)/.3); }
     else { const pop = Math.min(1, a/.35), ov = pop < 1 ? 1 + .3*Math.sin(Math.PI*pop) : 1, d = (1 - Math.exp(-1.2*a))/1.2; up += t.vu*d + .04*sz*a; f += t.vf*d - .05*sz*a; w *= shEz(pop)*ov + .05; h *= shEz(pop)*ov + .05; rot = .12*Math.sin(a*3 + t.ph)*(t.kind === 'cup' ? 1 : .5); op = Math.min(1, a/.1)*Math.min(1, (1 - u)/.3); }
     inkWorld(f, up, s, _ikE); if(K && !city){ const g = Math.max(K.H(_ikE.x, _ikE.z), K.wl) + 3; if(_ikE.y < g){ _ikE.y = g; op *= .6; } }
     t.s.position.copy(_ikE); t.s.scale.set(w, h, 1); t.m.rotation = rot; t.m.opacity = op; }
   if(!any && !I.live && !WM.on && I.g && I.g.parent && !wpChuteLive()){ inkEnd(); } }
-/* ---- the props (3D, a few primitives): Blade Ranger's searchlight beam, Windlifter's trophy on its cable */
+/* ---- the props (3D, a few primitives): Blade Ranger's searchlight beam (the others: WP_KIND) */
 function inkMat(m){ INK.mats.push(m); return m; }
 function inkGeo(g){ INK.geos.push(g); return g; }
 function inkBeamMake(c){ const I = INK, bb = c.bb, L = (bb.max.x - bb.min.x)/FT*.95, grp = new T.Group(), piv = new T.Group(); grp.name = 'searchlight';
@@ -9484,16 +9459,6 @@ function inkBeamMake(c){ const I = INK, bb = c.bb, L = (bb.max.x - bb.min.x)/FT*
   const sm = inkMat(new T.SpriteMaterial({map: sg, transparent: true, blending: T.AdditiveBlending, depthWrite: false, fog: false, toneMapped: false, opacity: .9})), sp = new T.Sprite(sm); sp.scale.set(L*.12, L*.12, 1); sp.position.set(L*Math.cos(.62)*.9, -L*Math.sin(.62)*.9, 0); sp.frustumCulled = false; sp.renderOrder = 7; piv.add(sp);
   grp.add(piv); grp.position.set(bb.max.x/FT*.55, bb.min.y/FT + (bb.max.y - bb.min.y)/FT*.32, 0); grp.visible = false; c.model.add(grp); grp.traverse(o=>{ o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; });
   return {grp, piv, mo, mi, sm, sp, L, base: [.3, .42]}; }
-function inkTrophyMake(c){ const bb = c.bb, S = (bb.max.x - bb.min.x)/FT, grp = new T.Group(), sw = new T.Group(), H = S*.34; grp.name = 'trophy';
-  const gold = inkMat(new T.MeshLambertMaterial({color: '#ffb800', emissive: '#c77c00', emissiveIntensity: .8, fog: false})), dark = inkMat(new T.MeshLambertMaterial({color: '#7a5a1e', emissive: '#2a1c06', emissiveIntensity: .4})), cab = inkMat(new T.MeshLambertMaterial({color: '#2b2f38'}));
-  const Lc = S*.26, cable = new T.Mesh(inkGeo(new T.CylinderGeometry(.05, .05, Lc, 6)), cab); cable.position.y = -Lc/2; sw.add(cable);
-  const prof = [[0, 0], [.34, 0], [.34, .05], [.2, .1], [.1, .16], [.08, .42], [.14, .5], [.34, .62], [.42, 1.05], [.4, 1.1], [.3, 1.0], [.0, .95]].map(p=>new T.Vector2(p[0]*H*.42, p[1]*H));
-  const cup = new T.Mesh(inkGeo(new T.LatheGeometry(prof, 20)), gold); cup.position.y = -Lc - H*1.05; sw.add(cup);
-  const hd = inkGeo(new T.TorusGeometry(H*.17, H*.03, 6, 14)); [1, -1].forEach(sd=>{ const h = new T.Mesh(hd, gold); h.position.set(0, -Lc - H*.55, sd*H*.42); h.rotation.y = Math.PI/2; sw.add(h); });
-  const base = new T.Mesh(inkGeo(new T.CylinderGeometry(H*.2, H*.24, H*.12, 12)), dark); base.position.y = -Lc - H*1.08; sw.add(base);
-  const hook = new T.Mesh(inkGeo(new T.SphereGeometry(.14, 8, 6)), dark); sw.add(hook);
-  grp.add(sw); grp.position.set((bb.min.x + bb.max.x)/2/FT, bb.min.y/FT + (bb.max.y - bb.min.y)/FT*.28, 0); grp.scale.setScalar(.001); c.model.add(grp); grp.traverse(o=>{ o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; });
-  return {grp, sw, cup, H, Lc, amp: .25, ph: 0, spin: 0, gl: 0}; }
 /* the props of a show (def.prop: a kind of WP_KIND, or a list of them), each {make(r), pose(P, r, dt, t), tap(P, r, k), end(P, r)}: made at the show's start,
    posed every routine frame (t: the routine's seconds), put back and freed at its end (inkPropEnd: wmFinish, wmStop) */
 const WP_KIND = {};
@@ -9546,7 +9511,7 @@ function fzMake(r){
   const tx = inkCv(64, 64, (x, w, h)=>{ x.fillStyle = '#2b2f36'; x.beginPath(); x.arc(32, 32, 31, 0, 7); x.fill(); x.fillStyle = '#d9dee4'; x.beginPath(); x.arc(32, 32, 24, 0, 7); x.fill();
     x.strokeStyle = '#59616b'; x.lineWidth = 6; x.lineCap = 'round'; for(let k = 0; k < 5; k++){ const a = k*Math.PI*2/5; x.beginPath(); x.moveTo(32, 32); x.lineTo(32 + Math.cos(a)*22, 32 + Math.sin(a)*22); x.stroke(); }
     x.fillStyle = '#ffd60a'; x.beginPath(); x.arc(32, 32, 7, 0, 7); x.fill(); x.fillStyle = '#c0282d'; x.beginPath(); x.arc(32 + 15, 32, 4, 0, 7); x.fill(); });
-  const hm = inkMat(new T.MeshLambertMaterial({map: tx, transparent: true, alphaTest: .5, side: T.DoubleSide})), grp = new T.Group(); grp.name = 'aerocar-hubs';
+  const hm = wpMat(new T.MeshLambertMaterial({map: tx, transparent: true, alphaTest: .5, side: T.DoubleSide})), grp = new T.Group(); grp.name = 'aerocar-hubs';
   P.wheel.forEach(w=>{ const m = new T.Mesh(inkGeo(new T.CircleGeometry(w.r*.82, 18)), hm); m.position.set(w.c.x, w.c.y, w.z + Math.sign(w.z)*.03); if(w.z < 0) m.rotation.y = Math.PI; m.visible = false; grp.add(m); P.hubs.push(m); });
   grp.traverse(o=>{ o.castShadow = false; o.frustumCulled = false; }); c.model.add(grp); P.grp = grp;
   /* the road: one slab (asphalt on top with its white edges and yellow dashes, concrete sides), in the world under him */
@@ -9554,7 +9519,7 @@ function fzMake(r){
   const at = inkCv(128, 64, (x, w, h)=>{ x.fillStyle = '#41464e'; x.fillRect(0, 0, w, h); x.fillStyle = 'rgba(255,255,255,.06)'; for(let k = 0; k < 90; k++) x.fillRect((k*37) % w, (k*23) % h, 2, 2);
     x.fillStyle = '#f2f2f2'; x.fillRect(0, 4, w, 4); x.fillRect(0, h - 8, w, 4); x.fillStyle = '#ffd60a'; x.fillRect(8, h/2 - 3, 56, 6); });
   at.wrapS = T.RepeatWrapping; at.repeat.set(Math.max(1, Math.round(Lr/(sz*.8))), 1); P.at = at; P.per = Lr/at.repeat.x;
-  const top = inkMat(new T.MeshLambertMaterial({map: at})), side = inkMat(new T.MeshLambertMaterial({color: '#a3a7ad'})), road = new T.Mesh(inkGeo(new T.BoxGeometry(Lr, Hr, Wr)), [side, side, top, side, side, side]);
+  const top = wpMat(new T.MeshLambertMaterial({map: at})), side = wpMat(new T.MeshLambertMaterial({color: '#a3a7ad'})), road = new T.Mesh(inkGeo(new T.BoxGeometry(Lr, Hr, Wr)), [side, side, top, side, side, side]);
   road.name = 'aerocar-road'; road.visible = false; road.castShadow = false; road.receiveShadow = true; road.frustumCulled = false; if(rScene) rScene.add(road); P.road = road; P.wgrp = road; P.Lr = Lr; P.Hr = Hr;
   r.root.updateMatrixWorld(true); P.rc = r.root.worldToLocal(c.model.localToWorld(P.rear.clone()));   // the back wheels' contact in the root's frame (feet)
   P.drop = fzPlan(P, r); P.ok = true; return P; }
@@ -9588,14 +9553,14 @@ function fzPose(P, r, dt, t){
   const wu = Math.min(1, Math.max(0, (t - FZ.w0)/(FZ.w1 - FZ.w0))), wd = fzS(t, FZ.w2, FZ.w3), wh = FZ.A*(wu < 1 ? shEz(wu)*(1 + .12*Math.sin(Math.PI*wu)) : 1)*(1 - wd) + (wu >= 1 && wd < 1 ? .05*Math.sin((t - FZ.w1)*6.5)*(1 - wd) : 0);   // up with a little overshoot, a bob while held, down
   const tb2 = t - FZ.w3, bounce2 = tb2 > 0 && tb2 < .25 ? .035*sz*Math.sin(Math.PI*tb2/.25) : 0;
   /* level on the road: no bank, no slope; down onto it; the wheelie about the back wheels' contact */
-  R.rotation.x *= 1 - k; R.rotation.z *= 1 - k; R.updateMatrix(); _fzA.copy(P.rc).applyMatrix4(R.matrix); const roadTop = _fzA.y - P.drop;   // (_fzA: the contact, level, before the drop)
+  R.rotation.x *= 1 - k; R.rotation.z *= 1 - k; R.updateMatrix(); const ra = P.ra || (P.ra = V(0,0,0)); ra.copy(P.rc).applyMatrix4(R.matrix); const roadTop = ra.y - P.drop;   // (ra: the contact, level, before the drop)
   R.position.y += -P.drop*dk + bounce + bounce2; if(wh > 1e-4){ R.updateMatrix(); _fzB.copy(P.rc).applyMatrix4(R.matrix); R.rotation.z += wh; R.updateMatrix(); _fzC.copy(P.rc).applyMatrix4(R.matrix); R.position.add(_fzB).sub(_fzC); }
   r.P.copy(R.position);
   fzFold(P, f, -wh*1.02);
   /* the road: rolled out under him along his way, its dashes running back as he drives */
   const rs = fzS(t, FZ.r0, FZ.r1)*(1 - fzS(t, FZ.r2, FZ.r3)), rd = P.road; rd.visible = rs > .01;
   if(rd.visible){ const fx = Math.cos(r.yaw), fz = -Math.sin(r.yaw), ah = P.Lr*.12; rd.scale.set(Math.max(.01, rs), 1, Math.max(.05, Math.min(1, rs*2)));
-    rd.position.set(_fzA.x + fx*ah*rs, roadTop - P.Hr/2, _fzA.z + fz*ah*rs); rd.rotation.set(0, r.yaw, 0);
+    rd.position.set(ra.x + fx*ah*rs, roadTop - P.Hr/2, ra.z + fz*ah*rs); rd.rotation.set(0, r.yaw, 0);
     const v = P.aOn ? Math.min(140, W.A.distanceTo(P.lastA)/Math.max(1e-3, dt)*.5) : 0; P.at.offset.x = (P.at.offset.x + v*dt/P.per) % 1; }
   P.lastA.copy(W.A); P.aOn = true;
   /* the hubcaps spin while he drives (faster in the wheelie, the front ones free in the air) */
@@ -9612,7 +9577,7 @@ function fzPose(P, r, dt, t){
 function wlLogMake(r){ const c = r.c, bb = c.bb, S = (bb.max.x - bb.min.x)/FT, grp = new T.Group(), sw = new T.Group(), Lc = S*.3, Ll = S*.5, R = S*.055; grp.name = 'log';
   const bark = inkCv(128, 32, (x, w, h)=>{ x.fillStyle = '#6b4a2b'; x.fillRect(0, 0, w, h); for(let k = 0; k < 26; k++){ x.fillStyle = k % 2 ? '#4f3520' : '#80603c'; x.fillRect((k*53) % w, 0, 3 + (k % 3)*2, h); } x.fillStyle = 'rgba(30,20,10,.35)'; for(let k = 0; k < 40; k++) x.fillRect((k*29) % w, (k*13) % h, 9, 2); });
   const ends = inkCv(64, 64, (x, w, h)=>{ x.fillStyle = '#d9b27a'; x.fillRect(0, 0, w, h); x.strokeStyle = '#a77a45'; x.lineWidth = 2; for(let k = 1; k < 6; k++){ x.beginPath(); x.arc(32, 32, k*5.5, 0, 7); x.stroke(); } x.strokeStyle = '#5a3d22'; x.lineWidth = 5; x.beginPath(); x.arc(32, 32, 30, 0, 7); x.stroke(); });
-  const mb = inkMat(new T.MeshLambertMaterial({map: bark})), me = inkMat(new T.MeshLambertMaterial({map: ends})), cab = inkMat(new T.MeshLambertMaterial({color: '#2b2f38'})), strap = inkMat(new T.MeshLambertMaterial({color: '#ffb300'}));
+  const mb = wpMat(new T.MeshLambertMaterial({map: bark})), me = wpMat(new T.MeshLambertMaterial({map: ends})), cab = wpMat(new T.MeshLambertMaterial({color: '#2b2f38'})), strap = wpMat(new T.MeshLambertMaterial({color: '#ffb300'}));
   const cable = new T.Mesh(inkGeo(new T.CylinderGeometry(.05, .05, Lc, 6)), cab); cable.position.y = -Lc/2; sw.add(cable);
   const log = new T.Mesh(inkGeo(new T.CylinderGeometry(R, R*1.08, Ll, 14)), [mb, me, me]); log.rotation.z = Math.PI/2; log.position.y = -Lc - R; sw.add(log);
   const ch = inkGeo(new T.TorusGeometry(R*1.06, R*.12, 5, 14)); [-.22, .22].forEach(k=>{ const m = new T.Mesh(ch, strap); m.rotation.y = Math.PI/2; m.position.set(k*Ll, -Lc - R, 0); sw.add(m); });
@@ -9632,12 +9597,14 @@ WP_KIND.log = {make: wlLogMake,
    the model changes. Each chute is a canopy, its lines and its load (a paper-doll jumper or the trophy and crate): a pool of WPC.n made at the show's start
    (shared geometry and materials, three small canvases), flown in the routine's frame (as the flares), freed when the last one is down (inkEnd). On a course
    a chute that reaches the ground lands and its canopy falls in. */
-const WPC = {n: 8, door: [.44, .36], g: null, list: [], k: 0, mats: [], geos: [], tex: [], free: .42, open: .5, vd: .26, drift: .3, life: 5.6, g0: 1.7};   // door: the back of the cargo pod, as parts of the model's length (from its tail) and height (from its bottom); free: the static line's seconds before it opens; open: s to blossom; vd: the steady descent, drift: back on the air, in sizes of the plane a second; g0: the fall before it opens
+const WPC = {n: 8, door: [.28, .3], g: null, list: [], k: 0, mats: [], geos: [], tex: [], free: .42, open: .5, vd: .26, drift: .3, life: 5.6, g0: 1.7};   // door: the back of the cargo pod, as parts of the model's length (from its tail) and height (from its bottom); free: the static line's seconds before it opens; open: s to blossom; vd: the steady descent, drift: back on the air, in sizes of the plane a second; g0: the fall before it opens
 const _wpA = V(0,0,0), _wpB = V(0,0,0);
+/* a prop's material: its colours and canvases in sRGB, as the models' are (the renderer's output is sRGB: a canvas or a hex colour taken as linear comes out washed out) */
+function wpMat(m){ if(m.color) m.color.convertSRGBToLinear(); if(m.emissive) m.emissive.convertSRGBToLinear(); [m.map, m.emissiveMap].forEach(t=>{ if(t && t.encoding !== T.sRGBEncoding){ t.encoding = T.sRGBEncoding; t.needsUpdate = true; } }); return inkMat(m); }
 function wpCv(w, h, f){ const cv = document.createElement('canvas'); cv.width = w; cv.height = h; f(cv.getContext('2d'), w, h); const t = new T.CanvasTexture(cv); WPC.tex.push(t); return t; }
 function wpChuteMake(){ const C = WPC; if(C.g) return; C.g = new T.Group(); C.g.name = 'chutes'; C.list = []; C.k = 0;
   const gore = (a, b)=>wpCv(128, 16, (x, w, h)=>{ for(let k = 0; k < 16; k++){ x.fillStyle = k % 2 ? b : a; x.fillRect(k*w/16, 0, w/16 + 1, h); } x.fillStyle = 'rgba(0,0,0,.25)'; x.fillRect(0, h - 3, w, 3); });
-  const mk = m=>{ C.mats.push(m); return m; }, gk = g=>{ C.geos.push(g); return g; };
+  const mk = m=>{ if(m.color) m.color.convertSRGBToLinear(); if(m.emissive) m.emissive.convertSRGBToLinear(); if(m.map) m.map.encoding = T.sRGBEncoding; C.mats.push(m); return m; }, gk = g=>{ C.geos.push(g); return g; };   // (sRGB colours and canvases: wpMat)
   const mJ = mk(new T.MeshLambertMaterial({map: gore('#ff6a13', '#ffffff'), side: T.DoubleSide})), mT = mk(new T.MeshLambertMaterial({map: gore('#ffc400', '#fff3c4'), side: T.DoubleSide, emissive: '#5a3c00', emissiveIntensity: .5}));
   const can = gk(new T.SphereGeometry(1, 16, 5, 0, Math.PI*2, .12, 1.12));   // a round canopy: a dome with a vent at its top, its skirt at 1.24 rad
   const rim = Math.sin(1.24), ry = Math.cos(1.24), L = 1.75, pts = []; for(let i = 0; i < 12; i++){ const a = i/12*Math.PI*2; pts.push(Math.cos(a)*rim, ry, Math.sin(a)*rim, 0, -L, 0); }
@@ -9663,7 +9630,7 @@ const wpChuteLive = ()=>WPC.list.some(e=>e.b > -50);
 /* one out of the back doors: kind 'jumper' or 'trophy' (the oldest of that kind if all are out) */
 function wpChuteDrop(r, kind){ const C = WPC, I = INK; wpChuteMake(); let e = null, old = null; C.list.forEach(x=>{ if(x.kind !== kind) return; if(!e && x.b < -50) e = x; if(!old || x.b < old.b) old = x; }); e = e || old; if(!e) return;
   const c = r.c, bb = c.bb; c.model.updateWorldMatrix(true, false); _wpA.set((bb.min.x + (bb.max.x - bb.min.x)*C.door[0])/FT, (bb.min.y + (bb.max.y - bb.min.y)*C.door[1])/FT, 0); c.model.localToWorld(_wpA); inkFrameOf(_wpA, _wpB);
-  e.b = I.t; e.f = _wpB.x; e.u = _wpB.y; e.s = _wpB.z + (Math.random() - .5)*c.size*.05; e.sz = c.size*(kind === 'trophy' ? .2 : .13); e.ph = Math.random()*6.28; e.vf = -(.35 + Math.random()*.15)*c.size; e.land = -1; e.g.visible = true; I.on = true; I.st.toys++;
+  e.b = I.t; e.f = _wpB.x; e.u = _wpB.y; e.s = _wpB.z + (Math.random() - .5)*c.size*.05; e.sz = c.size*(kind === 'trophy' ? .22 : .15); e.ph = Math.random()*6.28; e.vf = -(.35 + Math.random()*.15)*c.size; e.land = -1; e.g.visible = true; I.on = true; I.st.toys++;
   if(!WL.m){ noiseHit(1200, 400, .12, .07, 1.2); if(kind === 'trophy') tone(660, .35, 'triangle', .07, 990, .05); } }
 /* every race frame (inkFrame): each chute's place at its age, in the routine's frame (closed form from its jump) */
 function wpChuteFrame(){ const C = WPC, I = INK; if(!C.g) return; const K = rCourse, city = !!(K && K.city), szP = I.r ? I.r.c.size : 30;
@@ -9674,7 +9641,7 @@ function wpChuteFrame(){ const C = WPC, I = INK; if(!C.g) return; const K = rCou
     inkWorld(e.f + back, e.u - fall, e.s, _wpA);
     if(e.land < 0 && K && !city){ const gy = Math.max(K.H(_wpA.x, _wpA.z), K.wl) + e.sz*1.6; if(_wpA.y < gy) e.land = a; }
     const lk = e.land >= 0 ? Math.min(1, (a - e.land)/.6) : 0; if(lk > 0){ const gy = Math.max(K.H(_wpA.x, _wpA.z), K.wl) + e.sz*(1.6 - 1.1*lk); _wpA.y = Math.max(_wpA.y, gy); }
-    e.g.position.copy(_wpA); e.g.scale.setScalar(e.sz); e.g.rotation.set(0, I.yaw, 0);
+    e.g.position.copy(_wpA); e.g.scale.setScalar(e.sz*(1 - shEz((lk - .4)/.6))); e.g.rotation.set(0, I.yaw, 0); if(lk >= 1){ e.b = -99; e.g.visible = false; continue; }   // (down: it settles and goes, the routine's frame flies on)
     const sw = (.3*Math.exp(-.45*Math.max(0, a - tf)) + .06)*op*(1 - lk); e.g.rotation.z = sw*Math.sin(a*3.9 + e.ph); e.g.rotation.x = .6*sw*Math.sin(a*2.7 + e.ph*1.3);   // the swing under it, settling
     const s0 = op < 1 ? .12 + .88*op*(1 + .18*Math.sin(Math.PI*op)) : 1; e.top.scale.set(s0, (.25 + .75*op)*(1 - .75*lk), s0); e.top.position.y = (1 - op)*-1.2; e.top.visible = a > .08; } }
 /* ---- Blade Ranger's hoist rescue (owner, 2026-10-28): the fire-and-rescue chief hovers as his searchlight sweeps, the rescue hoist over his cabin door
@@ -9683,9 +9650,10 @@ function wpChuteFrame(){ const C = WPC, I = INK; if(!C.g) return; const K = rCou
    the hiker is a small paper doll. Made at the show's start, freed at its end. */
 const BH = {t0: .5, t1: 1.8, hk: 1.95, r0: 2.3, r1: 4.4, inn: 4.75, L: 1.0, Lc: .62};   // seconds: the line goes down, the hiker clips on, is reeled up, is in; L: how far down (sizes; Lc: Sky City)
 function bhMake(r){ const c = r.c, G = c.groups, b = new T.Box3(); Object.entries(G).forEach(([id, g])=>{ if(/rotor/.test(id)) return; g.children.forEach(m=>{ if(!m.isMesh || m.userData.decal) return; if(!m.geometry.boundingBox) m.geometry.computeBoundingBox(); b.union(m.geometry.boundingBox.clone().applyMatrix4(m.matrix)); }); });
-  const len = b.max.x - b.min.x, h = b.max.y - b.min.y, hw = Math.max(.3, (b.max.z - b.min.z)/2*.78), hp = V(b.min.x + len*.56, b.max.y - h*.3, hw);   // the hoist: over the cabin's door, a little behind the middle (the model's metres)
-  const grp = new T.Group(); grp.name = 'hoist-arm'; const am = inkMat(new T.MeshLambertMaterial({color: '#d7dbe0'})), arm = new T.Mesh(inkGeo(new T.BoxGeometry(.22, .22, .7)), am); grp.add(arm); c.model.add(grp);
-  const w = new T.Group(); w.name = 'hoist-line'; const cm = inkMat(new T.MeshLambertMaterial({color: '#30343b'})), cable = new T.Mesh(inkGeo(new T.CylinderGeometry(.5, .5, 1, 5)), cm), hook = new T.Mesh(inkGeo(new T.SphereGeometry(1, 8, 6)), inkMat(new T.MeshLambertMaterial({color: '#ffb300'})));
+  const len = b.max.x - b.min.x, h = b.max.y - b.min.y; let hw = Math.max(.3, (b.max.z - b.min.z)/2*.78), hp = V(b.min.x + len*.56, b.max.y - h*.3, hw);   // the hoist: over the cabin's door, a little behind the middle (the model's metres)
+  Object.values(G).forEach(g=>g.children.forEach(m=>{ if(m.isMesh && /winch|hoist/i.test(m.name)){ const wb2 = wpBodyOf({children: [m]}); if(!wb2.isEmpty() && wb2.max.x - wb2.min.x < 2 && wb2.max.y - wb2.min.y < 2){ hp.set((wb2.min.x + wb2.max.x)/2, wb2.min.y, 0); hw = Math.max(.3, Math.max(Math.abs(wb2.min.z), Math.abs(wb2.max.z))); hp.z = hw; } } }));   // (the model's own winch, when it has one)
+  const grp = new T.Group(); grp.name = 'hoist-arm'; const am = wpMat(new T.MeshLambertMaterial({color: '#d7dbe0'})), arm = new T.Mesh(inkGeo(new T.BoxGeometry(.22, .22, .7)), am); grp.add(arm); c.model.add(grp);
+  const w = new T.Group(); w.name = 'hoist-line'; const cm = wpMat(new T.MeshLambertMaterial({color: '#30343b'})), cable = new T.Mesh(inkGeo(new T.CylinderGeometry(.5, .5, 1, 5)), cm), hook = new T.Mesh(inkGeo(new T.SphereGeometry(1, 8, 6)), wpMat(new T.MeshLambertMaterial({color: '#ffb300'})));
   const ht = inkCv(48, 72, (x, w2, h2)=>{ x.lineCap = 'round'; x.lineJoin = 'round'; const o = 'rgba(30,30,40,.95)';
       x.strokeStyle = '#30343b'; x.lineWidth = 2.5; x.beginPath(); x.moveTo(24, 0); x.lineTo(24, 22); x.stroke();
       x.fillStyle = '#3d5a99'; x.strokeStyle = o; x.lineWidth = 2; x.beginPath(); x.moveTo(17, 44); x.lineTo(14, 66); x.lineTo(22, 66); x.lineTo(24, 52); x.lineTo(26, 66); x.lineTo(34, 66); x.lineTo(31, 44); x.closePath(); x.fill(); x.stroke();   // jeans
@@ -9694,7 +9662,7 @@ function bhMake(r){ const c = r.c, G = c.groups, b = new T.Box3(); Object.entrie
       x.strokeStyle = '#ff7a1a'; x.lineWidth = 5; x.beginPath(); x.moveTo(17, 27); x.lineTo(24, 20); x.moveTo(31, 27); x.lineTo(40, 9); x.stroke();   // one hand on the line, one waving
       x.fillStyle = '#1d1f24'; x.fillRect(16, 38, 16, 4); x.fillStyle = '#7a4b2a'; x.fillRect(8, 26, 7, 14);   // the rescue strop, a little backpack
       x.fillStyle = '#ffd9b3'; x.strokeStyle = o; x.lineWidth = 2; x.beginPath(); x.arc(24, 15, 7, 0, 7); x.fill(); x.stroke(); x.fillStyle = '#c0282d'; x.beginPath(); x.arc(24, 12, 7.5, Math.PI, 2*Math.PI); x.fill(); x.fillStyle = '#222'; x.fillRect(21, 15, 2, 2); x.fillRect(26, 15, 2, 2); });   // a red cap, a smile's eyes
-  const hm = inkMat(new T.SpriteMaterial({map: ht, depthWrite: false, fog: false, opacity: 0})), hk = new T.Sprite(hm); hk.center.set(.5, 1); w.add(cable, hook, hk);
+  const hm = wpMat(new T.SpriteMaterial({map: ht, depthWrite: false, fog: false, opacity: 0})), hk = new T.Sprite(hm); hk.center.set(.5, 1); w.add(cable, hook, hk);
   w.visible = false; w.traverse(o=>{ o.castShadow = false; o.frustumCulled = false; }); if(rScene) rScene.add(w);
   return {grp, wgrp: w, cable, hook, hk, hm, hp, hw, arm, said: 0, sw: 0}; }
 function bhPose(P, r, dt, t){ const c = r.c, sz = c.size, city = !!(rCourse && rCourse.city), Lmax = sz*(city ? BH.Lc : BH.L), sd = WM.side;
@@ -9705,7 +9673,7 @@ function bhPose(P, r, dt, t){ const c = r.c, sz = c.size, city = !!(rCourse && r
   _wpB.set(Math.sin(swing)*l*.5, -l, Math.sin(swing*.7)*l*.4); const L = _wpB.length(); P.wgrp.visible = t > BH.t0 - .05 && !done; P.wgrp.position.copy(_wpA);
   P.cable.position.copy(_wpB).multiplyScalar(.5); P.cable.scale.set(sz*.012, L, sz*.012); P.cable.quaternion.setFromUnitVectors(_fzY, _wpA.copy(_wpB).multiplyScalar(1/L));   // (a unit cylinder along the line, from the pulley down)
   P.hook.position.copy(_wpB); P.hook.scale.setScalar(sz*.022);
-  const on = t >= BH.hk, pop = on ? shEz((t - BH.hk)/.25) : 0, hs = sz*.17; P.hk.position.copy(_wpB); P.hk.position.y -= sz*.01; P.hk.scale.set(hs*.67*(.4 + .6*pop), hs*(.4 + .6*pop), 1); P.hm.opacity = pop*(1 - inn); P.hm.rotation = -.12*Math.sin(t*3.1);
+  const on = t >= BH.hk, pop = on ? shEz((t - BH.hk)/.25) : 0, hs = sz*.22; P.hk.position.copy(_wpB); P.hk.position.y -= sz*.01; P.hk.scale.set(hs*.67*(.4 + .6*pop), hs*(.4 + .6*pop), 1); P.hm.opacity = pop*(1 - inn); P.hm.rotation = -.12*Math.sin(t*3.1);
   if(inn > 0){ P.hk.position.z -= sd*inn*sz*.08; P.hk.scale.multiplyScalar(1 - .6*inn); }   // into the door
   if(!WL.m){ if(t >= BH.t0 && !(P.said & 1)){ P.said |= 1; tone(330, .6, 'square', .02, 260); noiseHit(1400, 900, .6, .03, 2); }   // the winch whirs out
     if(on && !(P.said & 2)){ P.said |= 2; tone(1318, .15, 'sine', .08); tone(1760, .25, 'sine', .07, null, .1); }   // clipped on
@@ -9735,12 +9703,12 @@ function rsMake(r){ const c = r.c, grp = new T.Group(); grp.name = 'ripslinger';
       [-1, 1].forEach(sd=>{ lens(sd); const g = x.createLinearGradient(0, 8, 0, 50); g.addColorStop(0, '#1b2333'); g.addColorStop(1, '#3d4b66'); x.fillStyle = g; x.fill(); x.lineWidth = 4; x.strokeStyle = '#e8b83a'; x.stroke();
         x.fillStyle = 'rgba(255,255,255,.45)'; x.beginPath(); x.moveTo(64 + sd*14, 15); x.lineTo(64 + sd*24, 14); x.lineTo(64 + sd*10, 36); x.lineTo(64 + sd*4, 34); x.closePath(); x.fill(); });
       x.strokeStyle = '#e8b83a'; x.lineWidth = 4; x.beginPath(); x.moveTo(37, 11); x.quadraticCurveTo(64, 2, 91, 11); x.stroke(); });
-  const sm = inkMat(new T.MeshBasicMaterial({map: st, transparent: true, alphaTest: .4, side: T.DoubleSide, toneMapped: false})), shades = new T.Mesh(inkGeo(new T.PlaneGeometry(1, .44)), sm);
+  const sm = wpMat(new T.MeshBasicMaterial({map: st, transparent: true, alphaTest: .4, side: T.DoubleSide, toneMapped: false})), shades = new T.Mesh(inkGeo(new T.PlaneGeometry(1, .44)), sm);
   const sw = E.w*1.12; shades.scale.set(sw, sw, 1); wpFacing(shades, E.p.clone().addScaledVector(E.n, E.r*.55 + .02), E.n); grp.add(shades);
   const cup = wpCup(), hold = new T.Group(); hold.add(cup); const cb2 = wpCab(c, B); hold.position.set((cb2.min.x + cb2.max.x)/2, cb2.max.y + .1, 0); hold.scale.setScalar(.001); grp.add(hold);
   const ft = inkCv(64, 64, (x, w, hh)=>{ const g = x.createRadialGradient(32, 32, 1, 32, 32, 30); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(.25, 'rgba(255,250,230,.8)'); g.addColorStop(1, 'rgba(255,240,200,0)'); x.fillStyle = g; x.fillRect(0, 0, w, hh);
       x.strokeStyle = 'rgba(255,255,255,.95)'; x.lineWidth = 3; x.beginPath(); x.moveTo(32, 2); x.lineTo(32, 62); x.moveTo(2, 32); x.lineTo(62, 32); x.stroke(); x.lineWidth = 1.6; x.beginPath(); x.moveTo(12, 12); x.lineTo(52, 52); x.moveTo(52, 12); x.lineTo(12, 52); x.stroke(); });
-  const fm = inkMat(new T.SpriteMaterial({map: ft, blending: T.AdditiveBlending, depthWrite: false, depthTest: false, fog: false, toneMapped: false, transparent: true})), wg = new T.Group(); wg.name = 'paparazzi'; const fl = [];
+  const fm = wpMat(new T.SpriteMaterial({map: ft, blending: T.AdditiveBlending, depthWrite: false, depthTest: false, fog: false, toneMapped: false, transparent: true})), wg = new T.Group(); wg.name = 'paparazzi'; const fl = [];
   for(let i = 0; i < 6; i++){ const s = new T.Sprite(i ? fm.clone() : fm); if(i) inkMat(s.material); s.visible = false; s.renderOrder = 8; wg.add(s); fl.push({s, b: -9, x: 0, y: 0}); }
   if(rScene) rScene.add(wg); grp.traverse(o=>{ o.castShadow = false; o.frustumCulled = false; }); c.model.add(grp);
   const mats = []; Object.values(c.groups).forEach(g=>(g.userData.mats || []).forEach(m=>{ if(m.emissive && !mats.some(e=>e.m === m)) mats.push({m, c: m.emissive.clone(), i: m.emissiveIntensity}); }));
@@ -9749,7 +9717,7 @@ function wpBodyOf(g){ const b = new T.Box3(), bx = new T.Box3(); g.children.forE
 /* the cockpit's box (its canopy's group), else the top of the body's front half */
 function wpCab(c, B){ const g = c.groups.cab || c.groups.canopy, b = g ? wpBodyOf(g) : null; if(b && !b.isEmpty()) return b; const L = B.max.x - B.min.x, H = B.max.y - B.min.y; return new T.Box3(V(B.min.x + L*.45, B.max.y - H*.3, -H*.2), V(B.min.x + L*.7, B.max.y, H*.2)); }
 /* a golden cup with two handles on a dark foot, 1 high (shared geometry per show) */
-function wpCup(){ const gold = inkMat(new T.MeshLambertMaterial({color: '#ffb800', emissive: '#c77c00', emissiveIntensity: .8})), dark = inkMat(new T.MeshLambertMaterial({color: '#5a3d12', emissive: '#2a1c06', emissiveIntensity: .4})), g = new T.Group();
+function wpCup(){ const gold = wpMat(new T.MeshLambertMaterial({color: '#ffb800', emissive: '#c77c00', emissiveIntensity: .8})), dark = wpMat(new T.MeshLambertMaterial({color: '#5a3d12', emissive: '#2a1c06', emissiveIntensity: .4})), g = new T.Group();
   const prof = [[0, .08], [.34, .08], [.34, .13], [.2, .18], [.1, .24], [.08, .45], [.14, .52], [.34, .62], [.42, 1.0], [.4, 1.05], [.3, .96], [0, .92]].map(p=>new T.Vector2(p[0]*.6, p[1])); g.add(new T.Mesh(inkGeo(new T.LatheGeometry(prof, 18)), gold));
   const hd = inkGeo(new T.TorusGeometry(.13, .025, 6, 14)); [1, -1].forEach(sd=>{ const h = new T.Mesh(hd, gold); h.position.set(0, .68, sd*.3); h.rotation.y = Math.PI/2; g.add(h); });
   const ft = new T.Mesh(inkGeo(new T.CylinderGeometry(.2, .24, .1, 12)), dark); ft.position.y = .05; g.add(ft); return g; }
@@ -9780,17 +9748,17 @@ function skMake(r){ const c = r.c, grp = new T.Group(); grp.name = 'skipper'; co
         if(k === 'p'){ x.beginPath(); x.moveTo(x0, 3); x.lineTo(x1, 16); x.lineTo(x0, 29); x.closePath(); x.fill(); x.fillStyle = b; x.beginPath(); x.moveTo(x0, 10); x.lineTo(x0 + (x1 - x0)*.5, 16); x.lineTo(x0, 22); x.closePath(); x.fill(); return; }
         x.fillRect(x0, 3, x1 - x0, 26); x.fillStyle = b; if(k === 'x'){ x.fillRect(x0 + (x1 - x0)*.4, 3, (x1 - x0)*.2, 26); x.fillRect(x0, 13, x1 - x0, 6); } else if(k === 'b') x.fillRect(x0 + (x1 - x0)/3, 10, (x1 - x0)/3, 12); else if(k === 'd'){ x.fillRect(x0, 3, (x1 - x0)/2, 13); x.fillRect(x0 + (x1 - x0)/2, 16, (x1 - x0)/2, 13); }
         else if(k === 'c') x.fillRect(x0, 11, x1 - x0, 10); else if(k === 'v'){ x.beginPath(); x.moveTo(x0, 3); x.lineTo(x1, 29); x.lineTo(x1, 22); x.lineTo(x0 + 7, 3); x.closePath(); x.fill(); } else { x.fillRect(x0 + 5, 8, x1 - x0 - 10, 16); } }); });
-  const L = (B.max.x - B.min.x)*1.15, Hf = L/7*.85, geo = inkGeo(new T.PlaneGeometry(L, Hf, SKP.seg, 1)); geo.translate(-L/2, -Hf/2, 0); const P0 = Float32Array.from(geo.attributes.position.array);
-  const flags = new T.Mesh(geo, inkMat(new T.MeshLambertMaterial({map: ft, transparent: true, alphaTest: .4, side: T.DoubleSide}))); flags.position.set(T0.min.x + (T0.max.x - T0.min.x)*.2, T0.max.y - .05, 0); flags.scale.set(.001, 1, 1); grp.add(flags);
+  const L = (B.max.x - B.min.x)*1.25, Hf = L/7*1.05, geo = inkGeo(new T.PlaneGeometry(L, Hf, SKP.seg, 1)); geo.translate(-L/2, -Hf/2, 0); const P0 = Float32Array.from(geo.attributes.position.array);
+  const flags = new T.Mesh(geo, wpMat(new T.MeshBasicMaterial({map: ft, transparent: true, alphaTest: .4, side: T.DoubleSide}))); flags.position.set(T0.min.x + (T0.max.x - T0.min.x)*.2, T0.max.y - .05, 0); flags.scale.set(.001, 1, 1); grp.add(flags);
   const rt = inkCv(32, 64, (x, w, h)=>{ x.fillStyle = '#1f3d9b'; x.beginPath(); x.moveTo(0, 0); x.lineTo(w, 0); x.lineTo(w, h); x.lineTo(w/2, h - 10); x.lineTo(0, h); x.closePath(); x.fill(); x.fillStyle = '#ffd60a'; x.fillRect(6, 0, 4, h - 6); x.fillRect(w - 10, 0, 4, h - 6); x.fillStyle = '#ffffff'; x.fillRect(w/2 - 2, 0, 4, h - 8); });
   const mt = inkCv(64, 64, (x, w, h)=>{ x.fillStyle = '#e0a400'; x.beginPath(); x.arc(32, 32, 31, 0, 7); x.fill(); x.fillStyle = '#ffd34d'; x.beginPath(); x.arc(32, 32, 25, 0, 7); x.fill(); x.fillStyle = '#b07800';
       x.beginPath(); for(let k = 0; k < 10; k++){ const a = -Math.PI/2 + k*Math.PI/5, rr = k % 2 ? 8 : 19; x.lineTo(32 + Math.cos(a)*rr, 32 + Math.sin(a)*rr); } x.closePath(); x.fill(); });
-  const mg = new T.Group(), rib = new T.Mesh(inkGeo(new T.PlaneGeometry(.28, .56)), inkMat(new T.MeshLambertMaterial({map: rt, side: T.DoubleSide}))), gm = inkMat(new T.MeshLambertMaterial({color: '#e0a400', emissive: '#7a5200', emissiveIntensity: .6})), fm = inkMat(new T.MeshLambertMaterial({map: mt, emissive: '#ffffff', emissiveMap: mt, emissiveIntensity: .25}));
+  const mg = new T.Group(), rib = new T.Mesh(inkGeo(new T.PlaneGeometry(.28, .56)), wpMat(new T.MeshLambertMaterial({map: rt, side: T.DoubleSide}))), gm = wpMat(new T.MeshLambertMaterial({color: '#e0a400', emissive: '#7a5200', emissiveIntensity: .6})), fm = wpMat(new T.MeshLambertMaterial({map: mt, emissive: '#ffffff', emissiveMap: mt, emissiveIntensity: .25}));
   const disc = new T.Mesh(inkGeo(new T.CylinderGeometry(.26, .26, .05, 20)), [gm, fm, fm]); disc.rotation.x = Math.PI/2; disc.position.y = -.62; rib.position.y = -.28; mg.add(rib, disc);
-  const cb = wpCab(c, B), mx = cb.min.x - (cb.max.x - cb.min.x)*.1, my = B.min.y + (B.max.y - B.min.y)*.62, hw = wpHalfW(c, mx, my, .35, .35) || (B.max.z - B.min.z)*.08;   // under the cockpit, on the body's side
-  const ms = Math.max(.8, (B.max.y - B.min.y)*.42); mg.scale.setScalar(ms); grp.add(mg); mg.visible = false;
+  const cb = wpCab(c, B), mx = cb.min.x - (cb.max.x - cb.min.x)*.1, my = B.min.y + (B.max.y - B.min.y)*.5, hw = wpHalfW(c, mx, my, .35, .35) || (B.max.z - B.min.z)*.08;   // under the cockpit, on the body's side
+  const ms = Math.max(1, (B.max.y - B.min.y)*.62);   // (big enough to read on a phone) mg.scale.setScalar(ms); grp.add(mg); mg.visible = false;
   grp.traverse(o=>{ o.castShadow = false; o.frustumCulled = false; }); c.model.add(grp);
-  return {grp, flags, P0, L, Hf, mg, disc, pin: V(mx, my + .62*ms*.5, hw + .03), ms, fl: 0, said: 0, ni: 0}; }
+  return {grp, flags, P0, L, Hf, mg, disc, pin: V(mx, my + .32*ms, hw + .04), ms, fl: 0, said: 0, ni: 0}; }
 function skPose(P, r, dt, t){ const sd = WM.side, f = shEz((t - SKP.fl0)/(SKP.fl1 - SKP.fl0))*(1 - shEz((t - WM.len + .45)/.4));
   P.flags.visible = f > .01; P.flags.scale.x = Math.max(.001, f); P.fl = Math.max(0, P.fl - dt*1.5);
   const a = P.flags.geometry.attributes.position, A = a.array, P0 = P.P0, n = a.count, amp = P.Hf*(.22 + .5*P.fl);   // the strip waves: more at its free end, a droop along it
@@ -9804,12 +9772,12 @@ WP_KIND.navy = {make: skMake, pose: skPose, tap: P=>{ P.fl = 1; if(WL.m) return;
 /* ---- Ishani, the graceful champion: a garland of marigolds drops onto her nose, a shower of marigold petals falls round her as she flies one slow,
    elegant roll, and she bows (a tap: another handful of petals). The garland is a torus with a canvas of marigold heads, hung round her nose a little low so
    it drapes; the petals are one Points cloud (one draw call, WPM.n petals, a petal canvas, their colours per point) in the routine's frame. */
-const WPM = {n: 90, g0: .45, g1: .95, s0: .9, s1: 3.5, rate: 26, life: 2.7};   // the garland drops on; the shower's seconds and petals a second
-function isMake(r){ const c = r.c, grp = new T.Group(); grp.name = 'garland'; const B = wpBody(c), len = B.max.x - B.min.x, gx = B.max.x - len*.13, gy = (B.min.y + B.max.y)/2 + (B.max.y - B.min.y)*.08;
-  let R = wpHalfW(c, gx, gy, len*.04, (B.max.y - B.min.y)*.5); if(!R) R = (B.max.y - B.min.y)*.25; R = R*1.18 + .05;
+const WPM = {n: 110, g0: .45, g1: .95, s0: .9, s1: 3.5, rate: 34, life: 2.7};   // the garland drops on; the shower's seconds and petals a second
+function isMake(r){ const c = r.c, grp = new T.Group(); grp.name = 'garland'; const B = wpBody(c), len = B.max.x - B.min.x, gx = B.max.x - len*.07, gy = (B.min.y + B.max.y)/2 + (B.max.y - B.min.y)*.08;
+  let R = wpHalfW(c, gx, gy, len*.04, (B.max.y - B.min.y)*.5); if(!R) R = (B.max.y - B.min.y)*.25; R = R*1.3 + .08;
   const gt = inkCv(128, 16, (x, w, h)=>{ for(let k = 0; k < 16; k++){ const cx = (k + .5)*w/16; x.fillStyle = k % 3 === 2 ? '#ffd21f' : k % 2 ? '#ff8a00' : '#ff6a00'; x.beginPath(); x.arc(cx, h/2, 7, 0, 7); x.fill(); x.fillStyle = 'rgba(160,60,0,.55)'; x.beginPath(); x.arc(cx, h/2, 2.5, 0, 7); x.fill(); } });
-  gt.wrapS = T.RepeatWrapping; gt.repeat.set(3, 1); const gm = inkMat(new T.MeshLambertMaterial({map: gt, emissive: '#7a2a00', emissiveIntensity: .35}));
-  const ring = new T.Mesh(inkGeo(new T.TorusGeometry(R, R*.2, 7, 26)), gm); ring.rotation.y = Math.PI/2; const piv = new T.Group(); piv.add(ring); ring.position.y = -R*.22;   // round her nose, hanging a little low
+  gt.wrapS = T.RepeatWrapping; gt.repeat.set(3, 1); const gm = wpMat(new T.MeshLambertMaterial({map: gt, emissive: '#ffffff', emissiveMap: gt, emissiveIntensity: .45}));
+  const ring = new T.Mesh(inkGeo(new T.TorusGeometry(R, R*.34, 8, 26)), gm); ring.rotation.y = Math.PI/2; const piv = new T.Group(); piv.add(ring); ring.position.y = -R*.22;   // round her nose, hanging a little low
   piv.position.set(gx, gy, 0); piv.rotation.z = -.35; piv.scale.setScalar(.001); grp.add(piv);
   const tsl = new T.Mesh(inkGeo(new T.CylinderGeometry(R*.12, R*.04, R*1.2, 6)), gm); tsl.position.set(0, -R*1.35, 0); ring.add(tsl);   // the garland's tassel
   grp.traverse(o=>{ o.castShadow = false; o.frustumCulled = false; }); c.model.add(grp);
@@ -9817,7 +9785,7 @@ function isMake(r){ const c = r.c, grp = new T.Group(); grp.name = 'garland'; co
   const n = WPM.n, pos = new Float32Array(n*3).fill(-1e6), col = new Float32Array(n*3), pg = inkGeo(new T.BufferGeometry()); pg.setAttribute('position', new T.BufferAttribute(pos, 3)); pg.setAttribute('color', new T.BufferAttribute(col, 3));
   const PAL = ['#ff8a00', '#ffb000', '#ff6a00', '#ffd21f', '#e8336d'].map(h=>new T.Color(h).convertSRGBToLinear());
   for(let i = 0; i < n; i++){ const k = PAL[i % 5]; col[i*3] = k.r; col[i*3 + 1] = k.g; col[i*3 + 2] = k.b; }
-  const pm = inkMat(new T.PointsMaterial({size: c.size*.045, map: pt, vertexColors: true, transparent: true, alphaTest: .35, depthWrite: false, sizeAttenuation: true})), pts = new T.Points(pg, pm); pts.frustumCulled = false; pts.name = 'petals';
+  const pm = wpMat(new T.PointsMaterial({size: c.size*.11, map: pt, vertexColors: true, transparent: true, alphaTest: .35, depthWrite: false, sizeAttenuation: true})), pts = new T.Points(pg, pm); pts.frustumCulled = false; pts.name = 'petals';
   if(rScene) rScene.add(pts);
   return {grp, wgrp: pts, piv, R, pos, pg, P: new Float32Array(n*4), V: new Float32Array(n*3), B: new Float32Array(n).fill(-99), head: 0, acc: 0, said: 0, burst: 0}; }
 function isPetal(P, t, sz){ const k = P.head; P.head = (k + 1) % WPM.n; const I = INK; P.B[k] = t; P.P[k*4] = I.mid.x + (Math.random() - .3)*sz*1.3; P.P[k*4 + 1] = I.mid.y + sz*(.55 + Math.random()*.55); P.P[k*4 + 2] = I.mid.z + (Math.random() - .5)*sz*1.3; P.P[k*4 + 3] = Math.random()*6.28;
@@ -9839,8 +9807,8 @@ WP_KIND.garland = {make: isMake, pose: isPose, tap: P=>{ P.burst = 14; if(!WL.m)
    mesh: no new draw call); the plants a dozen small sprites on the plane, four little canvases. */
 const LB = {sp0: .3, sp1: 2.3, g0: 1.0, gap: .22, n: 9, extra: 5};   // seconds: the spray; the sprouts (the first, then one every gap); n of them, extra for taps
 const LB_MULCH = ['#7d8f3c', '#a39a55', '#5e7d32', '#b5965a', '#8aa04a'];
-function lbMake(r){ const c = r.c, grp = new T.Group(); grp.name = 'mulch-garden'; const G = c.groups, wb = G.wing ? wpBodyOf(G.wing) : wpBody(c), B = wpBody(c);
-  const ys = [], vx = [], vz = []; if(G.wing) G.wing.children.forEach(m=>{ if(!m.isMesh || m.userData.decal) return; m.updateMatrix(); const p = m.geometry.attributes.position; for(let i = 0; i < p.count; i += 3){ _wpA.fromBufferAttribute(p, i).applyMatrix4(m.matrix); ys.push(_wpA.y); vx.push(_wpA.x); vz.push(_wpA.z); } });
+function lbMake(r){ const c = r.c, grp = new T.Group(); grp.name = 'mulch-garden'; const G = c.groups, WG = G.upper || G.wing, wb = WG ? wpBodyOf(WG) : wpBody(c), B = wpBody(c), lw = G.lower ? wpBodyOf(G.lower) : null;   // (the Stearman's wings: groups upper and lower)
+  const ys = [], vx = [], vz = []; if(WG) WG.children.forEach(m=>{ if(!m.isMesh || m.userData.decal) return; m.updateMatrix(); const p = m.geometry.attributes.position; for(let i = 0; i < p.count; i += 3){ _wpA.fromBufferAttribute(p, i).applyMatrix4(m.matrix); ys.push(_wpA.y); vx.push(_wpA.x); vz.push(_wpA.z); } });
   const ym = (wb.min.y + wb.max.y)/2; let tx = 0, tn = 0, top = -1e9, lx = 1e9, ly = 0, ln = 0; ys.forEach((y, i)=>{ if(y > ym){ tx += vx[i]; tn++; top = Math.max(top, y); } else { lx = Math.min(lx, vx[i]); ly += y; ln++; } });
   const topX = tn ? tx/tn : (wb.min.x + wb.max.x)/2, span = (wb.max.z - wb.min.z)/2; if(!tn) top = wb.max.y;
   const spots = []; for(let i = 0; i < LB.n + LB.extra; i++){ const k = [0, 3, 6, 1, 7, 4, 2, 8, 5, 9, 12, 10, 13, 11][i % 14], zf = (k/13*2 - 1)*.82; spots.push(V(topX + (Math.random() - .5)*.25, top, zf*span)); }
@@ -9850,10 +9818,10 @@ function lbMake(r){ const c = r.c, grp = new T.Group(); grp.name = 'mulch-garden
       (x, w, h)=>{ x.strokeStyle = '#3f8f2f'; x.lineWidth = 3; x.beginPath(); x.moveTo(16, 64); x.lineTo(16, 28); x.stroke(); x.fillStyle = '#ffffff'; for(let k = 0; k < 10; k++){ const a = k*Math.PI/5; x.beginPath(); x.ellipse(16 + Math.cos(a)*7, 22 + Math.sin(a)*7, 4.5, 2.2, a, 0, 7); x.fill(); } x.fillStyle = '#ffd21f'; x.beginPath(); x.arc(16, 22, 4, 0, 7); x.fill(); },   // a daisy
       (x, w, h)=>{ x.strokeStyle = '#3f8f2f'; x.lineWidth = 3; x.beginPath(); x.moveTo(16, 64); x.lineTo(16, 30); x.stroke(); x.fillStyle = '#4caf50'; x.beginPath(); x.ellipse(11, 48, 3.5, 9, -.3, 0, 7); x.fill(); x.fillStyle = '#ff3b6b'; x.beginPath(); x.moveTo(8, 18); x.lineTo(12, 26); x.lineTo(16, 16); x.lineTo(20, 26); x.lineTo(24, 18); x.quadraticCurveTo(25, 34, 16, 34); x.quadraticCurveTo(7, 34, 8, 18); x.fill(); },   // a tulip
       (x, w, h)=>{ x.strokeStyle = '#4f9a2f'; x.lineWidth = 4; x.beginPath(); x.moveTo(16, 64); x.lineTo(16, 10); x.stroke(); x.fillStyle = '#5fb040'; x.beginPath(); x.ellipse(9, 40, 3, 12, -.5, 0, 7); x.fill(); x.beginPath(); x.ellipse(23, 30, 3, 12, .5, 0, 7); x.fill(); x.fillStyle = '#ffcf33'; x.beginPath(); x.ellipse(16, 20, 4.5, 10, 0, 0, 7); x.fill(); x.fillStyle = 'rgba(150,100,0,.4)'; for(let k = 0; k < 5; k++) x.fillRect(13, 13 + k*3.4, 6, 1.2); }];   // corn
-  const tex = kinds.map(f=>inkCv(32, 64, f)), mats = tex.map(t=>inkMat(new T.SpriteMaterial({map: t, depthWrite: true, alphaTest: .4, fog: false}))), hgt = (B.max.y - B.min.y)*.62, pl = [];
+  const tex = kinds.map(f=>inkCv(32, 64, f)), mats = tex.map(t=>wpMat(new T.SpriteMaterial({map: t, depthWrite: true, alphaTest: .4, fog: false}))), hgt = (B.max.y - B.min.y)*.62, pl = [];
   spots.forEach((p, i)=>{ const s = new T.Sprite(i % 7 === 4 ? mats[0] : mats[i % 4]); s.center.set(.5, 0); s.position.copy(p); s.scale.set(.001, .001, 1); s.visible = false; grp.add(s); pl.push({s, b: -99, h: hgt*(.75 + .45*((i*7) % 5)/4)*(i % 4 === 3 ? 1.3 : 1)}); });
   grp.traverse(o=>{ o.castShadow = false; o.frustumCulled = false; }); c.model.add(grp);
-  const nb = 7, bar = []; for(let i = 0; i < nb; i++) bar.push(V(ln ? lx : wb.min.x, (ln ? ly/ln : ym) - .08, (i/(nb - 1)*2 - 1)*span*.8));   // the spray bar: along the lower wing's trailing edge
+  const nb = 7, bar = []; for(let i = 0; i < nb; i++) bar.push(lw ? V(lw.min.x, lw.min.y - .06, (i/(nb - 1)*2 - 1)*(lw.max.z - lw.min.z)/2*.8) : V(ln ? lx : wb.min.x, (ln ? ly/ln : ym) - .08, (i/(nb - 1)*2 - 1)*span*.8));   // the spray bar: along the lower wing's trailing edge
   return {grp, pl, bar, mats, next: 0, sprayT: 0, said: 0, ni: 0}; }
 function lbSprout(P, t){ const e = P.pl.find(x=>x.b < -50); if(!e) return; e.b = t; e.s.visible = true; if(!WL.m){ const k = P.ni++; tone(300 + (k % 5)*70, .16, 'triangle', .07, 700 + (k % 5)*90); noiseHit(2600, 1200, .05, .04, 2); } }   // boing: up it pops
 function lbSpray(P, r, dt){ const I = INK, c = r.c, sz = c.size; c.model.updateWorldMatrix(true, false); P.acc = (P.acc || 0) + dt*90; inkMake(); I.on = true;
@@ -9871,29 +9839,24 @@ WP_KIND.car = {make: fzMake, pose: fzPose, end: fzEnd, tap: (P, r)=>{ inkHorn();
 const INK_NOTES = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.51];
 function inkChime(k){ if(WL.m) return; const i = k % 14, j = i < 8 ? i : 14 - i, f = INK_NOTES[j]; INK.st.sounds++; tone(f, .5, 'sine', .14, null, 0); tone(f*2, .3, 'triangle', .05, null, .015); tone(f*1.5, .4, 'sine', .04, null, .06); }
 function inkHorn(){ if(WL.m) return; INK.st.sounds++; [0, .23].forEach(d=>{ tone(392, .17, 'square', .05, null, d); tone(494, .17, 'square', .045, null, d); tone(247, .17, 'sawtooth', .03, null, d); }); }
-function inkBugle(){ if(WL.m) return; INK.st.sounds++; [[392, 0, .14], [523, .16, .14], [659, .32, .38]].forEach(([f, d, l])=>{ tone(f, l, 'sawtooth', .05, null, d); tone(f*2, l, 'square', .02, null, d); }); }
 function inkSiren(){ if(WL.m) return; INK.st.sounds++; tone(660, .22, 'sine', .08, 880); tone(880, .22, 'sine', .08, 660, .24); }
 function inkClick(){ if(WL.m) return; INK.st.sounds++; noiseHit(3200, 1200, .06, .12, 2); tone(1800, .05, 'square', .03); }
 function inkMwah(){ if(WL.m) return; INK.st.sounds++; tone(740, .12, 'sine', .1, 1100); tone(1100, .2, 'sine', .08, 1500, .09); }
-function inkPuffSnd(){ if(WL.m) return; INK.st.sounds++; noiseHit(700, 220, .22, .14, .8); tone(300, .12, 'sine', .08, 520); }
 function inkPing(k){ if(WL.m) return; INK.st.sounds++; tone(1568 + (k % 3)*180, .45, 'sine', .08); tone(2349, .3, 'sine', .035, null, .02); }
 /* ---- the tap: where a plane's own show joins in */
 const INK_SPOT = [[-.7, .6], [.75, .65], [0, .85], [-.9, .05], [.95, .15], [-.4, .75], [.45, .8]];
 const INK_TSPOT = [[-.3, .55], [.35, .62], [-.35, -.5], [.4, -.58], [0, .72], [-.1, -.72], [.15, .4]];
 function inkAround(k, out, rad, tab){ const I = INK, TB = tab || INK_SPOT, sp = TB[k % TB.length], sz = I.r.c.size*(rad || 1); inkCamAxes();
   return out.set(I.mid.x + (I.cr.x*sp[0] + I.cu.x*sp[1])*sz, I.mid.y + (I.cr.y*sp[0] + I.cu.y*sp[1])*sz, I.mid.z + (I.cr.z*sp[0] + I.cu.z*sp[1])*sz); }
-const INK_PAL = {party: ['#ffd23f', '#ff6b9d', '#35b8ff', '#7ee081', '#ffffff'], pink: ['#ff9ac0', '#ff5c93', '#ff2d6f'], rainbow: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff'], gold: ['#fff6b8', '#ffd740', '#ffffff', '#ffb300'],
-  navy: ['#ef3b4a', '#ffffff', '#2f6df0'], water: ['#d4f0ff', '#ffffff', '#7cc8f0', '#35b8ff'], flash: ['#ffffff', '#fff6b8', '#ffffff']};
+const INK_PAL = {party: ['#ffd23f', '#ff6b9d', '#35b8ff', '#7ee081', '#ffffff'], rainbow: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff'], gold: ['#fff6b8', '#ffd740', '#ffffff', '#ffb300']};   // (Dusty's stars)
 /* a stamp of a tap: round the plane (the screen's right and up, in the frame), each tap in another place; colours as hex */
 function inkShow(shape, k, pal, scale, o){ inkAround(k, _ikA, 1); inkStamp(shape, _ikA.x, _ikA.y, _ikA.z, scale, pal, o); }
 /* sparks at the plane (the race's own fxBurst: no new pool) */
 function inkBurst(r, cols){ const L = cols.map(c=>typeof c === 'string' ? inkCol(c) : c); inkWorld(INK.mid.x, INK.mid.y, INK.mid.z, _ikA); fxBurst(_ikA, 22, 44, Math.max(3, r.c.size*.085), L, 1.1, 14); }
-/* a toy sent from the plane: a parachute from under its tail, a balloon from over its cockpit, a cup or an umbrella round it */
+/* a toy sent from the plane: a love letter from its cabin, a blown kiss, a cup or an umbrella round it */
 function inkDrop(r, kind, k){ const I = INK, sz = r.c.size; let T0 = null;
-  if(kind === 'chute') T0 = inkToy('chute', I.mid.x + (I.tail.x - I.mid.x)*(.1 + .16*(k % 5)), I.mid.y - .12*sz, I.tail.z, {vf: -.25, vu: -.05, life: 4.2, n: k});
-  else if(kind === 'letter'){ T0 = inkToy('letter', I.mid.x - .05*sz, I.mid.y + .02*sz, I.mid.z + WM.side*.1*sz, {vf: -.25 - Math.random()*.35, vu: .25 + Math.random()*.3, life: 3.4, n: k}); if(T0) T0.s0 += WM.side*(.08 + Math.random()*.25)*sz; }   // from her cabin's door, the camera's side
+  if(kind === 'letter'){ T0 = inkToy('letter', I.mid.x - .05*sz, I.mid.y + .02*sz, I.mid.z + WM.side*.1*sz, {vf: -.25 - Math.random()*.35, vu: .25 + Math.random()*.3, life: 3.4, n: k}); if(T0) T0.s0 += WM.side*(.08 + Math.random()*.25)*sz; }   // from her cabin's door, the camera's side
   else if(kind === 'kiss'){ inkCamAxes(); T0 = inkToy('kiss', I.mid.x + I.cr.x*.2*sz + .3*sz, I.mid.y + .15*sz, I.mid.z + I.cr.z*.2*sz, {vf: 0, vu: 0, life: 2.0, n: k}); inkMwah(); }
-  else if(kind === 'balloon') T0 = inkToy('balloon', I.mid.x + (Math.random() - .5)*.4*sz, I.mid.y + .15*sz, I.mid.z, {vf: -.3 - Math.random()*.3, vu: .25 + Math.random()*.2, life: 4.2, n: k});
   else { inkAround(k, _ikA, .9, INK_TSPOT); T0 = inkToy(kind, _ikA.x, _ikA.y, _ikA.z, {vf: -.05, vu: .02, life: 3.2, n: k}); }
   return T0; }
 /* what a tap does for each plane's show (WIN_MOVE.tap): fn(r, k), k the number of the tap (a ripple, a note and the extra flip come with every tap, inkTap) */
@@ -9908,18 +9871,9 @@ const INK_TAP = {
   rcs: (r, k)=>{ const I = INK, sz = r.c.size; [1, -1].forEach(sd=>{ inkWorld(I.mid.x, I.mid.y + .05*sz, I.mid.z, _ikA); _ikA.addScaledVector(I.nose, sz*.42); _ikB.set(-I.nose.z, 0, I.nose.x).multiplyScalar(sd*sz*.08); _ikA.add(_ikB); fxBurst(_ikA, 8, 30, Math.max(2, sz*.04), WM_FX.puff, .45, 0); }); if(!WL.m) noiseHit(4200, 2200, .18, .08, 1.5); },   // the Shuttle: its nose thrusters puff
   letter: (r, k)=>{ inkDrop(r, 'letter', k); inkDrop(r, 'letter', k + 1); inkMwah(); },   // Rochelle: two more love letters and a mwah
   prop: (r, k)=>inkPropTap(r, k),
-  heart: (r, k)=>{ inkShow('heart', k, INK_PAL.pink, .5, {size: .16}); inkBurst(r, INK_PAL.pink); inkMwah(); },
   star: (r, k)=>{ inkShow('star', k, k % 2 ? INK_PAL.party : INK_PAL.rainbow, .5, {tw: 1, size: .16}); inkBurst(r, INK_PAL.gold); },
-  rainbow: (r, k)=>{ inkShow('rainbow', k, INK_PAL.rainbow, .5, {size: .16}); inkBurst(r, INK_PAL.water); },
-  one: (r, k)=>{ inkShow('one', k, INK_PAL.gold, .5, {tw: 1, size: .16}); inkBurst(r, INK_PAL.flash); inkClick(); },
-  navy: (r, k)=>{ inkShow('star', k, INK_PAL.navy, .5, {size: .16}); inkBurst(r, INK_PAL.navy); inkBugle(); },
-  sparkle: (r, k)=>{ inkShow('ring', k, INK_PAL.gold, .55, {tw: 1, size: .14, life: 2.4}); inkBurst(r, INK_PAL.gold); },
-  honk: (r, k)=>{ inkShow('burst', k, INK_PAL.party, .5, {size: .16}); inkBurst(r, INK_PAL.party); inkHorn(); },
   chute: (r, k)=>{ wpChuteDrop(r, k % 3 === 0 ? 'trophy' : 'jumper'); },
-  balloon: (r, k)=>{ inkDrop(r, 'balloon', k); inkDrop(r, 'balloon', k + 1); inkPuffSnd(); },
-  tea: (r, k)=>{ inkDrop(r, k % 2 ? 'cup' : 'umb', k); inkPing(k); },
-  beam: (r, k)=>{ const P = INK.prop; if(P && P.kind === 'beam') P.boost = 1; inkBurst(r, INK_PAL.gold); inkSiren(); },
-  trophy: (r, k)=>{ const P = INK.prop; if(P && P.kind === 'trophy'){ P.amp = .5; P.gl = 1; const p = inkTrophyAt(_ikB); if(p) fxBurst(p, 20, 40, Math.max(3, r.c.size*.07), INK_PAL.gold.map(inkCol), 1.1, 14); } inkPing(k); }};
+  tea: (r, k)=>{ inkDrop(r, k % 2 ? 'cup' : 'umb', k); inkPing(k); }};
 /* the plane's own part in a tap, by the number of the tap (k): maracas shake, a flare pair, else nothing more */
 const INK_EXTRA = {
   geebee2: r=>{ if(MC.g && MC.r === r && WM.t > WM.mc + MCR.tin && WM.t < WM.mc + MCR.tin + MCR.hold){ mcRattle(MC.shk); mcNote(r, WM.t - WM.mc, MC.n % 2 ? 1 : -1); } },
@@ -9962,18 +9916,20 @@ function inkFrame(dt){ const I = INK; if(!I.on) return; I.t += dt; const r = I.r
 /* an event of a step: ['stamp', shape, at, colours, size] and ['toy', kind, at, n] */
 function inkEvent(r, e){ const I = INK; if(!I.r) I.r = r; inkMake(); I.on = true;
   if(e[1] === 'stamp'){ inkAround(e[5] == null ? 2 : e[5], _ikA, 1); inkStamp(e[2], _ikA.x, _ikA.y, _ikA.z, e[4] || .5, INK_PAL[e[3]] || INK_PAL.party, {tw: 1}); }
-  else if(e[1] === 'toy'){ const n = e[3] || 1; if(e[2] === 'jumper' || e[2] === 'trophy'){ for(let i = 0; i < n; i++) wpChuteDrop(r, e[2]); return; } for(let i = 0; i < n; i++) inkDrop(r, e[2], _ikToyN++ + i); if(e[2] === 'chute') inkPuffSnd(); } }   // (Cabbie's jumpers and trophy: wpChuteDrop)
+  else if(e[1] === 'toy'){ const n = e[3] || 1; if(e[2] === 'jumper' || e[2] === 'trophy'){ for(let i = 0; i < n; i++) wpChuteDrop(r, e[2]); return; } for(let i = 0; i < n; i++) inkDrop(r, e[2], _ikToyN++ + i); } }   // (Cabbie's jumpers and trophy: wpChuteDrop)
 function inkFinish(){ const I = INK; inkHint(false); inkPropEnd(); I.penOn = null; I.ov.k = 0; I.q = 0; if(I.r) I.r.noSmk = false; }   // (the routine is over: its puffs and toys fade out on their own, inkFrame)
 stage.addEventListener('pointerdown', e=>{ if(WM.on && !WM.done) inkTap(e); }, {passive: true});
 /* ===== dances end ===== */
 /* each aircraft's routine: cam (WM_CAM) and steps [seconds, [move, ...its numbers], ...] played one after the other; the moves of a step play
    together. ['fx', kind, at] puffs or sparks at that part of its step (WM_FX); ['fl', pairs, at] a ripple of flares (Echo & Bravo: FLR);
    ['tw', trick] is one of Ned & Zed's tricks (its step lasts the trick: TWIN_TRICK). A climb that is not undone gets a settle back down at
-   the end (WM_SETTLE). Why each fits: WIN_MOVES.md. */
+   the end (WM_SETTLE). Why each fits: WIN_MOVES.md. A show's props: prop (WP_KIND: made at its start, posed each frame, freed at its end), toys
+   (inkToy), ['toy', 'jumper' or 'trophy', at, n] (Cabbie's parachutes, WPC); reach (wpPlan) and rh: how far its props reach, for the camera's fit;
+   tap: what a tap does (INK_TAP; 'prop': the props' own part); cs: a lighter version for Sky City's avenues. */
 const WIN_MOVE = {
   dromader:  {cam: 'side', flat: 1, cs: [[1.1, ['dip', .3]], [3.7, ['rise', .25], ['stamp', 'star', .12, 'rainbow', .55, 2], ['stamp', 'star', .55, 'party', .5, 0]], [1.4, ['wag', .5, 2], ['stamp', 'star', .25, 'rainbow', .5, 1]]], tap: 'star', ov: 'roll', s: [[1.1, ['dip', .3], ['fx', 'dust', .4]], [3.7, ['shape', 'star', .8, 'star']], [1.4, ['wag', .5, 2], ['stamp', 'star', .25, 'rainbow', .5, 2]]]},   // Dusty: a low swoop with a puff of dust, then he crop-dusts a giant star across the sky in coloured smoke (a tap: another little star pops out), a wave
-  dromaderf: {cam: 'side', flat: 1, tap: 'splash', ov: 'roll', cs: [[1.0, ['dip', .3], ['fx', 'splash', .45]], [3.0, ['dip', .1], ['drop', .03]], [1.2, ['wag', .4, 2]]], s: [[1.0, ['dip', .35], ['fx', 'splash', .45]], [2.8, ['shape', 'rainbow', 1, 'rainbow'], ['fx', 'splash', .1], ['fx', 'splash', .9]], [2.6, ['dip', .12], ['drop', .02]]]},   // Fire Dusty: he scoops up water in a low swoop, arcs over a rainbow of water and mist, then a real water drop: a low pass with his belly gate open and the load pouring out (DD, ddAutoHatch; Sky City: the scoop and the drop; a tap: a splash of water)
-  f4u:       {cam: 'side', tap: 'prop', ov: 'roll', prop: 'navy', rh: .1, s: [[.9, ['hop', .1, 1]], [1.3, ['roll', 1, 1]], [2.7, ['pose', .7], ['nod', .12, 1]], [1.3, ['wag', .35, 1]]]},   // Skipper: a bugle call, a crisp salute roll, navy signal flags unfurl from his fin, a medal swings in and pins to his side as he shows it and nods, a wave (WP_KIND.navy; a tap: a bugle note, the flags snap)
+  dromaderf: {cam: 'side', flat: 1, tap: 'splash', ov: 'roll', cs: [[1.0, ['dip', .3], ['fx', 'splash', .45]], [3.0, ['wag', .06, 1], ['drop', .03]], [1.2, ['wag', .4, 2]]], s: [[1.0, ['dip', .35], ['fx', 'splash', .45]], [2.8, ['shape', 'rainbow', 1, 'rainbow'], ['fx', 'splash', .1], ['fx', 'splash', .9]], [2.6, ['wag', .06, 1], ['drop', .02]]]},   // Fire Dusty: he scoops up water in a low swoop, arcs over a rainbow of water and mist, then a real water drop: a low pass with his belly gate open and the load pouring out (DD, ddAutoHatch; Sky City: the scoop and the drop; a tap: a splash of water)
+  f4u:       {cam: 'side', tap: 'prop', ov: 'roll', prop: 'navy', rh: .1, s: [[.9, ['hop', .1, 1]], [1.3, ['roll', 1, 1]], [2.7, ['pose', .3], ['nod', .12, 1]], [1.3, ['wag', .35, 1]]]},   // Skipper: a bugle call, a crisp salute roll, navy signal flags unfurl from his fin, a medal swings in and pins to his side as he shows it and nods, a wave (WP_KIND.navy; a tap: a bugle note, the flags snap)
   p51d:      {cam: 'q', tap: 'prop', ov: 'roll', prop: 'shades', rh: .15, s: [[1.2, ['hop', .08, 1]], [1.3, ['roll', 1, 1]], [3.1, ['pose', .55], ['nod', .1, 2]], [1.0, ['wag', .3, 1]]]},   // Ripslinger: sunglasses drop onto his eyes with a glint, a crisp show-off roll, he hoists a golden trophy over his canopy and spins it as the paparazzi's cameras flash, a pose for them (WP_KIND.shades; a tap: more flashes)
   dh88:      {cam: 'q', tap: 'tea', ov: 'wag', toys: ['cup', 'umb'], s: [[1.7, ['rise', .22], ['sway', .12, 1]], [1.7, ['pose', .9], ['nod', .22, 1], ['toy', 'cup', .45, 1]], [1.6, ['bow', .3], ['toy', 'umb', .3, 1]], [1.4, ['wag', .3, 1], ['toy', 'cup', .4, 1]]]},   // Bulldog: a polite pass, he tips a wing like a hat, a teacup pops out as he bows, then a little umbrella (a tap: another teacup or umbrella and a ting)
   geebee2:   {cam: 'front', tap: 'none', ov: 'wag', s: [[.9, ['hop', .07, 1], ['mc', 'go', .17]], [3.6, ['hop', .08, 8], ['wag', .2, 4], ['tailwag', .1, 4]], [.9, ['nod', .12, 1]]]},   // El Chupacabra 2, the maracas: a strut (hops), two painted maracas pop out beside the cockpit and shake in time (wing wiggle, rattle, music notes, his line), then tuck away
@@ -9987,7 +9943,7 @@ const WIN_MOVE = {
   albatross: {cam: 'drop', tap: 'splash', ov: 'wag', s: [[1.3, ['hop', .16, 2], ['wag', .3, 1]], [3.9, ['dip', .18], ['pose', -.3], ['lurch', .12, .2], ['drop', .12]], [1.0, ['hop', .26, 1]]]},   // Lil' Dipper: a short hop and wave for joy, then a low pass with her belly hatch open and a curtain of water pouring out over what lies below, the hatch shut, one big hop (2026-10-21, the owner: "open up the hatch bay under it and release all the water like it would over a fire")
   aw139:     {cam: 'front', tap: 'prop', ov: 'spin', prop: ['beam', 'hoist'], reach: [[.3, 0, -1.05, 0], [.45, 0, -1.05, 0]], s: [[1.0, ['rise', .12]], [3.9, ['sway', .04, 1]], [1.5, ['bow', .25]]]},   // Blade Ranger: a hoist rescue: he hovers as his searchlight sweeps, the hoist lowers its line, a hiker clips on, waves and is reeled up to his door, a bow (WP_KIND.hoist; a tap: the light flashes with the siren and he spins)
   skycrane:  {cam: 'front', tap: 'prop', ov: 'hop', prop: 'log', reach: [[.3, 0, -.55, 0], [.7, 0, -.55, 0]], s: [[3.0, ['sway', .3, 1], ['rise', .4]], [2.2, ['bow', .22]], [1.4, ['hop', .12, 1]]]},   // Windlifter: he hooks a giant log on his long line and lifts it like it weighs nothing, rising and swaying with it, a slow deep bow (WP_KIND.log; a tap: a bigger swing and a creak)
-  c119:      {cam: 'q', tap: 'chute', ov: 'wag', reach: [[.55, -.5, -1.0, 0], [.95, -.8, -1.5, 0]], s: [[1.0, ['hop', .1, 1]], [3.2, ['rise', .25], ['toy', 'jumper', .05, 1], ['toy', 'jumper', .22, 1], ['toy', 'jumper', .39, 1], ['toy', 'jumper', .56, 1], ['toy', 'jumper', .73, 1]], [2.2, ['wag', .2, 1], ['toy', 'trophy', .15, 1]]]},   // Cabbie: his smokejumper crew jumps out of the back of his cargo pod, one after another, each under a real round canopy, then a golden trophy on a crate comes out on its own gold parachute (WPC; a tap: another jumper, every third tap a trophy)
+  c119:      {cam: 'q', tap: 'chute', ov: 'wag', reach: [[.55, -.4, -.75, 0], [.95, -.6, -.9, 0]], s: [[1.0, ['hop', .1, 1]], [3.2, ['rise', .25], ['toy', 'jumper', .05, 1], ['toy', 'jumper', .22, 1], ['toy', 'jumper', .39, 1], ['toy', 'jumper', .56, 1], ['toy', 'jumper', .73, 1]], [2.2, ['wag', .2, 1], ['toy', 'trophy', .15, 1]]]},   // Cabbie: his smokejumper crew jumps out of the back of his cargo pod, one after another, each under a real round canopy, then a golden trophy on a crate comes out on its own gold parachute (WPC; a tap: another jumper, every third tap a trophy)
   beluga:    {cam: 'q', tap: 'whale', ov: 'wag', s: [[3.4, ['rise', .25], ['wag', .22, 1.5]]]},                                                                  // the Beluga: a slow stately wing waggle and a gentle climb (then its nose opens)
   shuttle:   {cam: 'q', tap: 'rcs', ov: 'wag', s: [[3.6, ['roll', 1, 1], ['rise', .2]]]},
   bristles:  {cam: 'front', tap: 'clack', ov: 'hop', s: [[1.0, ['hop', .2, 2]], [BB_APART.len + .15, ['apart'], ['wag', .1, 1]], [1.5, ['roll', 1, 1], ['fx', 'stars', .05]], [.8, ['hop', .3, 1], ['fx', 'stars', .5]]]},   // Bristles: two little hops, then its own trick: it comes apart into its blocks and snaps back together (bbApart), a ta-da roll and one big hop                                                                      // Endeavour: a slow roll like a launch's roll program (then its bay opens)
@@ -10282,7 +10238,7 @@ DDR.tc = DDR.p0 + DDR.pl - .1; DDR.len = DDR.tc + DDR.close;   // the doors star
 const DD_HATCH = {albatross: {x0: -8.6, x1: -4.2, yk: -2.2, vs: .52, hw: 1.08, dw: 1.7, th: .08}, dromaderf: 'auto'};   // (auto: Fire Dusty's drop gate, found under his hopper: ddAutoHatch)
 /* Fire Dusty (owner, 2026-10-28: "a proper retardant or water drop pass"): the Dromader's real drop gate is under its belly, below the hopper ahead of the
    cockpit. Its place from the model: the body's lowest line on its middle (|z| small) over the front half of the wing's chord, in the model's metres (once a copy) */
-function ddAutoHatch(c){ if(c.ddH) return c.ddH; const G = c.groups, wb = G.wing ? wpBodyOf(G.wing) : wpBody(c), x0 = wb.min.x + (wb.max.x - wb.min.x)*.2, x1 = wb.min.x + (wb.max.x - wb.min.x)*.85; let yk = 1e9, hw = 0;
+function ddAutoHatch(c){ if(c.ddH) return c.ddH; const G = c.groups, hb = G.hopper ? wpBodyOf(G.hopper) : null, wb = hb && !hb.isEmpty() ? hb : G.wing ? wpBodyOf(G.wing) : wpBody(c), x0 = wb.min.x + (wb.max.x - wb.min.x)*.18, x1 = wb.min.x + (wb.max.x - wb.min.x)*.85; let yk = 1e9, hw = 0;   // (the model's hopper group, its gate under it; else under the wing)
   Object.entries(G).forEach(([id, g])=>{ if(/prop|rotor|gear|wing|tail|floats|aileron|engine/.test(id)) return; g.children.forEach(m=>{ if(!m.isMesh || m.userData.decal) return; m.updateMatrix(); const p = m.geometry.attributes.position;
     for(let i = 0; i < p.count; i++){ _wpA.fromBufferAttribute(p, i).applyMatrix4(m.matrix); if(_wpA.x > x0 && _wpA.x < x1 && Math.abs(_wpA.z) < .35) yk = Math.min(yk, _wpA.y); if(_wpA.x > x0 && _wpA.x < x1) hw = Math.max(hw, Math.abs(_wpA.z)); } }); });
   if(yk > 1e8) yk = wb.min.y - .3; hw = Math.min(.45, Math.max(.25, hw*.3)); return (c.ddH = {x0, x1, yk: yk + .04, vs: .25, hw, dw: hw*1.25, th: .06}); }
@@ -16435,6 +16391,7 @@ if(window.__hangar) Object.assign(window.__hangar, {
   winMove: id=>{ if(!RACE.on || !RACE.racers.length) return null; const r = RACE.finishers[0] || RACE.racers[0], e = wmArm(r, 0, id); if(!e) return null; WM.at = RACE.clock;   // a plane's routine (id; the plane's own without one) on the winner, or in the middle of a race on his plane
     if(r.finished === null) RACE.nextCut = RACE.clock + e + 1; return {id: WM.id, on: r.c.def.id, len: +WM.len.toFixed(2)}; },
   inkInfo: ()=>{ const I = INK; return {on: I.on, live: I.live, taps: I.taps, ov: I.ov.k, q: I.q, st: Object.assign({}, I.st), toys: I.toys.filter(t=>t.b > -50).length, toysMade: I.toys.length, prop: I.prop && I.prop.kind, hint: !!I.hint && !I.hint.hidden, noSmk: !!(I.r && I.r.noSmk), group: !!(I.g && I.g.parent), pens: WM.pens ? WM.pens.map(p=>[+p.t0.toFixed(2), +p.t1.toFixed(2), p.st]) : null, cap: SMOKE.cap, def: WM.def && WM.def.tap}; },   // the dances: the ink now (tests)
+  wpInfo: ()=>({props: INK.props.map(P=>P.kind), chutes: WPC.list.filter(e=>e.b > -50).length, chutesMade: WPC.list.length, chuteGroup: !!(WPC.g && WPC.g.parent), mats: INK.mats.length, tex: INK.tex.length, toys: INK.toys.length, road: !!(INK.props.find(P=>P.kind === 'car') || {}).road, sceneN: rScene ? rScene.children.length : 0, dd: DD.st && Object.assign({}, DD.st), drop: (INK.props.find(P=>P.kind === 'car') || {}).drop, shades: (P=>P ? {E: [P.E.p.toArray().map(v=>+v.toFixed(2)), P.E.n.toArray().map(v=>+v.toFixed(2)), +P.E.w.toFixed(2), +P.E.r.toFixed(2)], vis: P.shades.visible, sc: P.shades.scale.x, scr: (()=>{ const v = P.shades.getWorldPosition(V(0,0,0)).project(rCam); return [Math.round((v.x + 1)*195), Math.round((1 - v.y)*422)]; })(), face: !!(WM.r && WM.r.c.face), fvis: WM.r && WM.r.c.face ? WM.r.c.face.meshes.map(m=>m.visible) : null} : null)(INK.props.find(P=>P.kind === 'shades')), car: (P=>P && P.road ? {road: P.road.position.toArray().map(Math.round), vis: P.road.visible, sc: P.road.scale.toArray(), inScene: !!P.road.parent, root: P && WM.r ? WM.r.root.position.toArray().map(Math.round) : null, rz: WM.r && +WM.r.root.rotation.z.toFixed(2), rc: P.rc.toArray().map(Math.round)} : null)(INK.props.find(P=>P.kind === 'car'))}),   // the dances2 props now (tests)
   inkExtent: ()=>{ const I = INK; if(!I.P || !rCam) return null; rCam.updateMatrixWorld(); const W2 = stage.clientWidth, H2 = stage.clientHeight; let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9, n = 0, off = 0;   // the dances: where the live puffs are on the screen (px), and how many are outside it
     for(let k = 0; k < I.n; k++){ const b = I.B[k]; if(b < -90) continue; const a = I.t - b; if(a < 0 || a > I.L[k]) continue; const j = k*3, e = I.T[k] > 0 ? shEz(a/I.T[k]) : 1; inkWorld(I.P[j] + I.O[j]*e + I.V[j]*a, I.P[j + 1] + I.O[j + 1]*e + I.V[j + 1]*a, I.P[j + 2] + I.O[j + 2]*e + I.V[j + 2]*a, _ikE); _ikE.project(rCam);
       const x = (_ikE.x + 1)/2*W2, y = (1 - _ikE.y)/2*H2; n++; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); if(x < 0 || x > W2 || y < 0 || y > H2) off++; }
