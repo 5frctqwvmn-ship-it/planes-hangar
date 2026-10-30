@@ -2522,7 +2522,7 @@ const BK_SHOW = {};   // what the builders tell the win show (section "win show"
    end fins. Real size: 207 ft long, 197 ft 10 in across the wings, 62 ft 2 in tall. Paint: white with a blue tail, like the
    fourth Beluga XL (F-GXLJ) in Airbus's house scheme, without its painted whale face (the game's eyes and smile go on
    instead) and without any logo or lettering. Feet, x aft from the nose (X turns it around). 2026-10-17: Baby Beluga (the owner's
-   name for her, from his son's toy): the toy's look goes on in the paint (section "graphics", gfxBeluga: the XL and BABY BELUGA
+   name for her, from a toy): the toy's look goes on in the paint (section "graphics", gfxBeluga: the XL and BABY BELUGA
    letters, the striped deep blue tail and the sweep under the tail), and the winglets are grey. */
 function buildBeluga(T){
   const C = 100, X = x=>C - x, root = new T.Group(); root.name = 'beluga'; const K = bkKit(T, X), nose = bkNose, sm = bkSm;
@@ -5970,7 +5970,7 @@ function capeRow(){ const u = UI[lang], now = capeCol(cur.def.id)[0], r = docume
 /* ================= graphics: racing graphics in the paint (a nose panel, body swooshes, wing tribals) and Baby Beluga's toy look ================= */
 /* Owner (2026-10-17, by voice, from a photo of a toy racer): "black graphics from the hood to the cockpit, I want a options to add that
    along with multiple styles of fuselage graphics and swooshes to every single type of plane an option that I can turn off and on and
-   then change the colors as I see fit and place them also want those type of tribal graphics for wings". The same day, of his son's toy
+   then change the colors as I see fit and place them also want those type of tribal graphics for wings". The same day, of a toy
    Beluga XL: "Can you add these graphics to the beluga plane? And instead of saying Airbus, make it say baby beluga."
    How: one picture per plane copy (c.gfx: a canvas and its texture, GFX.S px square, GFX.SR for race copies) holds three views of the
    plane's graphics: its right side and its left side (both as seen from the right, nose to the right: the left one differs only where
@@ -11924,7 +11924,7 @@ function learnFrame(dt){
     if(RACE.t >= LEARN.nextT - 4 && LEARN.pre !== LEARN.nextT){ LEARN.pre = LEARN.nextT; LEARN.pick = LEARN.force || lnHelper(true);   // who asks next, 4 s ahead: its voice gets ready
       [LEARN.pick, LEARN.want].forEach(r=>r && planePacks(r).forEach(voPack)); if(LEARN.mode === 'letters') ltPre(); }   // (the Letter Race: its next card too, and its letters' packs)
     if(RACE.t >= LEARN.nextT && !RACE.finishers.length && lead && lead.D - lead.d > 900 && (LEARN.next = LEARN.force || lnNext())) (LEARN.mode === 'words' ? wdAsk : LEARN.mode === 'letters' ? ltAsk : lnAsk)(); }
-  else if(!q.done){   // said once (owner, 2026-10-10: a re-ask on a timer talked over his son while he answered); "Say it again" replays it
+  else if(!q.done){   // said once (owner, 2026-10-10: a re-ask on a timer talked over the player while he answered); "Say it again" replays it
     lnPleaFrame(q);   // and the plane pleads now and then (15, 40, 60 s of quiet)
     if(RACE.shot && RACE.shot.type === 'talk') RACE.nextCut = Math.max(RACE.nextCut, RACE.clock + .5); }                                // the plane that asked stays on screen, waiting
   const goal = LEARN.q && !LEARN.q.done ? 0 : 1; LEARN.scale += (goal - LEARN.scale)*Math.min(1, dt*3);   // the race stops until the right answer
@@ -11975,7 +11975,7 @@ function wdCount(w, clear, jolts){ const log = wdLog(), day = wdDay(), k = w.w +
 function wdToday(){ const d = wdLog()[wdDay()] || {}; let t = 0, c = 0; Object.values(d).forEach(v=>{ t += v[0]; c += v[1]; }); return {tries: t, clear: c}; }
 function wdPicHTML(w){ return w.e ? `<span class="wd-e${[...w.e].length > 3 ? ' many' : ''}">${w.e}</span>` : `<span class="wd-l">${escHTML(w.w.charAt(0).toUpperCase())}</span>`; }
 function escHTML(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
-/* F sounds (the default): the owner's son practices the F sound. Six levels from short words to sentences
+/* F sounds (the default): practice for the F sound. Six levels from short words to sentences
    (LC.words); a fifth of the cards review easier levels; a word comes back only after every word of its level has been
    used (its bag in hangar-bags, synced: bagPick). Three "Clear!" taps move up a level (hangar-wordclr, hangar-wordlvl). */
 const wdMode = ()=>{ const m = saveGet('hangar-wordmode'); return m === 'list' || LRN_SETS.includes(m) ? m : 'f'; };   // f, l, cl, fin, phr, list (old saves hold f or list)
@@ -12094,7 +12094,7 @@ $('wdAdd').addEventListener('click', ()=>{ const i = $('wdIn'); wdAdd(i.value, l
 $('wdClose').addEventListener('click', closeWords);
 $('wdDone').addEventListener('click', closeWords);
 /* ================= learning sets: Takeoff L, Formation, Landing, Phrases and listen-first pairs ================= */
-/* The owner's son (4) has a speech plan: /l/ (said as w), l-clusters (dropped l), dropped final sounds, long words, and words
+/* More practice sets: /l/ (often said as w), l-clusters (dropped l), dropped final sounds, long words, and words
    running together in phrases. These add to the word race (docs/handoff/LEARN_BUILD_PLAN.md, section 1). The phone never
    judges speech and never records it: a grown-up taps "Good try" or "Clear!". A plane asks, the child may answer or not,
    and every card ends the same way (wdAnswer: boost, star, practice log).
