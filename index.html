@@ -6650,7 +6650,7 @@ const COURSES = [
   {id:'farm', en:'Farmfield Classic', es:'Clásico de la Granja', haze:[.3941,.4233,.4503], sunAz:50.9, sunEl:47, sunCol:'#fff1de', sunI:1.9, fog:[900, 6300], water:-6,
     tex:{A:'t_grass.jpg', B:'t_rock.jpg', C:'t_sand.jpg', D:'t_forest.jpg'}, imp:'imp_island.webp', impAspect:.812, hero:'m_tree',
     pts:[[0,70,0],[700,90,-80],[1300,130,150],[1500,100,600],[1200,80,1000],[700,170,950],[300,110,1250],[-300,90,1300],[-900,150,1000],[-1150,100,500],[-800,75,120],[-400,72,-30]]},
-  {id:'canyon', en:'Red Rock Canyon', es:'Cañón de Roca Roja', haze:[.4249,.8036,1.2813], sunAz:139, sunEl:43, sunCol:'#fff0da', sunI:2.0, fog:[1400, 7600], water:-3,
+  {id:'canyon', en:'Red Rock Canyon', es:'Cañón de Roca Roja', haze:[1.15,.78,.58], sunAz:139, sunEl:17, sunCol:'#ff9650', sunI:2.3, fog:[1400, 7600], water:-3,
     tex:{A:'t_gravel.jpg', B:'t_redrock.jpg', C:'t_sand.jpg', D:'t_gravel.jpg'}, macro:'canyon_color.jpg', imp:'imp_island.webp', impAspect:.812,
     pts:[[0,70,0],[600,60,-150],[1100,90,-450],[1500,230,-520],[1900,330,-200],[2000,190,300],[1700,60,700],[1200,45,900],[700,120,1150],[100,260,1100],[-400,160,800],[-700,70,450],[-500,65,120]]},
   {id:'mountain', en:'Snowcap Pass', es:'Paso Nevado', haze:[.8907,.8868,.7963], sunAz:-56, sunEl:36, sunCol:'#fff3e2', sunI:1.8, fog:[1100, 7000], water:-6, snow:900,
@@ -8009,6 +8009,29 @@ LIFE2.farm = X=>{
   if(mills.length) lfAnim(sails, mills.length, (i, t, m)=>{ const e = mills[i]; lfPut(m, e.top[0], e.top[1], e.top[2], e.ry, 0, t*e.rate + i, e.s, e.s, e.s); }, [cen[0], 120, cen[1], rad], {name:'linesails', f:3800});
   X.site('lineview', X.at(.3, 0).x, X.at(.3, 0).py, X.at(.3, 0).z, X.at(.3, 0).tx, X.at(.3, 0).tz);
   window.__dressInfo = ds;
+};
+/* ===== second pass, Red Rock Canyon: banded buttes and hoodoos, giant saguaros, a frontier outpost, and natural stone arches over the racing line, all in sunset light ===== */
+function lfButte(b, x, y, z, h, r, cols, cap){ const n = Math.max(3, Math.round(h/34)); let yy = y - 4;
+  for(let i = 0; i < n; i++){ const t = i/n, rr = r*(1 - t*.22)*(1 + .06*Math.sin(i*2.1)), hh = h/n + 2; b.add('cyl', cols[i % cols.length], x, yy, z, rr, hh, rr*.92); yy += h/n; }
+  if(cap) b.add('cyl', '#9a4a2a', x, yy - 2, z, r*.98, 7, r*.9); }
+LIFE2.canyon = X=>{
+  const {H, wl} = X, rock = ['#c9663f', '#e0a070', '#b8552f', '#d98b58', '#e8b088'], good = (p, gy)=>gy > wl + 1 && X.slope(p.x, p.z) < .55 && p.py - gy > -20;
+  const hgt = (c, lo, hi)=>Math.max(lo, Math.min(hi, c.rise + 40 + c.r*60));
+  const tpl = [
+    {w:2.6, off:[96, 150], ok:good, put:(b, c)=>{ const h = hgt(c, 90, 280), r = 26 + c.r*16; lfButte(b, c.x, c.y, c.z, h, r, rock, true); if(c.r > .5) lfButte(b, c.x + Math.cos(c.ry)*r*1.4, c.y, c.z - Math.sin(c.ry)*r*1.4, h*.62, r*.6, rock, false); }},
+    {w:2.2, off:[92, 140], ok:good, put:(b, c)=>{ lfHoodoo(b, c.x, c.y, c.z, Math.max(9, Math.min(22, (c.rise + 60)/7.2 + c.r*3))); lfHoodoo(b, c.x + Math.cos(c.ry)*20, c.y, c.z - Math.sin(c.ry)*20, 7 + c.r*4); }},
+    {w:2.8, off:[88, 135], ok:good, put:(b, c)=>{ const s = 7 + c.r*4; lfSaguaro(b, c.x, c.y, c.z, s); lfSaguaro(b, c.x + Math.cos(c.ry)*26, c.y, c.z - Math.sin(c.ry)*26, s*.7); lfSaguaro(b, c.x - Math.cos(c.ry)*20, H(c.x - Math.cos(c.ry)*20, c.z + Math.sin(c.ry)*20), c.z + Math.sin(c.ry)*20, s*.55); }},
+    {w:1.1, off:[95, 135], ok:good, put:(b, c)=>{ const at = (a, h, o)=>lfAt(c.x, c.y, c.z, c.fy, a, h, o), wd = ['#7a5232', '#8a5e3a', '#6a4528'];
+        for(let k = 0; k < 3; k++){ const o = (k - 1)*32, hh = 18 + (k % 2)*6; b.add('box', wd[k], ...at(0, -1, o), 22, hh, 26, c.fy); b.add('box', wd[(k + 1) % 3], ...at(10.2, 0, o), .8, hh + 7, 26, c.fy); b.add('box', '#2a1c12', ...at(11, 2, o), .5, 9, 7, c.fy); b.add('box', '#2a1c12', ...at(11, 8, o + 8), .5, 5, 5, c.fy); }
+        const wx = c.x - Math.sin(c.fy)*60, wz = c.z - Math.cos(c.fy)*60, wy = H(wx, wz); [[-6, -6], [6, -6], [-6, 6], [6, 6]].forEach(([a, o])=>b.beam('cyl6', '#6a4528', wx + a, wy - 1, wz + o, wx + a*.7, wy + 36, wz + o*.7, 1.3, 1.1)); b.add('cyl', '#8a5e3a', wx, wy + 36, wz, 9, 15, 9); b.add('cone', '#4a3022', wx, wy + 51, wz, 9.8, 7, 9.8); }},
+    {w:1.4, off:[100, 150], ok:good, put:(b, c)=>{ const L = 60 + c.r*50, h = hgt(c, 70, 210); for(let q = 0; q < 4; q++){ const a = (q - 1.5)*L/3, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a, hh = h*(.75 + .35*((q*5 + c.i) % 3)/2); b.add('box', rock[(q + c.i) % 5], x, H(x, z) - 6, z, L/3 + 4, hh + 6, 22 + (q % 2)*8, c.ry); b.add('box', '#9a4a2a', x, H(x, z) + hh - 2, z, L/3 + 5, 4, 24 + (q % 2)*8, c.ry); } }},
+    {w:1.0, off:[95, 130], ok:good, put:(b, c)=>{ const s = 5 + c.r*2; for(let q = 0; q < 3; q++){ const x = c.x + Math.cos(c.ry)*(q - 1)*18, z = c.z - Math.sin(c.ry)*(q - 1)*18; b.add('ico', '#b8623c', x, H(x, z) + s*.6, z, s*(1.4 + q*.3), s, s*1.2, q); } }}];
+  const ds = lfDress(X, {step:64, types:tpl, name:'canyonline', chunks:6});
+  const ab = new LBag(), nA = 7;
+  for(let k = 0; k < nA; k++){ const u = .06 + k*.135 + (LF.r() - .5)*.02, M = X.at(u, 0); if(X.runway(M.x, M.z, 160)) continue; const hw = 165 + LF.r()*40, rise = 70 + LF.r()*25, yaw = Math.atan2(M.tx, M.tz);
+    lfArch(ab, M.x, M.py + 48, M.z, yaw, hw, rise, 34 + LF.r()*10, 64, rock, (x, z)=>Math.min(H(x, z), M.py + 30) - 4); }
+  ab.mesh(null, 'canyonarches', 5200);
+  X.site('canyonline', X.at(.3, 0).x, X.at(.3, 0).py, X.at(.3, 0).z, X.at(.3, 0).tx, X.at(.3, 0).tz); window.__dressInfo = ds;
 };
 function useCourse(idx){
   ensureRaceScene();
