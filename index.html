@@ -7303,14 +7303,22 @@ function lifeBuild(K){
   if(K.life || K.city || !LIFE[K.C.id]) return;
   const g = new T.Group(); g.name = 'life'; K.group.add(g);
   let seed = 7; for(const ch of K.C.id) seed = (seed*31 + ch.charCodeAt(0))|0;
-  Object.assign(LF, {K, g, anim:[], geos:[], mats:[], texs:[], regs:[], pts:[], sites:[], r:lfRng(seed)});
+  Object.assign(LF, {K, g, anim:[], geos:[], mats:[], texs:[], regs:[], pts:[], sites:[], keep:[], r:lfRng(seed)});
   LF.mat = lfMat('std'); LF.matS = lfMat('std', {roughness:.3, metalness:.4}); LF.matE = lfMat('basic'); LF.matG = lfMat('std', {polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3});
   LF.matA = lfMat('basic', {transparent:true, depthWrite:false, blending:T.AdditiveBlending, side:T.DoubleSide, fog:true});
   const X = lfContext(K); LF.X = X;
   const t0 = performance.now(); try{ LIFE[K.C.id](X); if(LIFE2[K.C.id]) LIFE2[K.C.id](X); }catch(e){ window.__lifeErr = e; console.warn('course life ' + K.C.id, e); }
-  K.life = {g, anim:LF.anim, geos:LF.geos, mats:LF.mats, texs:LF.texs, regs:LF.regs, pts:LF.pts, sites:LF.sites, id:K.C.id, ms:Math.round(performance.now() - t0)};
+  K.life = {g, anim:LF.anim, geos:LF.geos, mats:LF.mats, texs:LF.texs, regs:LF.regs, pts:LF.pts, sites:LF.sites, keep:LF.keep, id:K.C.id, ms:Math.round(performance.now() - t0)};
   if(K.shadeT) K.shadeT.needsUpdate = true;
 }
+/* the shot cameras stay out of the line dressing (keep-out discs x, z, radius): a camera spot inside one, or with one between it and the racer it films, goes to the other side of the racer, or in closer */
+function lifeCamShot(K, cp, tg){ const kp = K.life && K.life.keep; if(!kp || !kp.length) return;
+  const hit = (px, pz)=>{ for(let k = 0; k < kp.length; k += 3){ const r = kp[k + 2], dx = px - kp[k], dz = pz - kp[k + 1]; if(dx*dx + dz*dz < r*r) return true;
+      if(tg){ const sx = tg.x - px, sz = tg.z - pz, l2 = sx*sx + sz*sz || 1, t = Math.max(0, Math.min(1, ((kp[k] - px)*sx + (kp[k + 1] - pz)*sz)/l2)), qx = px + sx*t - kp[k], qz = pz + sz*t - kp[k + 1]; if(qx*qx + qz*qz < r*r*.64) return true; } } return false; };
+  if(!hit(cp.x, cp.z)) return; const cx = tg ? tg.x : cp.x, cz = tg ? tg.z : cp.z;
+  if(tg){ const mx = 2*cx - cp.x, mz = 2*cz - cp.z; if(!hit(mx, mz)){ cp.x = mx; cp.z = mz; return; }
+    for(const f of [.72, .52, .36]){ const x = cx + (cp.x - cx)*f, z = cz + (cp.z - cz)*f; if(!hit(x, z)){ cp.x = x; cp.z = z; return; } } }
+  for(let pass = 0; pass < 2; pass++) for(let k = 0; k < kp.length; k += 3){ const dx = cp.x - kp[k], dz = cp.z - kp[k + 1], r = kp[k + 2], d2 = dx*dx + dz*dz; if(d2 < r*r){ const d = Math.sqrt(d2) || 1; cp.x = kp[k] + (dx/d || 1)*(r + 8); cp.z = kp[k + 1] + (dz/d)*(r + 8); } } }
 function lifeFree(K){ const L = K && K.life; if(!L) return;
   if(L.g.parent) L.g.parent.remove(L.g);
   L.g.traverse(o=>{ if(o.isInstancedMesh) o.dispose(); });
@@ -7514,7 +7522,7 @@ function lfArch(b, cx, cy, cz, yaw, hw, rise, th, dp, cols, legTo){
   for(let i = 0; i <= n; i++){ const a = Math.PI*i/n; pts.push([-Math.cos(a)*hw, Math.sin(a)*rise]); }
   for(let i = 0; i < n; i++){ const p0 = pts[i], p1 = pts[i + 1], dx = p1[0] - p0[0], dy = p1[1] - p0[1], len = Math.hypot(dx, dy)*1.1, ang = Math.atan2(dy, dx), nx = -Math.sin(ang), ny = Math.cos(ang);
     const q = W((p0[0] + p1[0])/2 - nx*th/2, (p0[1] + p1[1])/2 - ny*th/2); b.add('box', cols[i % cols.length], q[0], q[1], q[2], len, th, dp*(1 - .25*Math.sin(Math.PI*i/n)), yaw, 0, ang); }
-  [-1, 1].forEach((sd, k)=>{ const q = W(sd*hw, 0), g = legTo ? legTo(q[0], q[2]) : cy - 60, h = cy - g + 8; b.add('box', cols[k % cols.length], q[0], g - 10, q[2], th*1.25, h, dp*1.1, yaw); }); }
+  [-1, 1].forEach((sd, k)=>{ const q = W(sd*hw, 0), g = legTo ? legTo(q[0], q[2]) : cy - 60, h = cy - g + 8; LF.keep.push(q[0], q[2], th*1.5 + 8); b.add('box', cols[k % cols.length], q[0], g - 10, q[2], th*1.25, h, dp*1.1, yaw); }); }
 function lfHoodoo(b, x, y, z, s){ const cols = ['#c9754a', '#d98b58', '#b8623c', '#e2a273'];
   let h = 0; for(let i = 0; i < 4; i++){ const r = s*(.9 - i*.12), hh = s*(2.4 - i*.2); b.add('cyl', cols[i % 4], x, y + h - 1, z, r, hh + 1, r*.9); h += hh*.9; }
   b.add('cyl', '#a8552f', x, y + h, z, s*1.5, s*.7, s*1.3); b.add('cone', '#b8623c', x, y + h + s*.7, z, s*1.4, s*.9, s*1.2); }
@@ -7965,13 +7973,14 @@ function lfDress(X, o){ const N = o.chunks || 6, H = X.H, L = X.L, step = o.step
   for(let s = (o.u0 === undefined ? .02 : o.u0)*L, e = (o.u1 === undefined ? .98 : o.u1)*L; s < e; s += step){
     for(let sd = -1; sd <= 1; sd += 2){ let r = LF.r()*tw, ty = types[0]; for(const t of types){ r -= t.w; if(r <= 0){ ty = t; break; } }
       const u = (((s + (LF.r() - .5)*step*.7)/L) % 1 + 1) % 1, off = sd*(ty.off[0] + LF.r()*(ty.off[1] - ty.off[0])), p = X.at(u, off);
+          { const M0 = X.at(u, 0), A = X.at(u - 250/L, 0), B = X.at(u + 250/L, 0), sag = ((A.x + B.x)/2 - M0.x)*(-M0.tz*sd) + ((A.z + B.z)/2 - M0.z)*(M0.tx*sd); if(Math.abs(off) - sag < 96) continue; }
       if(X.runway(p.x, p.z, 80) || X.dist(p.x, p.z) < (ty.min || Math.abs(off)*.8)) continue; if(ty.ok && !ty.ok(p, H(p.x, p.z))) continue;
-      const c = {x:p.x, y:ty.sea ? X.wl : p.y, z:p.z, u, sd, off, py:p.py, rise:p.py - p.y, ry:-Math.atan2(p.tz, p.tx), tx:p.tx, tz:p.tz, r:LF.r(), i:out.n, lists, ground:gb, X};
+      LF.keep.push(p.x, p.z, ty.kr || 46); const c = {x:p.x, y:ty.sea ? X.wl : p.y, z:p.z, u, sd, off, py:p.py, rise:p.py - p.y, ry:-Math.atan2(p.tz, p.tx), tx:p.tx, tz:p.tz, r:LF.r(), i:out.n, lists, ground:gb, X};
       c.fy = c.ry + sd*Math.PI/2; const bag = bags[Math.min(N - 1, Math.floor(u*N))], n0 = bag.P.length; ty.put(bag, c); out.n++; out.tris += (bag.P.length - n0)/9; } }
   bags.forEach((b, k)=>{ if(b.P.length) b.mesh(o.mat || LF.mat, (o.name || 'dress') + k, o.f || 5200); });
   if(gb.P.length){ out.tris += gb.P.length/9; gb.mesh(LF.matG, 'dressground'); } return out; }
 /* a gate over the line at u: two legs outside the racers' lanes and a bar clear above them. o = {w (half width), clear (bar above the line), legs(bag, x, y, z, top, c), bar(bag, a, b, top, c), deco(bag, c)} */
-function lfGate(X, bag, u, o){ const w = o.w || 135, cl = o.clear || 95, L = X.at(u, w), R = X.at(u, -w), M = X.at(u, 0), top = M.py + cl, ry = -Math.atan2(M.tz, M.tx), c = {L, R, M, top, ry, w, X, u};
+function lfGate(X, bag, u, o){ const w = o.w || 135, cl = o.clear || 95, L = X.at(u, w), R = X.at(u, -w), M = X.at(u, 0), top = M.py + cl, ry = -Math.atan2(M.tz, M.tx), c = {L, R, M, top, ry, w, X, u}; LF.keep.push(L.x, L.z, 26, R.x, R.z, 26);
   [L, R].forEach((q, k)=>{ const gy = Math.min(X.H(q.x, q.z), q.py) - 6; if(o.legs) o.legs(bag, q.x, gy, q.z, top, c, k); else bag.beam('cyl6', o.col || '#8a6a44', q.x, gy, q.z, q.x, top, q.z, 5, 4); });
   if(o.bar) o.bar(bag, L, R, top, c); else bag.beam('cyl6', o.col || '#8a6a44', L.x, top, L.z, R.x, top, R.z, 4, 4);
   if(o.deco) o.deco(bag, c); return c; }
@@ -8023,7 +8032,7 @@ LIFE2.canyon = X=>{
     {w:1.1, off:[95, 135], ok:good, put:(b, c)=>{ const at = (a, h, o)=>lfAt(c.x, c.y, c.z, c.fy, a, h, o), wd = ['#7a5232', '#8a5e3a', '#6a4528'];
         for(let k = 0; k < 3; k++){ const o = (k - 1)*32, hh = 18 + (k % 2)*6; b.add('box', wd[k], ...at(0, -1, o), 22, hh, 26, c.fy); b.add('box', wd[(k + 1) % 3], ...at(10.2, 0, o), .8, hh + 7, 26, c.fy); b.add('box', '#2a1c12', ...at(11, 2, o), .5, 9, 7, c.fy); b.add('box', '#2a1c12', ...at(11, 8, o + 8), .5, 5, 5, c.fy); }
         const wx = c.x - Math.sin(c.fy)*60, wz = c.z - Math.cos(c.fy)*60, wy = H(wx, wz); [[-6, -6], [6, -6], [-6, 6], [6, 6]].forEach(([a, o])=>b.beam('cyl6', '#6a4528', wx + a, wy - 1, wz + o, wx + a*.7, wy + 36, wz + o*.7, 1.3, 1.1)); b.add('cyl', '#8a5e3a', wx, wy + 36, wz, 9, 15, 9); b.add('cone', '#4a3022', wx, wy + 51, wz, 9.8, 7, 9.8); }},
-    {w:1.4, off:[100, 150], ok:good, put:(b, c)=>{ const L = 60 + c.r*50, h = hgt(c, 70, 210); for(let q = 0; q < 4; q++){ const a = (q - 1.5)*L/3, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a, hh = h*(.75 + .35*((q*5 + c.i) % 3)/2); b.add('box', rock[(q + c.i) % 5], x, H(x, z) - 6, z, L/3 + 4, hh + 6, 22 + (q % 2)*8, c.ry); b.add('box', '#9a4a2a', x, H(x, z) + hh - 2, z, L/3 + 5, 4, 24 + (q % 2)*8, c.ry); } }},
+    {w:1.4, kr:70, off:[100, 150], ok:good, put:(b, c)=>{ const L = 60 + c.r*50, h = hgt(c, 70, 210); for(let q = 0; q < 4; q++){ const a = (q - 1.5)*L/3, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a, hh = h*(.75 + .35*((q*5 + c.i) % 3)/2); b.add('box', rock[(q + c.i) % 5], x, H(x, z) - 6, z, L/3 + 4, hh + 6, 22 + (q % 2)*8, c.ry); b.add('box', '#9a4a2a', x, H(x, z) + hh - 2, z, L/3 + 5, 4, 24 + (q % 2)*8, c.ry); } }},
     {w:1.0, off:[95, 130], ok:good, put:(b, c)=>{ const s = 5 + c.r*2; for(let q = 0; q < 3; q++){ const x = c.x + Math.cos(c.ry)*(q - 1)*18, z = c.z - Math.sin(c.ry)*(q - 1)*18; b.add('ico', '#b8623c', x, H(x, z) + s*.6, z, s*(1.4 + q*.3), s, s*1.2, q); } }}];
   const ds = lfDress(X, {step:64, types:tpl, name:'canyonline', chunks:6});
   const ab = new LBag(), nA = 7;
@@ -8037,7 +8046,7 @@ LIFE2.mountain = X=>{
   const {H, wl} = X, grey = ['#8a919b', '#767e89', '#9aa1ab', '#6c747e'], good = (p, gy)=>gy > wl + 3 && X.slope(p.x, p.z) < .6 && p.py - gy > -25;
   const hgt = (c, lo, hi)=>Math.max(lo, Math.min(hi, c.rise*.5 + 50 + c.r*60));
   const tpl = [
-    {w:3.4, off:[85, 145], ok:good, put:(b, c)=>{ const n = 4 + Math.floor(c.r*3); for(let q = 0; q < n; q++){ const a = (q - n/2)*22 + (c.r - .5)*8, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a; lfPine(b, x, H(x, z), z, 80 + ((q*37 + c.i*11) % 50) + c.r*20, true); } }},
+    {w:3.4, kr:62, off:[85, 145], ok:good, put:(b, c)=>{ const n = 4 + Math.floor(c.r*3); for(let q = 0; q < n; q++){ const a = (q - n/2)*22 + (c.r - .5)*8, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a; lfPine(b, x, H(x, z), z, 80 + ((q*37 + c.i*11) % 50) + c.r*20, true); } }},
     {w:1.5, off:[100, 150], ok:good, put:(b, c)=>{ const h = hgt(c, 80, 260), r = 24 + c.r*14; lfButte(b, c.x, c.y, c.z, h, r, grey, false); b.add('cone', '#f4f8fc', c.x, c.y + h*.8, c.z, r*.82, h*.34, r*.78); b.add('cone', '#f4f8fc', c.x + Math.cos(c.ry)*r*1.5, c.y, c.z - Math.sin(c.ry)*r*1.5, r*.7, h*.5, r*.65); }},
     {w:1.0, off:[100, 140], ok:good, put:(b, c)=>{ const k = lfChalet(b, c.x, c.y, c.z, c.fy, 52, 36, 22); lfPine(b, c.x - Math.sin(c.fy)*40, H(c.x - Math.sin(c.fy)*40, c.z - Math.cos(c.fy)*40), c.z - Math.cos(c.fy)*40, 70, true); lfPine(b, c.x + Math.sin(c.fy)*42, H(c.x + Math.sin(c.fy)*42, c.z + Math.cos(c.fy)*42), c.z + Math.cos(c.fy)*42, 58, true); }},
     {w:.8, off:[92, 125], ok:good, put:(b, c)=>{ lfSnowman(b, c.x, c.y, c.z, c.fy, 2.5); }},
@@ -8076,7 +8085,7 @@ LIFE2.coast = X=>{
     {w:1.8, off:[85, 125], sea:true, ok:seaOk, put:(b, c)=>{ const s = 1.5 + c.r*.5; b.add('cyl', '#e8353a', c.x, wl - 3*s, c.z, 7*s, 12*s, 7*s); b.add('cyl', '#f6f2ea', c.x, wl + 5*s, c.z, 7*s*.9, 5*s, 7*s*.9); b.add('cyl', '#e8353a', c.x, wl + 9*s, c.z, 7*s*.8, 5*s, 7*s*.8); b.add('cone', '#f6f2ea', c.x, wl + 13*s, c.z, 5.4*s, 8*s, 5.4*s); b.add('sph', '#ffd24a', c.x, wl + 22*s, c.z, 2.4*s); }},
     {w:2.8, off:[86, 135], ok:beach, put:(b, c)=>{ const n = 3 + Math.floor(c.r*3); for(let q = 0; q < n; q++){ const a = (q - n/2)*20 + (c.r - .5)*8, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a; lfPalm(b, x, H(x, z), z, 62 + ((q*29 + c.i*7) % 24), .18 + (q % 2)*.1, c.fy + q); } }},
     {w:1.4, off:[96, 145], ok:land, put:(b, c)=>{ const pc = ['#f6c7c0', '#f4e2a0', '#bfe3d6', '#c6d4f2', '#f6d6a8', '#e6c0e6']; for(let q = 0; q < 3; q++){ const a = (q - 1)*46, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a; lfHouse(b, x, H(x, z), z, c.fy, 40, 28, 22, pc[(q + c.i) % 6], ['#c7352e', '#d9682a', '#2f6fb0'][(q + c.i) % 3]); } }},
-    {w:1.3, off:[100, 150], ok:(p, gy)=>gy > wl + 40 && X.slope(p.x, p.z) < .7, put:(b, c)=>{ const L = 90 + c.r*50, h = 60 + c.r*60; b.add('box', tans[c.i % 4], c.x, c.y - 12, c.z, L, h + 12, 36, c.ry); b.add('box', '#5aa848', c.x, c.y + h - 2, c.z, L + 3, 5, 38, c.ry); }}];
+    {w:1.3, kr:75, off:[100, 150], ok:(p, gy)=>gy > wl + 40 && X.slope(p.x, p.z) < .7, put:(b, c)=>{ const L = 90 + c.r*50, h = 60 + c.r*60; b.add('box', tans[c.i % 4], c.x, c.y - 12, c.z, L, h + 12, 36, c.ry); b.add('box', '#5aa848', c.x, c.y + h - 2, c.z, L + 3, 5, 38, c.ry); }}];
   const ds = lfDress(X, {step:50, types:tpl, name:'coastline', chunks:6});
   const gb = new LBag(), rock = ['#bfb3a0', '#a89c8a', '#cfc4b0'];
   for(let k = 0; k < 6; k++){ const u = .08 + k*.15 + (LF.r() - .5)*.02, M = X.at(u, 0); if(X.runway(M.x, M.z, 160)) continue;
@@ -8088,12 +8097,12 @@ LIFE2.coast = X=>{
 };
 /* ===== second pass, Glacier Bay Speedway: an ice gorge with blue walls, spires and arches over the line, icebergs, igloos and penguin crowds, and a cold bright light ===== */
 LIFE2.glacier = X=>{
-  const {H, wl} = X, ib = ['#bfeaff', '#8fd3f4', '#a8dcf6', '#74c2ea'], good = (p, gy)=>gy > wl + 3 && X.slope(p.x, p.z) < .6 && p.py - gy > -25, hgt = (c, lo, hi)=>Math.max(lo, Math.min(hi, c.rise*.6 + 50 + c.r*70));
+  const {H, wl} = X, ib = ['#a6e4ff', '#6cc6f4', '#8dd6f8', '#4fb0e8'], good = (p, gy)=>gy > wl + 3 && X.slope(p.x, p.z) < .6 && p.py - gy > -25, hgt = (c, lo, hi)=>Math.max(lo, Math.min(hi, c.rise*.6 + 50 + c.r*70));
   const wall = (b, c)=>{ const L = 120 + c.r*60, h = hgt(c, 90, 240), n = 4; for(let q = 0; q < n; q++){ const a = (q - (n - 1)/2)*L/n, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a, hh = h*(.7 + .45*((q*3 + c.i) % 4)/3), gy = H(x, z);
       b.add('box', ib[(q + c.i) % 4], x, gy - 8, z, L/n + 3, hh + 8, 34 + (q % 2)*10, c.ry); b.add('pyr', '#e4f6ff', x, gy + hh - 2, z, 24, 30 + (q % 3)*10, 24, c.ry); b.add('box', '#6fb8e4', x + Math.sin(c.ry)*17*(c.sd), gy - 6, z + Math.cos(c.ry)*17*(c.sd), L/n, hh*.35, 4, c.ry); } };
   const tpl = [
-    {w:2.2, off:[95, 150], ok:good, put:(b, c)=>{ lfSpire(b, c.x, c.y, c.z, hgt(c, 100, 250)); lfSpire(b, c.x + Math.cos(c.ry)*34, H(c.x + Math.cos(c.ry)*34, c.z - Math.sin(c.ry)*34), c.z - Math.sin(c.ry)*34, 50 + c.r*70); lfSpire(b, c.x - Math.cos(c.ry)*30, H(c.x - Math.cos(c.ry)*30, c.z + Math.sin(c.ry)*30), c.z + Math.sin(c.ry)*30, 40 + c.r*40); }},
-    {w:1.4, off:[105, 150], ok:good, put:wall},
+    {w:2.2, kr:60, off:[95, 150], ok:good, put:(b, c)=>{ lfSpire(b, c.x, c.y, c.z, hgt(c, 100, 250)); lfSpire(b, c.x + Math.cos(c.ry)*34, H(c.x + Math.cos(c.ry)*34, c.z - Math.sin(c.ry)*34), c.z - Math.sin(c.ry)*34, 50 + c.r*70); lfSpire(b, c.x - Math.cos(c.ry)*30, H(c.x - Math.cos(c.ry)*30, c.z + Math.sin(c.ry)*30), c.z + Math.sin(c.ry)*30, 40 + c.r*40); }},
+    {w:1.4, kr:85, off:[105, 150], ok:good, put:wall},
     {w:2.2, off:[90, 140], sea:true, ok:(p, gy)=>gy < wl - 4, put:(b, c)=>{ const s = 26 + c.r*30; b.add('ico', '#f2fbff', c.x, wl + s*.25, c.z, s*1.5, s, s*1.3, c.r*3); b.add('ico', '#bfeaff', c.x + s, wl + s*.1, c.z + s*.4, s*.8, s*.6, s*.7, c.r*5); b.add('ico', '#8fd3f4', c.x, wl - s*.4, c.z, s*1.6, s*.8, s*1.4); }},
     {w:1.0, off:[95, 135], ok:(p, gy)=>good(p, gy) && X.slope(p.x, p.z) < .3, put:(b, c)=>{ lfIgloo(b, c.x, c.y, c.z, c.fy, 3.4); for(let q = 0; q < 4; q++){ const a = (q - 1.5)*14, x = c.x + Math.cos(c.ry)*a - Math.sin(c.fy)*34, z = c.z - Math.sin(c.ry)*a - Math.cos(c.fy)*34; lfPenguin(b, x, H(x, z), z, c.fy + (q - 1.5)*.3, 3.2); } }},
     {w:1.8, off:[88, 120], ok:(p, gy)=>good(p, gy) && X.slope(p.x, p.z) < .35, put:(b, c)=>{ const n = 5 + Math.floor(c.r*4); for(let q = 0; q < n; q++){ const a = (q - n/2)*11 + (c.r - .5)*6, o = ((q*13 + c.i*5) % 7 - 3)*3, x = c.x + Math.cos(c.ry)*a - Math.sin(c.fy)*o, z = c.z - Math.sin(c.ry)*a - Math.cos(c.fy)*o; lfPenguin(b, x, H(x, z), z, c.fy + ((q*7) % 5 - 2)*.35, 3.6, q % 3 === 0); } }},
@@ -8130,6 +8139,10 @@ LIFE2.skyline = X=>{
  },
       deco:(b, c)=>{ b.add('box', pen[k % 6], c.M.x, c.top + 26, c.M.z, 96, 15, 2, c.ry + Math.PI/2); b.add('box', '#ffffff', c.M.x, c.top + 26, c.M.z, 70, 4, 2.6, c.ry + Math.PI/2); } }); }
   gb.mesh(null, 'skybridges', 5200);
+  /* the avenue under the racers: grey road with lane dashes along the lap */
+  { const rd = new LBag(), n = Math.floor(X.L/58); for(let k = 0; k < n; k++){ const p = X.at(k/n, 0); if(X.runway(p.x, p.z, 120) || p.y < wl + 3) continue; const ang = Math.atan2(p.tz, p.tx);
+      rd.ground(H, p.x, p.z, 64, 120, ang, 1, 6, ()=>'#4b505a', .45); if(k % 2) rd.ground(H, p.x, p.z, 26, 2.6, ang, 1, 1, ()=>'#f0e8c0', .7); }
+    if(rd.P.length) rd.mesh(LF.matG, 'avenue', 4200); }
   X.site('metroline', X.at(.3, 0).x, X.at(.3, 0).py, X.at(.3, 0).z, X.at(.3, 0).tx, X.at(.3, 0).tz); window.__dressInfo = ds;
 };
 /* ===== second pass, Sun Temple Ruins: stepped temples, giant totems and stone heads, colonnades, jungle canopies and carved stone gateways over the line ===== */
@@ -8142,7 +8155,7 @@ function lfHead(b, x, y, z, ry, s){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h
 LIFE2.pyramid = X=>{
   const {H, wl} = X, st = ['#b8a884', '#a89870', '#c2b290', '#9a8c68'], mossy = ['#8a9a6a', '#6f8a5a'], good = (p, gy)=>gy > wl + 3 && X.slope(p.x, p.z) < .5 && p.py - gy > -30, hgt = (c, lo, hi)=>Math.max(lo, Math.min(hi, c.rise*.5 + 50 + c.r*50));
   const tpl = [
-    {w:2.2, off:[100, 150], ok:good, put:(b, c)=>{ lfZig(b, c.x, c.y, c.z, c.fy, 58 + c.r*26, hgt(c, 70, 170), st, c.i % 2 === 0); }},
+    {w:2.2, kr:66, off:[100, 150], ok:good, put:(b, c)=>{ lfZig(b, c.x, c.y, c.z, c.fy, 58 + c.r*26, hgt(c, 70, 170), st, c.i % 2 === 0); }},
     {w:1.8, off:[90, 130], ok:good, put:(b, c)=>{ lfTotem(b, c.x, c.y, c.z, c.fy, 1.8 + c.r*.6); }},
     {w:.9, off:[95, 130], ok:good, put:(b, c)=>{ lfHead(b, c.x, c.y, c.z, c.fy, 2.4); }},
     {w:2.0, off:[88, 125], ok:good, put:(b, c)=>{ const n = 5; for(let q = 0; q < n; q++){ const a = (q - n/2)*19, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a, y = H(x, z), h = (q === 2 && c.r > .5) ? 38 : 70 + ((q*17 + c.i*5) % 3)*10; b.add('box', '#d9c8a0', x, y - 2, z, 12, 4, 12); b.add('cyl', st[(q + c.i) % 4], x, y, z, 4.6, h, 4.6); b.add('box', '#d9c8a0', x, y + h, z, 11, 4, 11); } if(c.r < .5) b.add('box', '#c2b290', c.x, H(c.x, c.z) + 74, c.z, 100, 4, 12, c.ry); }},
@@ -8194,7 +8207,7 @@ function lfSignalGate(X, gb, u, k, pen){ const M = X.at(u, 0); if(X.runway(M.x, 
 function lfNavy(X, o){ const {H, wl} = X, gr = '#7a828c', pen = ['#e8353a', '#f4c20d', '#2f6fb0', '#ffffff', '#2eb872', '#f08a1c'];
   const seaOk = (p, gy)=>gy < wl - 6 && X.slope(p.x, p.z) < .4;
   const tpl = [
-    {w:o.ships, off:[110, 160], sea:true, min:90, ok:seaOk, put:(b, c)=>{ lfWarship(b, c.x, wl, c.z, c.ry + (c.sd > 0 ? 0 : Math.PI)*(c.r > .5 ? 1 : 0), 1.9 + c.r*.9, c.i % 2); }},
+    {w:o.ships, kr:88, off:[110, 160], sea:true, min:90, ok:seaOk, put:(b, c)=>{ lfWarship(b, c.x, wl, c.z, c.ry + (c.sd > 0 ? 0 : Math.PI)*(c.r > .5 ? 1 : 0), 1.9 + c.r*.9, c.i % 2); }},
     {w:o.subs, off:[92, 130], sea:true, ok:seaOk, put:(b, c)=>{ lfSubOut(b, c.x, wl, c.z, c.ry + (c.r > .5 ? Math.PI : 0), 2.6); }},
     {w:o.buoys, off:[88, 128], sea:true, ok:seaOk, put:(b, c)=>{ const s = 2.1 + c.r*.8; b.add('cyl', '#e8353a', c.x, wl - 3*s, c.z, 7*s, 12*s, 7*s); b.add('cyl', '#f6f2ea', c.x, wl + 5*s, c.z, 6.3*s, 5*s, 6.3*s); b.add('cyl', '#e8353a', c.x, wl + 9*s, c.z, 5.6*s, 5*s, 5.6*s); b.add('cone', '#f6f2ea', c.x, wl + 13*s, c.z, 4.6*s, 7*s, 4.6*s); b.beam('cyl6', '#aab2ba', c.x, wl + 20*s, c.z, c.x, wl + 28*s, c.z, .6*s, .4*s); b.add('sph', '#ffd24a', c.x, wl + 28.5*s, c.z, 2.2*s); }},
     {w:o.rocks, off:[95, 150], sea:true, ok:(p, gy)=>gy < wl - 4, put:(b, c)=>{ const s = 20 + c.r*22; b.add('ico', '#6e675f', c.x, wl - s*.3, c.z, s*1.2, s*(1.6 + c.r), s, c.r*3); b.add('ico', '#8b837a', c.x + s*.7, wl - s*.2, c.z, s*.7, s*.9, s*.6); b.add('cone6', '#c7352e', c.x, wl + s*1.1, c.z, 2.4, 22, 2.4); b.add('cone6', '#ffffff', c.x, wl + s*1.1 + 22, c.z, 3, 6, 3); }},
@@ -8582,6 +8595,7 @@ function shotCamera(dt){
       if(s.face){ faceView(w, Fh, Rt, P, Lr, resBand()); break; }
       _cp.set(W.x + Math.cos(a)*L2*2.6, W.y + L2*.5, W.z + Math.sin(a)*L2*2.6); _lk.copy(W); break; }
   }
+  if(rCourse && rCourse.life && ['side', 'front', 'low', 'pack', 'packFront', 'packSide'].includes(s.type)) lifeCamShot(rCourse, _cp, r && !PACK_SHOTS.includes(s.type) ? P : null);   // the line dressing (course life, second pass): never a camera inside one of its pieces, or one hiding the racer
   if(rCourse){ const g = Math.max(rCourse.H(_cp.x, _cp.z), rCourse.wl) + 14; if(_cp.y < g) _cp.y = g; }
   const ride = shotRide(s, r, P, dt);   // what the shot films moved this much since the last frame (null: nothing to ride with)
   if(s.snap){ rCam.position.copy(_cp); _look.copy(_lk); s.snap = false; }
