@@ -4112,7 +4112,7 @@ function musicFrame(){
   if(!MUS.src){ const out = audioOut() || a.destination; MUS.g = a.createGain(); MUS.g.gain.value = 0; MUS.g.connect(out);
     MUS.src = a.createBufferSource(); MUS.src.buffer = MUS.buf; MUS.src.loop = true; MUS.src.connect(MUS.g); MUS.src.start(); }
   const live = RACE.phase === 'intro' || RACE.phase === 'count' || RACE.phase === 'race' || (RACE.phase === 'results' && RACE.clock - RACE.phaseT < 10);
-  const k = !live || !SND.on || document.hidden ? 0 : (LEARN.q && !LEARN.q.done) ? .35 : WL.m ? .22 : a.currentTime < (VO.until || 0) ? .7 : 1;
+  const k = !live || !SND.on || document.hidden ? 0 : (LEARN.q && !LEARN.q.done) ? .35 : WL.m ? .22 : gsDuck() ? .15 : a.currentTime < (VO.until || 0) ? .7 : 1;   // (gsDuck: Bulldog's anthem)
   MUS.g.gain.setTargetAtTime(.9*VOL.music*k, a.currentTime, k ? .5 : 1.2);
 }
 function musicStop(){ const a = actx; if(MUS.src){ const s = MUS.src, g = MUS.g; try{ g.gain.setTargetAtTime(0, a.currentTime, .3); }catch(e){} setTimeout(()=>{ try{ s.stop(); }catch(e){} try{ g.disconnect(); }catch(e){} }, 1500); }
@@ -7702,7 +7702,7 @@ function celebrate(r){
   const lead = wm ? wm + WM_GAP : SHOW_LEAD + bw, sh = showCan(r.c) && showStart(r.c, 'race', -lead); RACE.showX = sh ? lead + SHOW_REVEAL[r.c.def.id] : 0; RACE.wmX = wm;
   const run = RACE.run; RACE.winEnd = performance.now() + ((RACE.winCap || 12) + Math.max(RACE.showX, wm))*1000;
   const done = ()=>{ if(RACE.run !== run) return; const me = VO.who === r.c.def.id; RACE.winEnd = Math.min(RACE.winEnd, Math.max(performance.now(), me ? VO.wall || 0 : 0) + 700); RACE.winSaid = me ? {id: r.c.def.id, t0: VO.t0, t1: VO.wall} : null; };
-  const winLine = ()=>say(talkLine(r, 'win'), Object.assign({force:true}, planeVoice(r))).then(done, done);   // always: the winner's cheer is part of the race, like the fanfare
+  const winLine = ()=>say(talkLine(r, gsWinKind(r)), Object.assign({force:true}, planeVoice(r))).then(done, done);   // always: the winner's cheer is part of the race, like the fanfare
   const go = ()=>{ if(!RACE.on || RACE.run !== run) return; if(!sh || SHOW.c !== r.c) return winLine();
     showTalk(r, true).then(()=>{ if(RACE.on && RACE.run === run && SHOW.c === r.c) SHOW.pend = winLine; else if(RACE.on && RACE.run === run) winLine(); }); };   // its show line ("Doors open!", when recorded), then the cheer after the reveal
   const next = ()=>{ if(!RACE.on || RACE.run !== run) return; if(wmHold(r)) WM.pend = go; else go(); };   // (still flying its routine: when it ends, wmFinish)
@@ -9697,13 +9697,13 @@ function wmBuild(def){
 /* the winner (celebrate): its routine starts when the blimp's call of it is over (bw s), or WM_LEAD s after the finish; returns the seconds
    from now to its end (0: none) */
 function wmArm(r, bw, id){
-  if(!r || RO.on) return 0; const W = WM; let key = id && WIN_MOVE[id] ? id : r.c.def.id; if(!id && key === 'concorde') key = csTurn(); if(!id && key === 'geebee') key = wmTurn('hangar-wmturn-gb2', 'geebee2', 'geebee');   // (the Concorde: its two shows take turns)
+  if(!r || RO.on) return 0; const W = WM; let key = id && WIN_MOVE[id] ? id : r.c.def.id; if(!id && key === 'concorde') key = csTurn(); if(!id && key === 'geebee') key = wmTurn('hangar-wmturn-gb2', 'geebee2', 'geebee'); if(!id && key === 'dh88') key = wmTurn('hangar-wmturn-dh88q', 'dh88q', 'dh88');   // (the Concorde: its two shows take turns; El Chupacabra's and Bulldog's too, the new one first)
   W.side = Math.random() < .5 ? 1 : -1; const D0 = WIN_MOVE[key] || WIN_MOVE._, D1 = rCourse && rCourse.city && D0.cs ? Object.assign({}, D0, {s: D0.cs, flat: 0}) : D0, B = wmBuild(D1); wmStop();   // (the side first: a shape that is drawn turned for the far side is built the right way round) CS.peak = CS.hidN = CS.coneN = CS.ringN = 0;
   Object.assign(W, B, {r, run: RACE.run, id: WIN_MOVE[key] ? key : '_', def: D1, cam: D1.cam || 'q', side: W.side, S: Math.max(22, r.c.size),
     k: 1, lift: 0, tw: !!r.c.pair, why: '', on: false, done: false, pend: null, t: 0, ei: 0, rec: W.recOn ? wmRecNew() : null});
   const lead = Math.max(bw || 0, WM_LEAD); W.at = RACE.clock + lead; r.wm = true; return lead + W.len; }
 const wmHold = w=>!!w && WM.r === w && !WM.done && WM.run === RACE.run;   // armed or flying: the results shot and the cheer wait (raceFrame, celebrate)
-function wmStop(){ const W = WM; if(W.r){ W.r.wm = false; wmPylons(W.r, false); bbApartRest(W.r.c); } csEnd(); W.r = null; W.on = false; W.done = true; W.pend = null; W.pyl = null; flStop(); ddStop(); mcEnd(); inkStop(); }   // (flStop: Echo & Bravo's flares gone too; inkStop: the dances' puffs, toys and props)
+function wmStop(){ const W = WM; if(W.r){ W.r.wm = false; wmPylons(W.r, false); bbApartRest(W.r.c); } csEnd(); W.r = null; W.on = false; W.done = true; W.pend = null; W.pyl = null; flStop(); ddStop(); mcEnd(); gsEnd(true); inkStop(); }   // (flStop: Echo & Bravo's flares gone too; inkStop: the dances' puffs, toys and props)
 const wmLiftK = t=>shEz(t/WM_UP)*(1 - shEz((t - (WM.len - WM_DOWN))/WM_DOWN));
 /* the routine at time t: its offset in the path frame in feet (o.f ahead, o.u up, o.s to the right) and its extra angles */
 function wmEval(t, o){
@@ -9792,7 +9792,7 @@ function wmBegin(r){
   r.root.updateMatrixWorld(true); c.bb.getCenter(_wmC).multiplyScalar(1/FT); c.model.localToWorld(_wmC);   // (c.bb is in feet, the model's own units are metres)
   if(c.pair){ c.pair.zw.updateWorldMatrix(true, false); c.bb.getCenter(_wmC2).multiplyScalar(1/FT); c.pair.zw.localToWorld(_wmC2); _wmC.lerp(_wmC2, .5); }   // Ned & Zed: between the two
   W.ctr.copy(r.root.worldToLocal(_wmC)); W.A.copy(r.root.position);
-  const t0 = performance.now(); ddBegin(r); if(W.mc != null) mcBegin(r); inkBegin(r); wmPlan(r); W.ms = performance.now() - t0; newShot('winMove', r); RACE.nextCut = Math.max(RACE.nextCut || 0, RACE.clock + W.len + 1); flBegin(r);
+  const t0 = performance.now(); ddBegin(r); if(W.mc != null) mcBegin(r); if(W.def && W.def.flags != null) gsBegin(r); inkBegin(r); wmPlan(r); W.ms = performance.now() - t0; newShot('winMove', r); RACE.nextCut = Math.max(RACE.nextCut || 0, RACE.clock + W.len + 1); flBegin(r);
   RACE.confT = Math.min(RACE.confT || 0, RACE.clock - 8); confetti.forEach(p=>{ p.vy *= 2.4; });   // the finish's confetti stops coming back at the top (drawConfetti) and falls away faster, so the routine is not behind it
   W.log.push({id: W.id, plane: c.def.id, wall0: performance.now(), clock0: +RACE.clock.toFixed(2), len: +W.len.toFixed(2), k: W.k, lift: Math.round(W.lift), tw: W.tw, why: W.why, cam: W.cam, side: W.side, blk: W.blk, D: Math.round(W.D), ms: +W.ms.toFixed(1), cull: rCourse && rCourse.cull ? rCourse.cull.length : 0, near: W.nearN, course: rCourse && rCourse.C ? rCourse.C.id : null}); if(W.log.length > 40) W.log.shift(); }
 /* a Word Launch moment or a question card up when it should start: a moment later (the show's doors and the card's limits move with it) */
@@ -9818,10 +9818,11 @@ function wmPose(r, dt){
   if(r.c.def.id === 'concorde') csFrame(r, o);   // the Concorde's vapour cone, boom rings and edge of space
   if(W.bb != null) bbApartFrame(r, W.t - W.bb);   // Bristles: its blocks come off and snap back (bbApart)
   if(W.mc != null) mcPose(r, W.t - W.mc);   // El Chupacabra: his maracas
+  if(W.def && W.def.flags != null) gsPose(r, W.t);   // Bulldog: his Union Jacks and the anthem
   if(W.dd != null) ddPose(r, W.t - W.dd);   // Lil' Dipper: her hatch and its water (ddFrame pours it)
   inkPen(r, dt); inkPropPose(r, dt);   // the dances: the pen's puffs, the beam and the trophy
   if(W.rec) wmRecFrame(r); }
-function wmFinish(r){ const W = WM; W.on = false; W.done = true; r.wm = false; wmPylons(r, false); bbApartRest(r.c); ddEnd(); csEnd(); mcEnd(); inkFinish(); const L = W.log[W.log.length - 1]; if(L){ L.wall1 = performance.now(); L.t = +W.t.toFixed(2); }
+function wmFinish(r){ const W = WM; W.on = false; W.done = true; r.wm = false; wmPylons(r, false); bbApartRest(r.c); ddEnd(); csEnd(); mcEnd(); gsEnd(); inkFinish(); const L = W.log[W.log.length - 1]; if(L){ L.wall1 = performance.now(); L.t = +W.t.toFixed(2); }
   if(RACE.shot && RACE.shot.type === 'winMove'){ if(r.finished !== null) newShot('results', r); else RACE.nextCut = RACE.clock; }   // (the debug hook's routine in the middle of a race: back to the usual shots)
   if(r.finished !== null && W.run === RACE.run){ const sh = SHOW.c === r.c && SHOW.ctx === 'race' ? WM_GAP + (SHOW_REVEAL[r.c.def.id] || 0) : 0;   // the card's wall-clock limit (celebrate) counts again from now: the routine runs on the
     RACE.winEnd = Math.max(RACE.winEnd || 0, performance.now() + ((RACE.winCap || 12) + sh)*1000); }   // race's clock, which slow frames stretch (dt is capped), so a limit counted from the finish could cut it and the cheer
@@ -9829,6 +9830,104 @@ function wmFinish(r){ const W = WM; W.on = false; W.done = true; r.wm = false; w
 function wmFx(r, kind){ if(kind === 'cone') return csCone(r); const K = WM_FXK[kind], cols = WM_FX[kind]; if(!K || !cols) return; const sz = r.c.size;
   _wmQ.set(Math.cos(r.yaw), 0, -Math.sin(r.yaw)).multiplyScalar(kind === 'boom' ? sz*.1 : -sz*.45).add(r.P); _wmQ.y += WM.ctr.y;   // off its tail (the boom: round its middle)
   fxBurst(_wmQ, K[0], K[1], Math.max(3, sz*K[2]), cols, K[3], K[4]); }
+/* ---- Bulldog's "God Save the Queen" (owner, 2026-10-28: "Race winning should be something about God save his queen. Maybe he has like two British
+   flags pop out of his wings, and he sings God save the queen"): a second win show for the Comet, WIN_MOVE.dh88q, taking turns with his teacups
+   (wmTurn, the saved turn hangar-wmturn-dh88q: this one first). Two Union Jacks on little poles spring up out of his wingtips and stream back in the
+   wind, waving, while he flies a proud, level pass, banks to show them, rolls slowly with them and dips a wing in salute; the band plays the
+   anthem's first two lines (the tune is traditional, from the 1740s, public domain), brass over a little bass, with a snare roll before it; the
+   race music ducks under it (musicFrame, gsDuck; Sky City's synthwave too). Then his recorded cheer, a proud one (PLANE_TRICK.dh88.anthem: lines
+   he already says, so they are recorded), when the show is over (celebrate, gsWinKind). A tap: the flags wave harder, a red, white and blue star
+   and sparks (INK_TAP.flag), with the dances' chime and wing wag. All made in code when the show starts (a canvas for the flag, a few primitives),
+   freed when it ends or stops (gsEnd: wmFinish, wmStop). ['flags', at] in the routine: def.flags, the seconds when they pop. */
+const GS = {g: null, arms: [], geos: [], mats: [], tex: [], r: null, bus: null, till: 0, boost: 0, lt: 0, played: false, beta: 0, z: 6.45, st: null, nb: null, nbA: null};
+const GSR = {x: 1.0, y: -.03, z: 6.45, zc: 3.9, pole: 2.5, w: 3.6, h: 1.8, tin: .32, fin: .38, fd: .16, tout: .4, amp: .2, k: 1.25, w0: 8.5, nx: 12, ny: 4};   // metres in the Comet's model (x ahead, y up, z out along the wing; his tips are 6.68 out): the pole's foot (zc: in Sky City), its height, the flag (2:1), the pop (s), the unfurl after it, the tuck; the wave: its size (of the flag's height), waves along it, speed (rad/s)
+const GS_TUNE = {q: .42, rit: 1.12, roll: .45, lead: .2, vol: .45};   // the band: a beat (s), the last bar slower by rit, the snare roll before it (s), its start after the pop (s), the level
+/* the anthem's opening (G major, 3/4; MIDI notes, beats): "God save our gracious Queen, long live our noble Queen" (bars 1 to 4), and the whole first
+   part to "God save the Queen" (6 bars: gsAnthem's bars). Melody, an alto under it, a bass; hymn-book harmony (G, Em, D, ... D7, G) */
+const GS_MEL = {4: [[67,1],[67,1],[69,1],[66,1.5],[67,.5],[69,1],[71,1],[71,1],[72,1],[71,1.5],[69,.5],[67,2.4]],
+  6: [[67,1],[67,1],[69,1],[66,1.5],[67,.5],[69,1],[71,1],[71,1],[72,1],[71,1.5],[69,.5],[67,1],[69,1],[67,1],[66,1],[67,2.6]]};
+const GS_ALT = {4: [[62,1],[64,1],[66,1],[62,1.5],[64,.5],[66,1],[67,1],[67,1],[64,1],[67,1.5],[66,.5],[62,2.4]],
+  6: [[62,1],[64,1],[66,1],[62,1.5],[64,.5],[66,1],[67,1],[67,1],[64,1],[67,1.5],[66,.5],[62,1],[64,1],[62,1],[62,1],[59,2.6]]};
+const GS_BAS = {4: [[43,1],[40,1],[38,1],[38,2],[42,1],[43,1],[40,1],[45,1],[38,2],[43,2.4]],
+  6: [[43,1],[40,1],[38,1],[38,2],[42,1],[43,1],[40,1],[45,1],[38,2],[43,1],[48,1],[47,1],[45,1],[43,2.6]]};
+const gsHz = m=>440*Math.pow(2, (m - 69)/12);
+/* the band into any audio context (the game's, or an OfflineAudioContext for a recording): from t0, into out; returns when it ends (s) */
+function gsAnthem(ac, out, t0, bars){ const B = GS_MEL[bars] ? bars : 4, Q = GS_TUNE.q, rb = B === 6 ? 15 : 9, at = b=>t0 + GS_TUNE.roll + (b < rb ? b*Q : rb*Q + (b - rb)*Q*GS_TUNE.rit);   // (the last bar a little slower, as a band ends it)
+  let nb = GS.nbA === ac ? GS.nb : null; if(!nb){ nb = ac.createBuffer(1, Math.floor(ac.sampleRate*.25), ac.sampleRate); const d = nb.getChannelData(0); for(let i = 0; i < d.length; i++) d[i] = Math.random()*2 - 1; if(ac === actx){ GS.nb = nb; GS.nbA = ac; } }
+  const hit = (t, dur, vol, f, q, type)=>{ const s = ac.createBufferSource(), b = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = nb; b.type = type || 'bandpass'; b.frequency.value = f; b.Q.value = q || .8;
+    g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + .004); g.gain.exponentialRampToValueAtTime(.0005, t + dur); s.connect(b); b.connect(g); g.connect(out); s.start(t, Math.random()*.05); s.stop(t + dur + .05); };
+  const osc = (type, f, t, d, det, dest)=>{ const o = ac.createOscillator(); o.type = type; o.frequency.value = f; if(det) o.detune.value = det; o.connect(dest); o.start(t); o.stop(t + d + .35); };
+  const brass = (f, t, d, v, br)=>{ const g = ac.createGain(), lp = ac.createBiquadFilter(); lp.type = 'lowpass'; lp.Q.value = 1.1;
+    lp.frequency.setValueAtTime(f*1.2, t); lp.frequency.linearRampToValueAtTime(f*br, t + .05); lp.frequency.setTargetAtTime(f*br*.62, t + .06, .18);   // the brass "blat": bright at the attack, mellow after
+    g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .03); g.gain.setTargetAtTime(v*.72, t + .04, .14); g.gain.setTargetAtTime(0, t + Math.max(.05, d - .05), .045);
+    lp.connect(g); g.connect(out); osc('sawtooth', f, t, d, -7, lp); osc('sawtooth', f, t, d, 7, lp); osc('triangle', f/2, t, d, 0, lp); };
+  const bell = (f, t, v)=>{ const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .005); g.gain.exponentialRampToValueAtTime(.0005, t + .7); g.connect(out); osc('sine', f, t, .7, 0, g); };
+  const bass = (f, t, d, v)=>{ const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + .02); g.gain.setTargetAtTime(v*.55, t + .03, .25); g.gain.setTargetAtTime(0, t + Math.max(.05, d - .06), .05); g.connect(out);
+    osc('triangle', f, t, d, 0, g); const g2 = ac.createGain(); g2.gain.value = .45; g2.connect(g); osc('sine', f*2, t, d, 0, g2); };   // (its octave too: a phone's speaker barely plays a low G)
+  for(let k = 0; k < 11; k++){ const u = k/10; hit(t0 + u*(GS_TUNE.roll - .06), .06, .012 + .05*u*u, 1900, .9); }   // the snare roll, a crescendo into the first note
+  const walk = (L, f)=>{ let b = 0; L.forEach(([m, n], i)=>{ const t = at(b), e = at(b + n), last = i === L.length - 1; f(gsHz(m), t, (e - t)*(last ? 1 : .9), last); b += n; }); return at(b); };
+  const end = walk(GS_MEL[B], (f, t, d, last)=>{ brass(f, t, d, last ? .2 : .17, 4.2); bell(f*2, t, .05); });
+  walk(GS_ALT[B], (f, t, d)=>brass(f, t, d, .085, 3));
+  walk(GS_BAS[B], (f, t, d)=>bass(f, t, d, .2));
+  const tl = at(GS_MEL[B].slice(0, -1).reduce((a, x)=>a + x[1], 0)); hit(tl, 1.4, .05, 6000, .5, 'highpass'); hit(tl, .35, .07, 160, 1.2, 'lowpass');   // a soft cymbal and a bass drum on the last note
+  return end + .3; }
+/* the game's sound: its own bus (faded out by gsEnd, Race again in the middle cuts it), the race music and Sky City's synthwave duck under it */
+function gsPlay(){ if(WL.m || !SND.on) return; const a = audio(); if(!a) return; try{ const bus = a.createGain(); bus.gain.value = GS_TUNE.vol*Math.max(.35, VOL.music); bus.connect(audioOut() || a.destination); GS.bus = bus;
+    GS.till = gsAnthem(a, bus, a.currentTime + .03, 4); GS.st.notes = GS_MEL[4].length; WLQ = Math.max(WLQ, GS.till);
+    if(SCA.on && SCA.mus) SCA.mus.gain.setTargetAtTime(SCA_MIX.music*VOL.music*.15, a.currentTime, .25); }catch(e){} }
+const gsDuck = ()=>!!(GS.bus && actx && actx.currentTime < GS.till);   // musicFrame: the rock loop low while the band plays
+const gsWinKind = r=>{ const W = WM; return W.r === r && W.run === RACE.run && W.def && W.def.line && talkLine(r, W.def.line).length ? W.def.line : 'win'; };   // celebrate: the show's own cheer (recorded lines), else the usual
+/* the Union Jack (2:1): blue, the white saltire, the red saltire counterchanged (in the hoist's upper quarter the broad white is on top), the white cross, the red cross */
+function gsFlagTex(){ const cv = document.createElement('canvas'), w = 256, h = 128, x = cv.getContext('2d'), s = w/60; cv.width = w; cv.height = h;
+  x.fillStyle = '#012169'; x.fillRect(0, 0, w, h); x.lineCap = 'butt';
+  x.strokeStyle = '#ffffff'; x.lineWidth = 6*s; x.beginPath(); x.moveTo(0, 0); x.lineTo(w, h); x.moveTo(w, 0); x.lineTo(0, h); x.stroke();
+  const cx = w/2, cy = h/2; [[0, 0], [w, 0], [w, h], [0, h]].forEach(([px, py])=>{ const dx = px - cx, dy = py - cy, l = Math.hypot(dx, dy), ox = dy/l*s, oy = -dx/l*s;   // each arm's red, one unit off its middle line (a pinwheel)
+    x.save(); x.beginPath(); x.rect(Math.min(px, cx), Math.min(py, cy), w/2, h/2); x.clip(); x.strokeStyle = '#c8102e'; x.lineWidth = 2*s; x.beginPath(); x.moveTo(cx + ox, cy + oy); x.lineTo(px + ox, py + oy); x.stroke(); x.restore(); });
+  x.fillStyle = '#ffffff'; x.fillRect(cx - 5*s, 0, 10*s, h); x.fillRect(0, cy - 5*s, w, 10*s);
+  x.fillStyle = '#c8102e'; x.fillRect(cx - 3*s, 0, 6*s, h); x.fillRect(0, cy - 3*s, w, 6*s);
+  const t = new T.CanvasTexture(cv); t.anisotropy = 4; GS.tex.push(t); return t; }
+function gsMake(c){
+  const R = GSR, g = new T.Group(); g.name = 'union-flags'; GS.g = g; GS.arms = [];
+  const tx = gsFlagTex(), pole = new T.CylinderGeometry(.06, .07, R.pole, 8), knob = new T.SphereGeometry(.15, 12, 8), pm = new T.MeshLambertMaterial({color: '#f4efe2'}), km = new T.MeshLambertMaterial({color: '#ffc83a', emissive: '#a86b00', emissiveIntensity: .5});
+  pole.translate(0, R.pole/2, 0); GS.geos.push(pole, knob); GS.mats.push(pm, km);
+  [1, -1].forEach((sd, i)=>{ const geo = new T.PlaneGeometry(R.w, R.h, R.nx, R.ny); geo.translate(-R.w/2, -R.h/2, 0);   // the flag's hoist (by the pole) at x 0, its top at y 0; it flies back (-x)
+      const P = geo.attributes.position, n = P.count, rest = new Float32Array(P.array), col = new Float32Array(n*3).fill(1); geo.setAttribute('color', new T.BufferAttribute(col, 3)); GS.geos.push(geo);
+      const fm = new T.MeshBasicMaterial({map: tx, side: T.DoubleSide, vertexColors: true}); GS.mats.push(fm);
+      const piv = new T.Group(), pl = new T.Mesh(pole, pm), kn = new T.Mesh(knob, km), fg = new T.Group(), fl = new T.Mesh(geo, fm);
+      kn.position.y = R.pole + .08; fl.position.y = 0; fg.position.y = R.pole - .06; fg.rotation.y = sd*GS.beta; fg.add(fl); piv.add(pl, kn, fg);
+      piv.position.set(R.x, R.y, sd*GS.z); piv.scale.set(1, .001, 1); fg.scale.set(.001, 1, 1); piv.visible = false; g.add(piv);
+      GS.arms.push({piv, fg, fl, kn, geo, P, rest, col, sd, ph: i*1.7}); });
+  g.traverse(o=>{ o.castShadow = false; o.receiveShadow = false; o.frustumCulled = false; });
+  c.model.add(g); return g; }
+function gsBegin(r){ gsEnd(true); const W = WM, K = rCourse, C = K && K.city && !W.def.flat ? WM_CAM.city : WM_CAM[W.cam] || WM_CAM.q;
+  GS.r = r; GS.boost = 0; GS.lt = 0; GS.played = false; GS.beta = Math.min(46, Math.max(8, 62 - C[0]))*Math.PI/180;   // (the flags turn out a little, more for a camera near the nose: Sky City's avenue, so they show their faces)
+  GS.z = C === WM_CAM.city ? GSR.zc : GSR.z;   // (Sky City's camera is close, his wingtips at the screen's edges: there the poles stand halfway out the wing, so the flags fly inside his span)
+  GS.st = {pop: 0, tuck: 0, shown: 0, peak: 0, notes: 0, taps: 0, out: 0}; gsMake(r.c); }
+function gsEnd(fast){ const g = GS.g; if(g){ if(g.parent) g.parent.remove(g); GS.geos.forEach(x=>x.dispose()); GS.mats.forEach(x=>x.dispose()); GS.tex.forEach(x=>x.dispose()); }
+  GS.g = null; GS.r = null; GS.arms = []; GS.geos = []; GS.mats = []; GS.tex = [];
+  const b = GS.bus, a = actx; if(b){ GS.bus = null; GS.till = 0; try{ b.gain.setTargetAtTime(0, a.currentTime, fast ? .04 : .2); }catch(e){} setTimeout(()=>{ try{ b.disconnect(); }catch(e){} }, fast ? 300 : 1200); if(SCA.mus) SCA.vm = -1; } }   // (SCA.vm: Sky City's music back to its level, scaFrame)
+const gsPop = u=>{ const x = Math.min(1, Math.max(0, u)); return x*x*(3 - 2*x)*(1 + .3*Math.sin(Math.PI*x)); };   // springs out, a little past and back
+/* t: the routine's time (wmPose) */
+function gsPose(r, t){
+  if(GS.r !== r || !GS.g) return; const R = GSR, S = GS.st, W = WM, td = t - W.def.flags, dt = Math.max(0, Math.min(.1, t - GS.lt)), wm = !WL.m; GS.lt = t;
+  const tt = W.len - R.tout - .08, eo = td < 0 ? 0 : t > tt ? Math.max(0, 1 - (t - tt)/R.tout) : 1;   // its tuck at the very end
+  const ep = td < 0 ? 0 : t > tt ? eo : gsPop(td/R.tin), ef = td < 0 ? 0 : t > tt ? shEz(eo) : gsPop((td - R.fd)/R.fin);
+  if(td >= 0 && !S.pop){ S.pop = 1; if(wm){ tone(520, .12, 'sine', .12, 980); tone(780, .1, 'sine', .08, 1300, .07); noiseHit(2600, 900, .2, .07, 1.2); } }
+  if(td >= R.fd + .05 && !GS.played){ GS.played = true; setTimeout(()=>{ if(GS.r === r && GS.g) gsPlay(); }, GS_TUNE.lead*1000); GS.g.updateMatrixWorld(true);   // the band, as the flags unfurl
+    GS.arms.forEach(A=>{ A.kn.getWorldPosition(_gsV); fxBurst(_gsV, 14, 30, Math.max(2.5, r.c.size*.05), INK_PAL.navy.map(inkCol), .9, 6); }); }
+  if(t > tt && !S.tuck){ S.tuck = 1; if(wm) tone(950, .1, 'sine', .09, 460); }
+  GS.boost = Math.max(0, GS.boost - dt*.9); const bo = GS.boost, amp = R.amp*R.h*(1 + 1.4*bo), sp = R.w0*(1 + .7*bo);
+  GS.arms.forEach(A=>{ A.piv.visible = ep > .002; A.piv.scale.set(1, Math.max(.001, ep), 1); A.fg.scale.set(Math.max(.001, ef), 1, 1); A.fg.rotation.y = A.sd*GS.beta*(1 - .25*bo*Math.sin(t*6 + A.ph));
+    if(!A.piv.visible) return; const P = A.P.array, rs = A.rest, cl = A.col, n = A.P.count;
+    for(let i = 0; i < n; i++){ const x0 = rs[i*3], y0 = rs[i*3 + 1], xr = -x0/R.w, ph = 2*Math.PI*R.k*xr - sp*t + A.ph, e = Math.pow(xr, 1.15);
+      P[i*3] = x0*(1 - .04*e*(1 + bo)); P[i*3 + 1] = y0 - .05*R.h*xr*xr; P[i*3 + 2] = amp*e*Math.sin(ph); const sh = .8 + .2*Math.cos(ph)*Math.min(1, e*3); cl[i*3] = cl[i*3 + 1] = cl[i*3 + 2] = sh; }   // (a little shade on each wave's slopes)
+    A.P.needsUpdate = true; A.geo.attributes.color.needsUpdate = true; });
+  if(ep > .5) S.shown++; S.peak = Math.max(S.peak, ep); if(GS.bus && actx && actx.currentTime > GS.till && SCA.mus && SCA.vm !== -1) SCA.vm = -1; }
+const _gsV = V(0, 0, 0);
+WIN_MOVE.dh88q = {cam: 'q', tap: 'flag', ov: 'wag', flags: .12, line: 'anthem',
+  cs: [[1.3, ['wag', .08, 1]], [2.5, ['pose', .3], ['nod', .05, 2]], [2.3, ['roll', 1, 1]], [1.3, ['bow', .15], ['wag', .22, .5]]],
+  s: [[1.3, ['hop', .06, 1], ['wag', .08, 1]], [2.5, ['pose', .45], ['nod', .06, 2]], [2.3, ['roll', 1, 1]], [1.3, ['bow', .2], ['wag', .25, .5]]]};   // Bulldog 2, God Save the Queen: a polite little hop as his Union Jacks spring up out of his wingtips, a proud level pass banked to show them off, a slow, stately roll with them, a bow and a wing dipped in salute (a tap: the flags wave harder and he dips a wing)
+Object.assign(INK_TAP, {flag: (r, k)=>{ if(GS.r === r && GS.g){ GS.boost = 1; GS.st.taps++; } }});   /* (owner, 2026-10-28: no stickers or bursts, so a tap is his own: the flags whip harder and he dips a wing) */
 /* ---- Echo & Bravo's flares (owner, 2026-10-17: "I think the celebration for Echo and Bravo should be when he, as he goes up and does a bunch
    of things, he should shoot flares out, similar to how jets do"): ['fl', pairs, at] in a routine's step fires a ripple of flare pairs, one
    pair (left and right) every FLR.gap s with a soft pop, as a fighter's dispensers do at an airshow. A light show and nothing more: no
@@ -10196,8 +10295,10 @@ const PLANE_TRICK = {bristles: {en: {apart: ['Snap apart!'], clicks: ['Click, cl
   f18: {en: {flares: ['Flares away!', 'Light show!']}, es: {flares: ['¡Lanzo bengalas!', '¡Show de luces!']}},
   geebee: {en: {maracas: ["Ay, ay, ay! I'm just a racing machine, and I only fly for you, my friends!", 'Shake, shake, shake! Look at me, I am a happy racing machine!']},
     es: {maracas: ['¡Ay, ay, ay! Soy una máquina de carreras, y solo vuelo para ustedes, amigos!', '¡A sacudir, a sacudir! ¡Miren, soy una máquina de carreras feliz!']}}};   // Echo & Bravo's flares at its win (flBurst, 2026-10-17)
+PLANE_TRICK.dh88 = {en: {anthem: ["Hip hip hooray! A gentleman's victory!", 'Jolly good show! A splendid victory!', 'Victory is ours, old chap! A truly magnificent race indeed!']},
+  es: {anthem: ['¡Hip hip hurra! ¡Una victoria de caballeros!', '¡Splendid! ¡Una victoria espléndida!', '¡La victoria es nuestra, amigo! ¡Una carrera verdaderamente magnífica!']}};   // Bulldog's cheer after his anthem (WIN_MOVE.dh88q, gsWinKind): his proudest win lines, already recorded in his race pack
 Object.entries(PLANE_TRICK).forEach(([id, o])=>Object.entries(o).forEach(([L, k])=>{ const t = PLANE_TALK[id] && PLANE_TALK[id][L]; if(t) Object.assign(t, k); }));
-const PT_RACE = new Set(['win', 'apart', 'clicks', 'together', 'flares', 'maracas']);   // the kinds in a plane's race pack (with the banter, kinds with a colon)
+const PT_RACE = new Set(['win', 'apart', 'clicks', 'together', 'flares', 'maracas', 'anthem']);   // the kinds in a plane's race pack (with the banter, kinds with a colon)
 const PLEA_ANY = {en:[["Hey buddy, I could use your help!", "Come on, buddy, help me fly!"], ["I need you, buddy! Please help me!", "Buddy, I can't do it without you!"], ["I can't move! Please help me!", "Help me, buddy! I really need you!"]],
   es:[["¡Oye amigo, me vendría bien tu ayuda!", "¡Vamos, amigo, ayúdame a volar!"], ["¡Te necesito, amigo! ¡Ayúdame, por favor!", "¡Amigo, sin ti no puedo!"], ["¡No me puedo mover! ¡Ayúdame, por favor!", "¡Ayúdame, amigo! ¡De verdad te necesito!"]]};
 const PLEA_AT = [15, 40, 60];
@@ -16133,6 +16234,16 @@ if(window.__hangar) Object.assign(window.__hangar, {
   dropHide: on=>{ DD.hide = !!on; return DD.hide; },   // tests: the water's mesh off (its draw call, against the same frame)
   dropLook: ang=>{ const H = cur && DD_HATCH[cur.def.id]; if(!H) return null; if(ang == null || ang < 0){ ddFreeDoors(); return -1; }   // the hangar plane's hatch doors open ang radians (looks: with cam(az, el)); -1 takes them off
     if(!DD.doors){ DD.doors = ddBuild(cur, H); cur.model.add(DD.doors.g); } ddDoors(ang, 0); return ang; }
+});
+// Bulldog's God Save the Queen (WIN_MOVE.dh88q: gsPose, gsAnthem)
+if(window.__hangar) Object.assign(window.__hangar, {
+  gsInfo: ()=>({on: !!GS.g, inScene: !!GS.g && !!GS.g.parent, arms: GS.arms.length, shown: GS.arms.filter(A=>A.piv.visible).length, pole: GS.arms.map(A=>+A.piv.scale.y.toFixed(2)), flag: GS.arms.map(A=>+A.fg.scale.x.toFixed(2)),
+    boost: +GS.boost.toFixed(2), bus: !!GS.bus, duck: gsDuck(), till: +(GS.till - (actx ? actx.currentTime : 0)).toFixed(2), beta: +(GS.beta*180/Math.PI).toFixed(1), st: GS.st && Object.assign({}, GS.st), turn: saveGet('hangar-wmturn-dh88q'), cheer: WM.r ? gsWinKind(WM.r) : null,
+    left: (()=>{ let n = 0; if(rScene) rScene.traverse(o=>{ if(o.name === 'union-flags') n++; }); return n; })()}),
+  gsRender: (bars, sr)=>{ const R = sr || 44100, O = new OfflineAudioContext(1, Math.ceil(R*9), R), g = O.createGain(); g.gain.value = GS_TUNE.vol*.7; g.connect(O.destination); const end = gsAnthem(O, g, .05, bars || 4);   // tests: the band, recorded (16-bit PCM, base64)
+    return O.startRendering().then(b=>{ const d = b.getChannelData(0), n = Math.min(d.length, Math.ceil((end + .4)*R)); let pk = 0, ss = 0; for(let i = 0; i < n; i++){ pk = Math.max(pk, Math.abs(d[i])); ss += d[i]*d[i]; }
+      const k = pk > .98 ? .98/pk : 1, u = new Uint8Array(n*2); for(let i = 0; i < n; i++){ const v = Math.max(-32768, Math.min(32767, Math.round(d[i]*k*32767))); u[i*2] = v & 255; u[i*2 + 1] = (v >> 8) & 255; }
+      let bin = ''; for(let i = 0; i < u.length; i += 8192) bin += String.fromCharCode.apply(null, u.subarray(i, i + 8192)); return {sr: R, n, end: +end.toFixed(2), peak: +pk.toFixed(3), rms: +Math.sqrt(ss/n).toFixed(4), b64: btoa(bin)}; }); }
 });
 // the Sky City race (section "sky city race", tools/test/city-race.mjs)
 if(window.__hangar) Object.assign(window.__hangar, {
