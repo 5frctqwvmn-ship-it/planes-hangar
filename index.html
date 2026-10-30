@@ -11521,13 +11521,20 @@ function wmFx(r, kind){ if(kind === 'cone') return csCone(r); const K = WM_FXK[k
    (wmTurn, the saved turn hangar-wmturn-dh88q: this one first). Two Union Jacks on little poles spring up out of his wingtips and stream back in the
    wind, waving, while he flies a proud, level pass, banks to show them, rolls slowly with them and dips a wing in salute; the band plays the
    anthem's first two lines (the tune is traditional, from the 1740s, public domain), brass over a little bass, with a snare roll before it; the
-   race music ducks under it (musicFrame, gsDuck; Sky City's synthwave too). Then his recorded cheer, a proud one (PLANE_TRICK.dh88.anthem: lines
-   he already says, so they are recorded), when the show is over (celebrate, gsWinKind). A tap: the flags wave harder, a red, white and blue star
+   race music ducks under it (musicFrame, gsDuck; Sky City's synthwave too); he sings it with the band (GS_SING, gsSing). Then his recorded cheer,
+   "God save the Queen!" and a proud line (PLANE_TRICK.dh88.anthem), when the show is over (celebrate, gsWinKind). A tap: the flags wave harder, a red, white and blue star
    and sparks (INK_TAP.flag), with the dances' chime and wing wag. All made in code when the show starts (a canvas for the flag, a few primitives),
    freed when it ends or stops (gsEnd: wmFinish, wmStop). ['flags', at] in the routine: def.flags, the seconds when they pop. */
-const GS = {g: null, arms: [], geos: [], mats: [], tex: [], r: null, bus: null, till: 0, boost: 0, lt: 0, played: false, beta: 0, z: 6.45, st: null, nb: null, nbA: null};
+const GS = {g: null, arms: [], geos: [], mats: [], tex: [], r: null, bus: null, till: 0, boost: 0, lt: 0, played: false, beta: 0, z: 6.45, st: null, nb: null, nbA: null, sing: null, sTok: 0, vu: 0};
 const GSR = {x: 1.0, y: -.03, z: 6.45, zc: 3.9, pole: 2.5, w: 3.6, h: 1.8, tin: .32, fin: .38, fd: .16, tout: .4, amp: .2, k: 1.25, w0: 8.5, nx: 12, ny: 4};   // metres in the Comet's model (x ahead, y up, z out along the wing; his tips are 6.68 out): the pole's foot (zc: in Sky City), its height, the flag (2:1), the pop (s), the unfurl after it, the tuck; the wave: its size (of the flag's height), waves along it, speed (rad/s)
 const GS_TUNE = {q: .42, rit: 1.12, roll: .45, lead: .2, vol: .45};   // the band: a beat (s), the last bar slower by rit, the snare roll before it (s), its start after the pop (s), the level
+/* he sings it (owner, 2026-10-30: make Bulldog actually sing it, in his own voice, with the band): the same four bars in his recorded voice, one clip
+   in his race pack (en and es: the anthem stays in English) made from his Kokoro voice (bm_george): each word spoken, put on the tune's notes an
+   octave under the band's melody, its vowel stretched to the note, a scoop into each note and vibrato on the long ones (the voice tools' sing.py,
+   which reads GS_MEL and GS_TUNE from this file: a change to the tune means a new clip). The clip's first note sits lead s into it; it starts
+   that much before the band's first note, on the game's sound like his other lines (the voices slider: at 0, the band alone), and the band
+   steps back a little (duck) while he sings. His cheer after the show starts with a proud "God save the Queen!" (PLANE_TRICK.dh88.anthem). */
+const GS_SING = {key: 'God save our gracious Queen, long live our noble Queen (sung)', lead: .3, duck: .7};   // its line in the index, the clip's first note (s into it), the band's level while he sings
 /* the anthem's opening (G major, 3/4; MIDI notes, beats): "God save our gracious Queen, long live our noble Queen" (bars 1 to 4), and the whole first
    part to "God save the Queen" (6 bars: gsAnthem's bars). Melody, an alto under it, a bass; hymn-book harmony (G, Em, D, ... D7, G) */
 const GS_MEL = {4: [[67,1],[67,1],[69,1],[66,1.5],[67,.5],[69,1],[71,1],[71,1],[72,1],[71,1.5],[69,.5],[67,2.4]],
@@ -11559,8 +11566,20 @@ function gsAnthem(ac, out, t0, bars){ const B = GS_MEL[bars] ? bars : 4, Q = GS_
   return end + .3; }
 /* the game's sound: its own bus (faded out by gsEnd, Race again in the middle cuts it), the race music and Sky City's synthwave duck under it */
 function gsPlay(){ if(WL.m || !SND.on) return; const a = audio(); if(!a) return; try{ const bus = a.createGain(); bus.gain.value = GS_TUNE.vol*Math.max(.35, VOL.music); bus.connect(audioOut() || a.destination); GS.bus = bus;
-    GS.till = gsAnthem(a, bus, a.currentTime + .03, 4); GS.st.notes = GS_MEL[4].length; WLQ = Math.max(WLQ, GS.till);
+    const t0 = a.currentTime + .03; GS.till = gsAnthem(a, bus, t0, 4); GS.st.notes = GS_MEL[4].length; WLQ = Math.max(WLQ, GS.till); gsSing(a, t0 + GS_TUNE.roll);
     if(SCA.on && SCA.mus) SCA.mus.gain.setTargetAtTime(SCA_MIX.music*VOL.music*.15, a.currentTime, .25); }catch(e){} }
+/* his voice, in time with the band: t1 is the band's first note (audio time). His race pack is usually in already (the solo show waits for it, a race
+   asks for the likely winners' at the last lap); one still on its way starts him late, in step (the clip from where the band is), or not at all near its end */
+function gsSing(a, t1){ const r = GS.r, L = lang, tok = ++GS.sTok; if(!r || VOL.voice <= 0) return; const pk = planeRacePack(r, L); if(!pk) return;
+  GS.st.sing = {want: +t1.toFixed(3), pack: pk};
+  Promise.all([voIndex(), voPack(pk)]).then(([idx, p])=>{ const c = idx && p && (idx.clips[L + '|' + GS_SING.key] || []).find(e=>e[0] === pk);
+    if(!c || tok !== GS.sTok || GS.r !== r || !GS.bus || !SND.on){ if(GS.st && GS.st.sing) GS.st.sing.miss = !c ? 'clip' : 'gone'; return; }
+    const at = t1 - GS_SING.lead, now = a.currentTime + .03, skip = Math.max(0, now - at); if(skip > c[2] - 1.5){ GS.st.sing.miss = 'late'; return; }
+    try{ const [b, off] = voClip(a, p, c[1], c[2]), src = a.createBufferSource(), g = a.createGain(); g.gain.value = VOL.voice; src.buffer = b; src.connect(g); g.connect(audioOut() || a.destination);
+      src.start(at + skip, off + skip, c[2] - skip); const end = at + c[2]; GS.sing = {src, g, end};
+      GS.bus.gain.setTargetAtTime(GS_TUNE.vol*Math.max(.35, VOL.music)*GS_SING.duck, a.currentTime, .05);   // the band a step back while he sings
+      if((VO.until || 0) < end){ VO.from = at + skip; VO.until = GS.vu = end; VO.prio = Math.max(VO.prio || 0, 5); VO.who = VO.cmWho = null; }   // a voice is on: the blimp and the planes' banter wait, the engines and the race music duck (as for any line; nobody else's mouth or chip)
+      Object.assign(GS.st.sing, {at: +(at + skip).toFixed(3), skip: +skip.toFixed(3), dur: c[2], lead: GS_SING.lead}); }catch(e){} }); }
 const gsDuck = ()=>!!(GS.bus && actx && actx.currentTime < GS.till);   // musicFrame: the rock loop low while the band plays
 const gsWinKind = r=>{ const W = WM; return W.r === r && W.run === RACE.run && W.def && W.def.line && talkLine(r, W.def.line).length ? W.def.line : 'win'; };   // celebrate: the show's own cheer (recorded lines), else the usual
 /* the Union Jack (2:1): blue, the white saltire, the red saltire counterchanged (in the hoist's upper quarter the broad white is on top), the white cross, the red cross */
@@ -11591,6 +11610,9 @@ function gsBegin(r){ gsEnd(true); const W = WM, K = rCourse, C = K && K.city && 
   GS.st = {pop: 0, tuck: 0, shown: 0, peak: 0, notes: 0, taps: 0, out: 0}; gsMake(r.c); }
 function gsEnd(fast){ const g = GS.g; if(g){ if(g.parent) g.parent.remove(g); GS.geos.forEach(x=>x.dispose()); GS.mats.forEach(x=>x.dispose()); GS.tex.forEach(x=>x.dispose()); }
   GS.g = null; GS.r = null; GS.arms = []; GS.geos = []; GS.mats = []; GS.tex = [];
+  const S = GS.sing; GS.sing = null; GS.sTok++; if(S){ try{ S.g.gain.setTargetAtTime(0, actx.currentTime, fast ? .03 : .15); S.src.stop(actx.currentTime + (fast ? .2 : .8)); }catch(e){} if(GS.st) GS.st.singEnd = fast ? 'fast' : 'soft';   // his singing too (Race again, the hangar's Back: at once)
+    if(GS.vu && VO.until === GS.vu && actx) VO.until = Math.min(VO.until, actx.currentTime + (fast ? .2 : .8)); }
+  GS.vu = 0;
   const b = GS.bus, a = actx; if(b){ GS.bus = null; GS.till = 0; try{ b.gain.setTargetAtTime(0, a.currentTime, fast ? .04 : .2); }catch(e){} setTimeout(()=>{ try{ b.disconnect(); }catch(e){} }, fast ? 300 : 1200); if(SCA.mus) SCA.vm = -1; } }   // (SCA.vm: Sky City's music back to its level, scaFrame)
 const gsPop = u=>{ const x = Math.min(1, Math.max(0, u)); return x*x*(3 - 2*x)*(1 + .3*Math.sin(Math.PI*x)); };   // springs out, a little past and back
 /* t: the routine's time (wmPose) */
@@ -11991,8 +12013,8 @@ const PLANE_TRICK = {bristles: {en: {apart: ['Snap apart!'], clicks: ['Click, cl
   f18: {en: {flares: ['Flares away!', 'Light show!']}, es: {flares: ['¡Lanzo bengalas!', '¡Show de luces!']}},
   geebee: {en: {maracas: ["Ay, ay, ay! I'm just a racing machine, and I only fly for you, my friends!", 'Shake, shake, shake! Look at me, I am a happy racing machine!']},
     es: {maracas: ['¡Ay, ay, ay! Soy una máquina de carreras, y solo vuelo para ustedes, amigos!', '¡A sacudir, a sacudir! ¡Miren, soy una máquina de carreras feliz!']}}};   // Echo & Bravo's flares at its win (flBurst, 2026-10-17)
-PLANE_TRICK.dh88 = {en: {anthem: ["Hip hip hooray! A gentleman's victory!", 'Jolly good show! A splendid victory!', 'Victory is ours, old chap! A truly magnificent race indeed!']},
-  es: {anthem: ['¡Hip hip hurra! ¡Una victoria de caballeros!', '¡Splendid! ¡Una victoria espléndida!', '¡La victoria es nuestra, amigo! ¡Una carrera verdaderamente magnífica!']}};   // Bulldog's cheer after his anthem (WIN_MOVE.dh88q, gsWinKind): his proudest win lines, already recorded in his race pack
+PLANE_TRICK.dh88 = {en: {anthem: ['God save the Queen! Hip hip hooray!', 'God save the Queen! Jolly good show!', 'God save the Queen! Victory is ours, old chap!']},
+  es: {anthem: ['God save the Queen! ¡Hip hip hurra!', 'God save the Queen! ¡Splendid!', 'God save the Queen! ¡La victoria es nuestra, amigo!']}};   // Bulldog's cheer after his anthem (WIN_MOVE.dh88q, gsWinKind): a proud "God save the Queen!" (in English in both: he is British; recorded 2026-10-30 into his race pack, the voice tools' say.py), then one of his proudest win lines
 Object.entries(PLANE_TRICK).forEach(([id, o])=>Object.entries(o).forEach(([L, k])=>{ const t = PLANE_TALK[id] && PLANE_TALK[id][L]; if(t) Object.assign(t, k); }));
 const PT_RACE = new Set(['win', 'apart', 'clicks', 'together', 'flares', 'maracas', 'anthem']);   // the kinds in a plane's race pack (with the banter, kinds with a colon)
 const PLEA_ANY = {en:[["Hey buddy, I could use your help!", "Come on, buddy, help me fly!"], ["I need you, buddy! Please help me!", "Buddy, I can't do it without you!"], ["I can't move! Please help me!", "Help me, buddy! I really need you!"]],
@@ -17959,7 +17981,7 @@ if(window.__hangar) Object.assign(window.__hangar, {
 // Bulldog's God Save the Queen (WIN_MOVE.dh88q: gsPose, gsAnthem)
 if(window.__hangar) Object.assign(window.__hangar, {
   gsInfo: ()=>({on: !!GS.g, inScene: !!GS.g && !!GS.g.parent, arms: GS.arms.length, shown: GS.arms.filter(A=>A.piv.visible).length, pole: GS.arms.map(A=>+A.piv.scale.y.toFixed(2)), flag: GS.arms.map(A=>+A.fg.scale.x.toFixed(2)),
-    boost: +GS.boost.toFixed(2), bus: !!GS.bus, duck: gsDuck(), till: +(GS.till - (actx ? actx.currentTime : 0)).toFixed(2), beta: +(GS.beta*180/Math.PI).toFixed(1), st: GS.st && Object.assign({}, GS.st), turn: saveGet('hangar-wmturn-dh88q'), cheer: WM.r ? gsWinKind(WM.r) : null,
+    boost: +GS.boost.toFixed(2), bus: !!GS.bus, duck: gsDuck(), till: +(GS.till - (actx ? actx.currentTime : 0)).toFixed(2), beta: +(GS.beta*180/Math.PI).toFixed(1), st: GS.st && Object.assign({}, GS.st), sing: !!GS.sing && !!actx && actx.currentTime < GS.sing.end, singGain: GS.sing ? +GS.sing.g.gain.value.toFixed(2) : null, bandGain: GS.bus ? +GS.bus.gain.value.toFixed(3) : null, turn: saveGet('hangar-wmturn-dh88q'), cheer: WM.r ? gsWinKind(WM.r) : null,
     left: (()=>{ let n = 0; if(rScene) rScene.traverse(o=>{ if(o.name === 'union-flags') n++; }); return n; })()}),
   gsRender: (bars, sr)=>{ const R = sr || 44100, O = new OfflineAudioContext(1, Math.ceil(R*9), R), g = O.createGain(); g.gain.value = GS_TUNE.vol*.7; g.connect(O.destination); const end = gsAnthem(O, g, .05, bars || 4);   // tests: the band, recorded (16-bit PCM, base64)
     return O.startRendering().then(b=>{ const d = b.getChannelData(0), n = Math.min(d.length, Math.ceil((end + .4)*R)); let pk = 0, ss = 0; for(let i = 0; i < n; i++){ pk = Math.max(pk, Math.abs(d[i])); ss += d[i]*d[i]; }
