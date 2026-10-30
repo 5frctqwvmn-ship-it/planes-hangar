@@ -1477,7 +1477,7 @@ bkLocal(MODELS[MODELS.length - 1], {name:['Baby Beluga', 'Bebé Beluga'], short:
    tools/tts/cm_gen.py. */
 /* the Concorde's character name, in one place (placeholder; the owner may rename it): the label, the spoken name, the note. Keep it out of the recorded
    lines (build_talk.py checks); a rename re-records only the announcer, blimp and race name lines. hinge: the nose's hinge, ft from its tip; droop: radians down on the ground. */
-const CONCORDE = {name: 'Skylark', hinge: 33, droop: .3, first: {en: 'March 2, 1969', es: '2 de marzo de 1969'}};   // the character's name in one place (the owner may rename it); droop: the nose's angle down on the ground, radians
+const CONCORDE = {name: 'Concorde', hinge: 33, droop: .3, first: {en: 'March 2, 1969', es: '2 de marzo de 1969'}};   // the character's name in one place (the owner may rename it); droop: the nose's angle down on the ground, radians
 const SHUTTLE = {name:'Endeavour', first:{en:'May 1992', es:'mayo de 1992'}};
 G({id:'shuttle', build:'shuttle', jet:true, glowEach:true, film:'own', retract:{main:'fwd', nose:'fwd'}, short:'Shuttle', character:SHUTTLE.name,
   credit:'Space Shuttle orbiter built in code for this game',
@@ -1519,8 +1519,8 @@ bkLocal(MODELS[MODELS.length - 1], {name:['Homemade Block Plane', 'Avión de Blo
    lowered on the ground and for landing and raised in the air (the pivot is made in prepareGLB, driven by setGearFor). */
 G({id:'concorde', build:'concorde', jet:true, glowEach:true, droop:true, fem:true, film:'own', retract:{main:'in', nose:'fwd'}, name:'Aerospatiale/BAC Concorde', short:'Concorde', character:CONCORDE.name,
   credit:'Concorde built in code for this game',
-  note:{en:`The Concorde was a supersonic airliner built by France and Britain. It flew passengers from 1976 to 2003, at about twice the speed of sound, high up at around 60,000 feet. Its long pointed nose droops down for take-off and landing so the pilots can see the runway. ${CONCORDE.name} looks like a Concorde: a slim body, a pointy delta wing, and four engines in two pods.`,
-        es:`El Concorde fue un avión de pasajeros supersónico construido por Francia y Gran Bretaña. Voló de 1976 a 2003, al doble de la velocidad del sonido, muy alto, a unos 60,000 pies. Su nariz larga y puntiaguda se baja para despegar y aterrizar, para que los pilotos vean la pista. ${CONCORDE.name} se ve como un Concorde: cuerpo delgado, ala delta puntiaguda y cuatro motores en dos cápsulas.`},
+  note:{en:`The Concorde was a supersonic airliner built by France and Britain. It flew passengers from 1976 to 2003, at about twice the speed of sound, high up at around 60,000 feet. Its long pointed nose droops down for take-off and landing so the pilots can see the runway. She has the classic Concorde shape: a slim body, a pointy delta wing, and four engines in two pods.`,
+        es:`El Concorde fue un avión de pasajeros supersónico construido por Francia y Gran Bretaña. Voló de 1976 a 2003, al doble de la velocidad del sonido, muy alto, a unos 60,000 pies. Su nariz larga y puntiaguda se baja para despegar y aterrizar, para que los pilotos vean la pista. Tiene la forma clásica del Concorde: cuerpo delgado, ala delta puntiaguda y cuatro motores en dos cápsulas.`},
   spec:{span:['83 ft 10 in','25.6 m'],len:['202 ft 4 in','61.7 m'],first:[CONCORDE.first.en + ' (prototype)',CONCORDE.first.es + ' (prototipo)']},
   paint:{a:'#f4f5f3',b:'#8f99a3'},
   steps:[
