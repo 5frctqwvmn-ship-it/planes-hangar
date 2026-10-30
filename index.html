@@ -7187,7 +7187,7 @@ LBag.prototype.geo = function(){ const g = new T.BufferGeometry(); g.setAttribut
   g.computeBoundingSphere(); LF.geos.push(g); this.P = this.N = this.C = [];   /* (the arrays are copied into the geometry: let them go) */
   return g; };
 /* the mesh joins the life group and the course's culling (K.cull): c and r are its sphere, f the farthest it is drawn */
-function lfReg(m, c, r, f){ LF.g.add(m); const e = {o:m, c:c.clone(), r, f: f || 1e9, lod:0, fl:false}; LF.K.cull.push(e); LF.regs.push(e); return m; }
+function lfReg(m, c, r, f){ LF.g.add(m); const e = {o:m, c:c.clone(), r:Math.max(r, 320), f: f || 1e9, lod:0, fl:false}; LF.K.cull.push(e); LF.regs.push(e); return m; }
 LBag.prototype.mesh = function(mat, name, f){ const g = this.geo(), m = new T.Mesh(g, mat || LF.mat); m.name = name || 'life'; if(!g.boundingSphere || !isFinite(g.boundingSphere.radius)) g.boundingSphere = new T.Sphere(V(0,0,0), 1);
   return lfReg(m, g.boundingSphere.center, g.boundingSphere.radius, f); };
 /* an instanced mesh whose instance matrices come from fn(i, t, matrix) every frame (set with lfPut); region = [x, y, z, radius] where its instances stay */
@@ -7307,7 +7307,7 @@ function lifeBuild(K){
   LF.mat = lfMat('std'); LF.matS = lfMat('std', {roughness:.3, metalness:.4}); LF.matE = lfMat('basic'); LF.matG = lfMat('std', {polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3});
   LF.matA = lfMat('basic', {transparent:true, depthWrite:false, blending:T.AdditiveBlending, side:T.DoubleSide, fog:true});
   const X = lfContext(K); LF.X = X;
-  const t0 = performance.now(); try{ LIFE[K.C.id](X); }catch(e){ window.__lifeErr = e; console.warn('course life ' + K.C.id, e); }
+  const t0 = performance.now(); try{ LIFE[K.C.id](X); if(LIFE2[K.C.id]) LIFE2[K.C.id](X); }catch(e){ window.__lifeErr = e; console.warn('course life ' + K.C.id, e); }
   K.life = {g, anim:LF.anim, geos:LF.geos, mats:LF.mats, texs:LF.texs, regs:LF.regs, pts:LF.pts, sites:LF.sites, id:K.C.id, ms:Math.round(performance.now() - t0)};
   if(K.shadeT) K.shadeT.needsUpdate = true;
 }
@@ -7954,6 +7954,61 @@ LIFE.carrier = X=>{
   { const sv = []; [-1, 1].forEach(sd=>[bow - 170, bow - 120, bow - 70].forEach(x=>sv.push([x, dk, sd*118]))); lfPuffs(sv.length*4, (i, t, p)=>{ const e = sv[i % sv.length], age = (t/2.2 + i*.23) % 1; p.x = e[0] - age*14; p.y = e[1] + 2 + age*30; p.z = e[2] + Math.sign(e[2])*age*10; p.s = 5 + age*16; p.a = (1 - age)*.55; p.r = p.g = p.b = .96; }, {col:'#ffffff', region:[bow - 100, dk, 0, 300], name:'steam', f:3000}); }
   { const Hs = []; for(let k = 0; k < 2; k++) Hs.push({x:stern + L*(.35 + k*.3), z:(k ? -1 : 1)*400, y:dk + 150 + k*30, R:150, ph:k*3.1, w:(k ? -1 : 1)*.12}); lfHelis(X, Hs, {tints:['#aab2ba', '#f08a1c'], s:2.4, region:3000}); }
   st.mesh(null, 'fleetstuff');
+};
+/* ===== course life, second pass: set pieces along both sides of the racing line and gates over it (the shapes the chase camera sees close up) ===== */
+/* ===== course life, second pass: dense, big, themed set pieces along both sides of the racing line (inside the chase camera's view) and gates over it ===== */
+const LIFE2 = {};
+/* walks the lap (not the start and finish area) and puts a themed thing at each step on each side: o = {step, u0, u1, chunks, types:[{w, off:[near, far], min, ok(p, groundY), put(bag, c)}]};
+   c = {x, y (ground), z, u, sd (+1 left, -1 right), off, py (the line's height), rise (line above ground), ry (along the line), fy (facing the line), r, i, lists, ground (a bag for flat patches)};
+   the bags are split by the lap so only the stretch near the camera is drawn */
+function lfDress(X, o){ const N = o.chunks || 6, H = X.H, L = X.L, step = o.step || 80, bags = [], gb = new LBag(), lists = o.lists || {}, types = o.types, tw = types.reduce((a, t)=>a + t.w, 0), out = {n:0, tris:0, gb};
+  for(let k = 0; k < N; k++) bags.push(new LBag());
+  for(let s = (o.u0 === undefined ? .02 : o.u0)*L, e = (o.u1 === undefined ? .98 : o.u1)*L; s < e; s += step){
+    for(let sd = -1; sd <= 1; sd += 2){ let r = LF.r()*tw, ty = types[0]; for(const t of types){ r -= t.w; if(r <= 0){ ty = t; break; } }
+      const u = (((s + (LF.r() - .5)*step*.7)/L) % 1 + 1) % 1, off = sd*(ty.off[0] + LF.r()*(ty.off[1] - ty.off[0])), p = X.at(u, off);
+      if(X.runway(p.x, p.z, 80) || X.dist(p.x, p.z) < (ty.min || Math.abs(off)*.8)) continue; if(ty.ok && !ty.ok(p, H(p.x, p.z))) continue;
+      const c = {x:p.x, y:ty.sea ? X.wl : p.y, z:p.z, u, sd, off, py:p.py, rise:p.py - p.y, ry:-Math.atan2(p.tz, p.tx), tx:p.tx, tz:p.tz, r:LF.r(), i:out.n, lists, ground:gb, X};
+      c.fy = c.ry + sd*Math.PI/2; const bag = bags[Math.min(N - 1, Math.floor(u*N))], n0 = bag.P.length; ty.put(bag, c); out.n++; out.tris += (bag.P.length - n0)/9; } }
+  bags.forEach((b, k)=>{ if(b.P.length) b.mesh(o.mat || LF.mat, (o.name || 'dress') + k, o.f || 5200); });
+  if(gb.P.length){ out.tris += gb.P.length/9; gb.mesh(LF.matG, 'dressground'); } return out; }
+/* a gate over the line at u: two legs outside the racers' lanes and a bar clear above them. o = {w (half width), clear (bar above the line), legs(bag, x, y, z, top, c), bar(bag, a, b, top, c), deco(bag, c)} */
+function lfGate(X, bag, u, o){ const w = o.w || 135, cl = o.clear || 95, L = X.at(u, w), R = X.at(u, -w), M = X.at(u, 0), top = M.py + cl, ry = -Math.atan2(M.tz, M.tx), c = {L, R, M, top, ry, w, X, u};
+  [L, R].forEach((q, k)=>{ const gy = Math.min(X.H(q.x, q.z), q.py) - 6; if(o.legs) o.legs(bag, q.x, gy, q.z, top, c, k); else bag.beam('cyl6', o.col || '#8a6a44', q.x, gy, q.z, q.x, top, q.z, 5, 4); });
+  if(o.bar) o.bar(bag, L, R, top, c); else bag.beam('cyl6', o.col || '#8a6a44', L.x, top, L.z, R.x, top, R.z, 4, 4);
+  if(o.deco) o.deco(bag, c); return c; }
+/* a point on the lap's tangent frame: x forward along the line, z to the left (for items facing the line) */
+function lfSpan(X){ return X.S.reduce((m, q)=>m + q.x, 0)/X.S.length; }
+/* ===== second pass, farm: windmill rows, barns, silos, scarecrows, crop strips and harvest gates right at the racing line ===== */
+LIFE2.farm = X=>{
+  const {H, wl, K} = X, PI2 = 6.2832, mills = [], sails = new LBag(), cen = [0, 0], S = X.S;
+  S.forEach(q=>{ cen[0] += q.x/S.length; cen[1] += q.z/S.length; }); let rad = 0; S.forEach(q=>{ rad = Math.max(rad, Math.hypot(q.x - cen[0], q.z - cen[1])); }); rad += 400;
+  for(let k = 0; k < 4; k++){ const a = k*Math.PI/2; sails.add('box', '#d9c9a0', 0, 0, 0, 1.6, 40, 1.6, 0, 0, a); for(let q = 1; q < 6; q++){ const f = q*6.6 + 2, ca = Math.cos(a), sa = Math.sin(a); sails.add('box', '#efe6cf', -sa*f, ca*f, 0, 4.2, 5.6, .5, 0, 0, a); } }
+  const good = (p, gy)=>gy > wl + 3 && X.slope(p.x, p.z) < .35, crop = ['#e8c53a', '#7fbf3f', '#b878d8', '#e8863a', '#4fa84a', '#f2d65a'];
+  const at = (c, a, h, o)=>lfAt(c.x, c.y, c.z, c.fy, a, h, o);
+  const tpl = [
+    {w:2.2, off:[95, 150], ok:good, put:(b, c)=>{ const hh = 78 + c.r*34, ry = Math.PI/2 + c.fy, top = lfWindmillOld(b, c.x, c.y, c.z, ry, hh); mills.push({top, ry, s:hh/62, rate:.4 + c.r*.3}); }},
+    {w:1.6, off:[100, 160], ok:good, put:(b, c)=>{ const s = 1.15 + c.r*.5; b.add('box', '#b83a2c', c.x, c.y - 1, c.z, 34*s, 22*s, 24*s, c.fy); b.add('prism', '#8a2a20', c.x, c.y + 21*s, c.z, 25*s, 11*s, 38*s, c.fy + Math.PI/2); b.add('box', '#f4efe2', ...at(c, 17.2*s, 0, 0), .6, 16*s, 12*s, c.fy); b.add('box', '#9a2a1f', ...at(c, 17.4*s, 0, 0), .5, 14*s, 10*s, c.fy);
+        b.add('box', '#f4efe2', ...at(c, 17.7*s, 2, 0), .4, 1.4, 14*s, c.fy, 0, 0); b.add('box', '#f4efe2', ...at(c, 17.7*s, 8*s, 0), .4, 1.4, 14*s, c.fy); const sx = c.x - Math.sin(c.fy)*(30*s), sz = c.z - Math.cos(c.fy)*(30*s); b.add('cyl', '#d8dde2', sx, c.y - 1, sz, 8*s, 56*s, 8*s); b.add('cone', '#7c848c', sx, c.y + 55*s, sz, 8.4*s, 10*s, 8.4*s); b.add('box', '#aab2ba', sx, c.y + 30*s, sz, 8.6*s*2, 1.4, 8.6*s*2); }},
+    {w:1.4, off:[95, 150], ok:good, put:(b, c)=>{ [0, 1].forEach(k=>{ const x = c.x + Math.cos(c.ry)*(k*28 - 14), z = c.z - Math.sin(c.ry)*(k*28 - 14), h = 50 + c.r*30 + k*10; b.add('cyl', k ? '#c9ced4' : '#dfe3e7', x, H(x, z) - 1, z, 9, h, 9); b.add('cone', '#9a2a20', x, H(x, z) + h - 1, z, 9.6, 11, 9.6); b.add('box', '#9aa2aa', x, H(x, z) + h*.4, z, 19, 1.2, 19); b.add('box', '#9aa2aa', x, H(x, z) + h*.75, z, 19, 1.2, 19); }); }},
+    {w:2.4, off:[88, 135], ok:good, put:(b, c)=>{ for(let q = 0; q < 5; q++){ const x = c.x + Math.cos(c.ry)*(q - 2)*16, z = c.z - Math.sin(c.ry)*(q - 2)*16, y = H(x, z), h = 26 + (q*37 % 9); b.add('cyl6', '#4f8a2e', x, y - 1, z, 1, h, 1); b.add('cyl6', '#f4c20d', x + Math.cos(c.fy)*1.8, y + h, z - Math.sin(c.fy)*1.8, 7, 1.8, 7, c.fy, 0, Math.PI/2); b.add('cyl6', '#6b4220', x + Math.cos(c.fy)*2.4, y + h, z - Math.sin(c.fy)*2.4, 3.6, 1.2, 3.6, c.fy, 0, Math.PI/2); } }},
+    {w:2.2, off:[88, 140], ok:good, put:(b, c)=>{ const n = 4 + Math.floor(c.r*3); for(let q = 0; q < n; q++){ const x = c.x + Math.cos(c.ry)*(q - n/2)*15, z = c.z - Math.sin(c.ry)*(q - n/2)*15; b.add('cyl', '#d9b94a', x, H(x, z), z, 6.5, 8, 6.5, 0, 0, Math.PI/2); b.add('cyl', '#c9a43c', x, H(x, z), z, 6.7, .8, 6.7, 0, 0, Math.PI/2); } }},
+    {w:.9, off:[92, 130], ok:good, put:(b, c)=>{ const s = 1.9; b.add('cyl6', '#7a5232', c.x, c.y - 1, c.z, .8*s, 16*s, .8*s); b.add('box', '#7a5232', c.x, c.y + 11*s, c.z, 1.4, 1.4, 16*s, c.ry); b.add('box', '#2f6fb0', c.x, c.y + 6.5*s, c.z, 5*s, 6*s, 2.6*s, c.ry); b.add('ico', '#e8d4a0', c.x, c.y + 17*s, c.z, 3*s); b.add('cone6', '#c8321f', c.x, c.y + 18.4*s, c.z, 4*s, 3.4*s, 4*s); }},
+    {w:1.6, off:[90, 150], ok:good, put:(b, c)=>{ for(let q = 0; q < 3; q++){ const x = c.x + Math.cos(c.ry)*(q - 1)*22 + (c.r - .5)*8, z = c.z - Math.sin(c.ry)*(q - 1)*22; lfCow(b, x, H(x, z), z, c.fy + (q - 1)*.7, 2.6, q !== 1); } }},
+    {w:1.5, off:[88, 140], ok:good, put:(b, c)=>{ const h = 60 + c.r*30; for(let q = 0; q < 3; q++){ const x = c.x + Math.cos(c.ry)*(q - 1)*15, z = c.z - Math.sin(c.ry)*(q - 1)*15, y = H(x, z), hh = h*(1 - Math.abs(q - 1)*.18); b.add('cyl6', '#5a3d28', x, y - 1, z, 1.6, 8, 1.6); b.add('cone6', '#3f8a3a', x, y + 5, z, 7, hh, 7); } }},
+    {w:1.6, off:[85, 105], ok:good, put:(b, c)=>{ const n = 7; for(let q = -n; q <= n; q++){ const x = c.x + Math.cos(c.ry)*q*9, z = c.z - Math.sin(c.ry)*q*9; b.add('box', '#f2eee2', x, H(x, z), z, 1.3, 6, 1.3); } const a = X.at(c.u, c.off), ya = H(c.x - Math.cos(c.ry)*n*9, c.z + Math.sin(c.ry)*n*9), yb = H(c.x + Math.cos(c.ry)*n*9, c.z - Math.sin(c.ry)*n*9); [3, 5.2].forEach(h=>b.beam('cyl6', '#f2eee2', c.x - Math.cos(c.ry)*n*9, ya + h, c.z + Math.sin(c.ry)*n*9, c.x + Math.cos(c.ry)*n*9, yb + h, c.z - Math.sin(c.ry)*n*9, .5, .5)); }},
+    {w:3.2, off:[70, 120], min:50, ok:good, put:(b, c)=>{ const ang = Math.atan2(c.tz, c.tx), pc = crop[Math.floor(c.r*crop.length)], pd = crop[(Math.floor(c.r*crop.length) + 2) % crop.length]; c.ground.ground(H, c.x, c.z, 110, 70, ang, 5, 9, (u, v, i, j)=>j % 2 ? pc : pd, .5); }}];
+  const ds = lfDress(X, {step:62, types:tpl, name:'farmline', chunks:6});
+  /* harvest gates over the line: timber posts, a bar of bunting and a banner */
+  const gb = new LBag(), pen = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c', '#e86aa8'];
+  for(let k = 0; k < 8; k++){ const u = .1 + k*.108 + (LF.r() - .5)*.02; if(X.runway(X.at(u, 0).x, X.at(u, 0).z, 160)) continue;
+    lfGate(X, gb, u, {w:130, clear:92, legs:(b, x, y, z, top, c)=>{ b.beam('cyl6', '#8a5a35', x, y, z, x, top + 6, z, 5, 4); b.add('cyl', '#d9b94a', x + 12, y, z, 6, 7, 6, 0, 0, Math.PI/2); b.add('cyl', '#d9b94a', x - 12, y, z, 6, 7, 6, 0, 0, Math.PI/2); },
+      bar:(b, L, R, top)=>{ b.beam('cyl6', '#8a5a35', L.x, top, L.z, R.x, top, R.z, 3.6, 3.6); }, deco:(b, c)=>{ const yaw = c.ry - Math.PI/2;
+        b.add('box', pen[k % 6], c.M.x, c.top - 24, c.M.z, 74, 18, 1.2, yaw); b.add('box', '#fff6d8', c.M.x, c.top - 20.5, c.M.z, 66, 3, 1.4, yaw); b.add('box', '#fff6d8', c.M.x, c.top - 11, c.M.z, 66, 3, 1.4, yaw);
+        for(let q = -6; q <= 6; q++){ if(Math.abs(q) < 2) continue; const p = X.at(c.u, q*20); b.add('prism', pen[(q + 12 + k) % 6], p.x, c.top - 1, p.z, 11, 16, .6, yaw, 0, Math.PI); } } }); }
+  gb.mesh(LF.mat, 'farmgates', 5200);
+  if(mills.length) lfAnim(sails, mills.length, (i, t, m)=>{ const e = mills[i]; lfPut(m, e.top[0], e.top[1], e.top[2], e.ry, 0, t*e.rate + i, e.s, e.s, e.s); }, [cen[0], 120, cen[1], rad], {name:'linesails', f:3800});
+  X.site('lineview', X.at(.3, 0).x, X.at(.3, 0).py, X.at(.3, 0).z, X.at(.3, 0).tx, X.at(.3, 0).tz);
+  window.__dressInfo = ds;
 };
 function useCourse(idx){
   ensureRaceScene();
