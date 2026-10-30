@@ -6988,7 +6988,7 @@ async function buildCourse(idx){
     (['hero', 'boulder', 'stack', 'shrub'].includes(o.name) ? o.children : [o]).forEach(p=>{
       const sp = p.userData.sphere ? p.userData.sphere.clone() : cb.setFromObject(p).getBoundingSphere(new T.Sphere());
       cull.push({o:p, c:sp.center, r:sp.radius, f:o.userData.far || 1e9, lod: p.userData.far && p.userData.far.length ? o.userData.lod : 0, fl:false}); }); });
-  const K = {C, group, curve, L, pylons, gate, H, centroid, sky, water:WM, terrainU:TU, cull, envMap, sunDir, sunCol, haze, spin, wl: water, fogColor: displayColor(haze.r, haze.g, haze.b), deck: dk, bowX: CARRIER.bow, wire: ship ? ship.userData.wire : null};
+  const K = {C, group, curve, L, pylons, gate, H, centroid, sky, water:WM, terrainU:TU, cull, envMap, sunDir, sunCol, haze, spin, wl: water, fogColor: displayColor(haze.r, haze.g, haze.b), deck: dk, bowX: CARRIER.bow, wire: ship ? ship.userData.wire : null, shadeDot, shadeT};
   rCourses[idx] = K;
   return K;
 }
@@ -7146,12 +7146,839 @@ function courseLandmarks(C, X){
     inst(new T.CylinderGeometry(1, 1, 1, 16), rMat('#d62828', {roughness:.5}), buoys, 'buoys'); inst(new T.ConeGeometry(1, 1, 16), rMat('#f4f4f4', {roughness:.4, emissive:'#fff2b0', emissiveIntensity:.5}), tops, 'buoys');
   }
 }
+/* ================= course life: themed scenery that moves, for every race course =================
+   Owner, 2026-10-28: "the other races are looking a little dull compared to the Sky City. Give all the other maps a pass at making them
+   more visually interesting, in a way that fits the theme of the race." Sky City is the bar: things move. Each course gets its own
+   landmarks and moving life (LIFE.<course id>, one banner per course below). All of it is made in code: merged vertex-coloured geometry
+   (LBag), a few shared materials, instanced parts whose matrices are set each frame from a function (lfAnim, nothing is created per
+   frame), flocks (lfBirds), point-sprite smoke and sparkles (lfPuffs) and falling snow (lfSnow, made in its shader). It is built when a
+   race starts on the course (useCourse) and thrown away when the race ends or another course starts (lifeFree). Spots are chosen
+   beside the racing line, never on it (X.spot / X.far), so nothing blocks the pylons or the race cameras; the course's own culling
+   (K.cull) skips each piece once it is past the fog. */
+const LF = {K:null, g:null, anim:[], geos:[], mats:[], texs:[], regs:[], r:Math.random, X:null, mat:null, matS:null, matE:null, matG:null, dbg:null, H:600};
+const LFP = {}, LFC = {};
+const _lm = new T.Matrix4(), _lq = new T.Quaternion(), _le = new T.Euler(0, 0, 0, 'YXZ'), _lp = V(0,0,0), _ls = V(1,1,1), _ln = new T.Matrix3(), _lv = V(0,0,0), _lw = new T.Matrix4();
+function lfCol(c){ if(c && c.isColor) return c; return LFC[c] || (LFC[c] = new T.Color(c).convertSRGBToLinear()); }
+function lfJit(c, a, k){ const o = lfCol(c).clone(), f = 1 + (LF.r() - .5)*2*(a || .12); o.r = Math.min(1, o.r*f); o.g = Math.min(1, o.g*f); o.b = Math.min(1, o.b*f); return o; }
+function lfMulC(c, f){ const o = lfCol(c).clone(); o.r *= f; o.g *= f; o.b *= f; return o; }
+/* x y z, yaw, pitch-about-x, roll-about-z, and scale into a matrix; no allocation */
+function lfPut(m, x, y, z, ry, rx, rz, sx, sy, sz){ _le.set(rx || 0, ry || 0, rz || 0); _lq.setFromEuler(_le); return m.compose(_lp.set(x, y, z), _lq, _ls.set(sx === undefined ? 1 : sx, sy === undefined ? (sx === undefined ? 1 : sx) : sy, sz === undefined ? (sx === undefined ? 1 : sx) : sz)); }
+/* unit shapes with the base at y = 0 (box, cylinder, cone) or centred (sphere, ico, quad), as plain triangles with normals */
+function lfProto(k){ if(LFP[k]) return LFP[k]; let g;
+  if(k === 'box'){ g = new T.BoxGeometry(1, 1, 1); g.translate(0, .5, 0); }
+  else if(k === 'cyl'){ g = new T.CylinderGeometry(1, 1, 1, 10); g.translate(0, .5, 0); }
+  else if(k === 'cyl6'){ g = new T.CylinderGeometry(1, 1, 1, 6); g.translate(0, .5, 0); }
+  else if(k === 'cone'){ g = new T.ConeGeometry(1, 1, 10); g.translate(0, .5, 0); }
+  else if(k === 'cone6'){ g = new T.ConeGeometry(1, 1, 6); g.translate(0, .5, 0); }
+  else if(k === 'sph'){ g = new T.SphereGeometry(1, 10, 7); }
+  else if(k === 'sphL'){ g = new T.SphereGeometry(1, 16, 10); }
+  else if(k === 'ico'){ g = new T.IcosahedronGeometry(1, 0); }
+  else if(k === 'quad'){ g = new T.PlaneGeometry(1, 1); }
+  else if(k === 'prism'){ const s = new T.Shape(); s.moveTo(-.5, 0); s.lineTo(.5, 0); s.lineTo(0, 1); g = new T.ExtrudeGeometry(s, {depth: 1, bevelEnabled: false}); g.translate(0, 0, -.5); }
+  else if(k === 'pyr'){ g = new T.ConeGeometry(.7071, 1, 4); g.rotateY(Math.PI/4); g.translate(0, .5, 0); }
+  else if(k === 'torus'){ g = new T.TorusGeometry(1, .22, 6, 18); }
+  g = g.index ? g.toNonIndexed() : g; g.deleteAttribute('uv'); return (LFP[k] = g); }
+function LBag(){ this.P = []; this.N = []; this.C = []; }
+LBag.prototype.add = function(k, col, x, y, z, sx, sy, sz, ry, rx, rz){
+  const g = lfProto(k), pa = g.attributes.position.array, na = g.attributes.normal.array, c = lfCol(col);
+  lfPut(_lw, x, y, z, ry, rx, rz, sx, sy === undefined ? sx : sy, sz === undefined ? sx : sz); _ln.getNormalMatrix(_lw);
+  for(let i = 0; i < pa.length; i += 3){ _lv.set(pa[i], pa[i+1], pa[i+2]).applyMatrix4(_lw); this.P.push(_lv.x, _lv.y, _lv.z);
+    _lv.set(na[i], na[i+1], na[i+2]).applyMatrix3(_ln).normalize(); this.N.push(_lv.x, _lv.y, _lv.z); this.C.push(c.r, c.g, c.b); }
+  return this; };
+/* a tapered post or beam from point a to point b (cylinder, r0 at a, r1 at b) */
+LBag.prototype.beam = function(k, col, ax, ay, az, bx, by, bz, r0, r1){
+  const dx = bx - ax, dy = by - ay, dz = bz - az, len = Math.hypot(dx, dy, dz) || 1, g = lfProto(k), pa = g.attributes.position.array, na = g.attributes.normal.array, c = lfCol(col);
+  _lv.set(dx, dy, dz).normalize(); _lq.setFromUnitVectors(_ls.set(0, 1, 0), _lv); _ls.set(1, 1, 1);
+  _lw.compose(_lp.set(ax, ay, az), _lq, _ls.set(1, 1, 1)); _ln.getNormalMatrix(_lw);
+  for(let i = 0; i < pa.length; i += 3){ const f = pa[i+1], r = r0 + (r1 - r0)*f;
+    _lv.set(pa[i]*r, f*len, pa[i+2]*r).applyMatrix4(_lw); this.P.push(_lv.x, _lv.y, _lv.z);
+    _lv.set(na[i], na[i+1], na[i+2]).applyMatrix3(_ln).normalize(); this.N.push(_lv.x, _lv.y, _lv.z); this.C.push(c.r, c.g, c.b); }
+  return this; };
+/* a patch of ground that follows the terrain: w by d feet about (cx, cz), turned by ang, colour from f(u, v, i, j) (u along w, v along d), lifted a little */
+LBag.prototype.ground = function(H, cx, cz, w, d, ang, nx, nz, f, lift){
+  const ca = Math.cos(ang), sa = Math.sin(ang), P = [], C = [];
+  for(let j = 0; j <= nz; j++) for(let i = 0; i <= nx; i++){ const u = i/nx - .5, v = j/nz - .5, x = cx + (u*w)*ca - (v*d)*sa, z = cz + (u*w)*sa + (v*d)*ca; P.push([x, H(x, z) + (lift === undefined ? .8 : lift), z]); }
+  for(let j = 0; j < nz; j++) for(let i = 0; i < nx; i++){ const a = j*(nx+1) + i, b = a + 1, c2 = a + nx + 1, d2 = c2 + 1, col = lfCol(f((i + .5)/nx, (j + .5)/nz, i, j));
+    [[a, c2, b], [b, c2, d2]].forEach(t=>t.forEach(q=>{ const p = P[q]; this.P.push(p[0], p[1], p[2]); this.N.push(0, 1, 0); this.C.push(col.r, col.g, col.b); })); }
+  return this; };
+LBag.prototype.geo = function(){ const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(this.P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(this.N, 3)); g.setAttribute('color', new T.Float32BufferAttribute(this.C, 3));
+  g.computeBoundingSphere(); LF.geos.push(g); this.P = this.N = this.C = [];   /* (the arrays are copied into the geometry: let them go) */
+  return g; };
+/* the mesh joins the life group and the course's culling (K.cull): c and r are its sphere, f the farthest it is drawn */
+function lfReg(m, c, r, f){ LF.g.add(m); const e = {o:m, c:c.clone(), r, f: f || 1e9, lod:0, fl:false}; LF.K.cull.push(e); LF.regs.push(e); return m; }
+LBag.prototype.mesh = function(mat, name, f){ const g = this.geo(), m = new T.Mesh(g, mat || LF.mat); m.name = name || 'life'; if(!g.boundingSphere || !isFinite(g.boundingSphere.radius)) g.boundingSphere = new T.Sphere(V(0,0,0), 1);
+  return lfReg(m, g.boundingSphere.center, g.boundingSphere.radius, f); };
+/* an instanced mesh whose instance matrices come from fn(i, t, matrix) every frame (set with lfPut); region = [x, y, z, radius] where its instances stay */
+function lfAnim(bag, n, fn, region, o){ o = o || {}; const g = bag.geo(); g.boundingSphere = new T.Sphere(V(region[0], region[1], region[2]), region[3]);
+  let mat = o.mat || LF.mat; if(o.tint){ mat = mat.clone(); LF.mats.push(mat); }   /* (r128 builds one program per material: a tinted copy has its own) */
+  const im = new T.InstancedMesh(g, mat, n), m = new T.Matrix4(); im.instanceMatrix.setUsage(T.DynamicDrawUsage); im.name = o.name || 'life';
+  const upd = t=>{ for(let i = 0; i < n; i++){ fn(i, t, m); im.setMatrixAt(i, m); } im.instanceMatrix.needsUpdate = true; };
+  upd(0); if(o.tint) o.tint.forEach((c, i)=>im.setColorAt(i, lfCol(c))); LF.anim.push(upd); lfReg(im, g.boundingSphere.center, region[3], o.f); return im; }
+function lfMat(kind, o){ o = o || {}; let m;
+  if(kind === 'std') m = new T.MeshStandardMaterial(Object.assign({vertexColors:true, roughness:.85, metalness:0}, o));
+  else m = new T.MeshBasicMaterial(Object.assign({vertexColors:true}, o));
+  LF.mats.push(m); return m; }
+/* point sprites: smoke, steam, dust, sparkles. A puff is a soft round dot with a size, an opacity and a colour; fn(i, t, p) sets p.x p.y p.z p.s p.a (and p.r p.g p.b) each frame */
+const LF_PT_V = `#include <fog_pars_vertex>
+  attribute float aS; attribute float aA; attribute vec3 aC; varying float vA; varying vec3 vC; uniform float uH;
+  void main(){ vec4 mvPosition = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mvPosition;
+    gl_PointSize = clamp(aS * projectionMatrix[1][1] * uH * .5 / max(.5, -mvPosition.z), 0.0, 320.0); vA = aA; vC = aC;
+    #include <fog_vertex>
+  }`;
+const LF_PT_F = `uniform vec3 uCol; varying float vA; varying vec3 vC;
+  #include <fog_pars_fragment>
+  void main(){ vec2 d = gl_PointCoord - .5; float r = dot(d, d)*4.0; if(r > 1.0 || vA < .01) discard;
+    gl_FragColor = vec4(uCol * vC, vA * (1.0 - r) * 1.15);
+    #include <tonemapping_fragment>
+    #include <encodings_fragment>
+    #include <fog_fragment>
+  }`;
+const _lpp = {x:0, y:0, z:0, s:1, a:1, r:1, g:1, b:1};
+function lfPuffs(n, fn, o){ o = o || {};
+  const g = new T.BufferGeometry(), P = new Float32Array(n*3), S = new Float32Array(n), A = new Float32Array(n), Cc = new Float32Array(n*3).fill(1);
+  g.setAttribute('position', new T.BufferAttribute(P, 3)); g.setAttribute('aS', new T.BufferAttribute(S, 1)); g.setAttribute('aA', new T.BufferAttribute(A, 1)); g.setAttribute('aC', new T.BufferAttribute(Cc, 3));
+  [g.attributes.position, g.attributes.aS, g.attributes.aA, g.attributes.aC].forEach(a=>a.setUsage(T.DynamicDrawUsage));
+  g.boundingSphere = new T.Sphere(V(o.region[0], o.region[1], o.region[2]), o.region[3]); LF.geos.push(g);
+  const U = T.UniformsUtils.merge([T.UniformsLib.fog]); Object.assign(U, {uCol:{value:lfCol(o.col || '#ffffff')}, uH:{value:600}});
+  const m = new T.ShaderMaterial({uniforms:U, fog:true, transparent:true, depthWrite:false, vertexShader:LF_PT_V, fragmentShader:LF_PT_F, blending: o.add ? T.AdditiveBlending : T.NormalBlending}); LF.mats.push(m);
+  const pts = new T.Points(g, m); pts.name = o.name || 'life'; pts.userData.uH = U.uH;
+  const upd = t=>{ for(let i = 0; i < n; i++){ _lpp.x = _lpp.y = _lpp.z = 0; _lpp.s = 1; _lpp.a = 0; _lpp.r = _lpp.g = _lpp.b = 1; fn(i, t, _lpp);
+      P[i*3] = _lpp.x; P[i*3+1] = _lpp.y; P[i*3+2] = _lpp.z; S[i] = _lpp.s; A[i] = _lpp.a; Cc[i*3] = _lpp.r; Cc[i*3+1] = _lpp.g; Cc[i*3+2] = _lpp.b; }
+    g.attributes.position.needsUpdate = g.attributes.aS.needsUpdate = g.attributes.aA.needsUpdate = g.attributes.aC.needsUpdate = true; };
+  upd(0); LF.anim.push(upd); LF.pts = LF.pts || []; LF.pts.push(pts); lfReg(pts, g.boundingSphere.center, o.region[3], o.f); return pts; }
+/* falling snow, made in the shader: flakes wrap around the camera inside a box (no per-frame work) */
+function lfSnow(n, o){ o = o || {};
+  const g = new T.BufferGeometry(), P = new Float32Array(n*3), R = new Float32Array(n), B = o.box || [240, 150, 240];
+  for(let i = 0; i < n; i++){ P[i*3] = LF.r()*B[0]; P[i*3+1] = LF.r()*B[1]; P[i*3+2] = LF.r()*B[2]; R[i] = LF.r(); }
+  g.setAttribute('position', new T.BufferAttribute(P, 3)); g.setAttribute('aR', new T.BufferAttribute(R, 1)); g.boundingSphere = new T.Sphere(V(0,0,0), 1e7); LF.geos.push(g);
+  const U = T.UniformsUtils.merge([T.UniformsLib.fog]); Object.assign(U, {uT:{value:0}, uH:{value:600}, uBox:{value:V(B[0], B[1], B[2])}, uFall:{value:o.fall || 16}, uWind:{value:V(o.wx === undefined ? 10 : o.wx, 0, o.wz === undefined ? 4 : o.wz)}, uSize:{value:o.size || 1.1}, uCol:{value:lfCol(o.col || '#ffffff')}});
+  const m = new T.ShaderMaterial({uniforms:U, fog:true, transparent:true, depthWrite:false,
+    vertexShader:`#include <fog_pars_vertex>
+      attribute float aR; uniform float uT; uniform float uH; uniform vec3 uBox; uniform float uFall; uniform vec3 uWind; uniform float uSize; varying float vA;
+      void main(){ vec3 p = position + vec3(sin(uT*.7 + aR*40.0)*3.0, -uT*uFall*(.7 + aR*.6), cos(uT*.6 + aR*30.0)*3.0) + uWind*uT;
+        vec3 o = cameraPosition - uBox*.5; p = mod(p - o, uBox) + o;
+        vec4 mvPosition = viewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mvPosition;
+        vec3 q = (p - cameraPosition)/uBox*2.0; vA = (1.0 - smoothstep(.55, 1.0, max(abs(q.x), max(abs(q.y), abs(q.z))))) * (.55 + .45*aR);
+        gl_PointSize = clamp(uSize*(.6 + aR*.8) * projectionMatrix[1][1] * uH * .5 / max(.5, -mvPosition.z), 1.0, 24.0);
+        #include <fog_vertex>
+      }`,
+    fragmentShader:`uniform vec3 uCol; varying float vA;
+      #include <fog_pars_fragment>
+      void main(){ vec2 d = gl_PointCoord - .5; float r = dot(d, d)*4.0; if(r > 1.0) discard; gl_FragColor = vec4(uCol, vA * (1.0 - r));
+        #include <tonemapping_fragment>
+        #include <encodings_fragment>
+        #include <fog_fragment>
+      }`}); LF.mats.push(m);
+  const pts = new T.Points(g, m); pts.frustumCulled = false; pts.name = 'snow'; pts.renderOrder = 6; LF.g.add(pts);
+  LF.anim.push(t=>{ U.uT.value = t; }); LF.pts = LF.pts || []; LF.pts.push(pts); return pts; }
+/* flocks: n birds circling (cx, cy, cz) at radius R, each with a body and two wings that flap (3 instanced meshes). o: {col, wing, tip, head, beak, speed, bob, flap, size, dir} */
+function lfBirds(n, cx, cy, cz, R, o){ o = o || {};
+  const s = o.size || 1, body = new LBag(), wl = new LBag(), wr = new LBag(), cB = o.col || '#f4f4f4', cW = o.wing || cB, cT = o.tip || cW;
+  body.add('sph', cB, 0, 0, 0, 1.7*s, .6*s, .55*s); body.add('sph', o.head || cB, 1.6*s, .25*s, 0, .55*s, .5*s, .5*s); body.add('cone6', o.beak || '#f2a22a', 2.2*s, .25*s, 0, .22*s, .9*s, .22*s, 0, 0, -Math.PI/2);
+  wr.add('box', cW, -.9*s, 0, 1.8*s, 1.5*s, .12*s, 3.6*s); wr.add('box', cT, -1.3*s, 0, 4.5*s, 1.0*s, .1*s, 1.8*s);
+  wl.add('box', cW, -.9*s, 0, -1.8*s, 1.5*s, .12*s, 3.6*s); wl.add('box', cT, -1.3*s, 0, -4.5*s, 1.0*s, .1*s, 1.8*s);
+  const ph = [], rad = [], hgt = [], spd = [], dir = o.dir || 1, sp = o.speed || .22, region = [cx, cy, cz, R*1.3 + 30], fl = o.flap || 6, bobA = o.bob === undefined ? 6 : o.bob;
+  for(let i = 0; i < n; i++){ ph.push(LF.r()*6.283); rad.push(R*(.55 + LF.r()*.5)); hgt.push((LF.r() - .5)*R*.25); spd.push(sp*(.85 + LF.r()*.3)); }
+  const place = (i, t, k, m)=>{ const a = ph[i] + dir*spd[i]*t*(220/Math.max(60, rad[i])), x = cx + Math.cos(a)*rad[i], z = cz + Math.sin(a)*rad[i], y = cy + hgt[i] + Math.sin(t*.8 + i)*bobA;
+    const hx = -Math.sin(a)*dir, hz = Math.cos(a)*dir, f = Math.sin(t*fl + ph[i]*3)*.6;
+    lfPut(m, x, y, z, Math.atan2(-hz, hx), .3*dir + (k === 1 ? -f : k === 2 ? f : 0), 0, 1, 1, 1); };
+  const nm = o.name || 'birds';
+  return [lfAnim(body, n, (i, t, m)=>place(i, t, 0, m), region, {name:nm, f:o.f}), lfAnim(wr, n, (i, t, m)=>place(i, t, 1, m), region, {name:nm, f:o.f}), lfAnim(wl, n, (i, t, m)=>place(i, t, 2, m), region, {name:nm, f:o.f})]; }
+/* a hot-air balloon: striped envelope (two tones of one tint: the instance colour) over a basket, 0 to about 80 feet */
+function lfBalloon(bag, R, cA, cB){ const nL = 12, nR = 7, P = (a, ph)=>{ const rr = R*Math.sin(ph), y = R*.75 + R*1.18 + R*1.1*Math.cos(ph) - (ph > 2.3 ? (ph - 2.3)*R*.5 : 0); return [Math.cos(a)*rr, y, Math.sin(a)*rr]; };
+  for(let l = 0; l < nL; l++){ const a0 = l/nL*6.2832, a1 = (l + 1)/nL*6.2832, c = lfCol(l % 2 ? cB : cA);
+    for(let k = 0; k < nR; k++){ const p0 = k/nR*2.6, p1 = (k + 1)/nR*2.6, q = [P(a0, p0), P(a1, p0), P(a1, p1), P(a0, p1)];
+      [[0, 2, 1], [0, 3, 2]].forEach(tr=>tr.forEach(i=>{ const v = q[i]; bag.P.push(v[0], v[1], v[2]); const nl = Math.hypot(v[0], v[1] - R*1.93, v[2]) || 1; bag.N.push(v[0]/nl, (v[1] - R*1.93)/nl, v[2]/nl); bag.C.push(c.r, c.g, c.b); })); } }
+  bag.add('cyl', '#7a5232', 0, 0, 0, R*.3, R*.42, R*.3); bag.add('sph', '#ffb03a', 0, R*.68, 0, R*.12, R*.2, R*.12);
+  [[1, 1], [-1, 1], [1, -1], [-1, -1]].forEach(([a, b])=>bag.beam('cyl6', '#4a3a2a', a*R*.14, R*.42, b*R*.14, a*R*.37, R*.86, b*R*.37, .35, .35)); return bag; }
+/* ground-level scenery helpers */
+LBag.prototype.fence = function(H, pts, col, h){ h = h || 3.2; for(let i = 0; i < pts.length; i++){ const a = pts[i], b = pts[(i + 1) % pts.length], ya = H(a[0], a[1]), yb = H(b[0], b[1]), dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz), ry = Math.atan2(-dz, dx);
+    this.add('box', col, a[0], ya - .5, a[1], .7, h + .5, .7); [h*.4, h*.85].forEach(hy=>this.add('box', col, (a[0] + b[0])/2, (ya + yb)/2 + hy, (a[1] + b[1])/2, len, .45, .35, ry, 0, Math.atan2(yb - ya, len))); } return this; };
+const LFR = ()=>LF.r();
+function lfRng(seed){ let a = seed|0; return ()=>{ a = (a + 0x6D2B79F5)|0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0)/4294967296; }; }
+/* the context every course's life function gets: ground height, distance from the racing line, spots beside it, where each piece stands */
+const LIFE = {};
+function lfContext(K){
+  const curve = K.curve, H = K.H, wl = K.wl, S = [], used = [];
+  for(let i = 0; i < 400; i++) S.push(curve.getPointAt(i/400));
+  const X = {K, C:K.C, H, wl, curve, S, L:K.L, used, r:()=>LF.r()};
+  X.ground = (x, z)=>Math.max(H(x, z), wl);
+  X.slope = (x, z)=>Math.hypot(H(x + 18, z) - H(x - 18, z), H(x, z + 18) - H(x, z - 18))/36;
+  X.dist = (x, z)=>{ let b = 1e12; for(let i = 0; i < S.length; i++){ const q = S[i], d = (q.x - x)*(q.x - x) + (q.z - z)*(q.z - z); if(d < b) b = d; } return Math.sqrt(b); };
+  X.near = (x, z)=>{ let b = 1e12, bi = 0; for(let i = 0; i < S.length; i++){ const q = S[i], d = (q.x - x)*(q.x - x) + (q.z - z)*(q.z - z); if(d < b){ b = d; bi = i; } } return S[bi]; };
+  X.runway = (x, z, m)=>Math.abs(z) < 230 + (m || 0) && x > R_FRONT - 1500 && x < 320;
+  X.free = (x, z, r, d)=>{ if(X.runway(x, z, 120) || X.dist(x, z) < (d || r)) return false; for(let i = 0; i < used.length; i++){ const u = used[i]; if(Math.hypot(u.x - x, u.z - z) < u.r + r) return false; } return true; };
+  X.claim = (x, z, r)=>{ used.push({x, z, r}); };
+  X.away = (x, z)=>{ const q = X.near(x, z), dx = x - q.x, dz = z - q.z, l = Math.hypot(dx, dz) || 1; return [dx/l, dz/l]; };
+  X.at = (u, off)=>{ const uu = ((u % 1) + 1) % 1, q = curve.getPointAt(uu), tg = curve.getTangentAt(uu), nl = Math.hypot(tg.x, tg.z) || 1, tx = tg.x/nl, tz = tg.z/nl, x = q.x - tz*off, z = q.z + tx*off; return {x, z, y:X.ground(x, z), py:q.y, tx, tz, u:uu}; };
+  /* a spot on the ground beside the racing line: o = {dmin, dmax, r (room it needs), test(y, x, z), u0, u1 (stretch of the lap), claim} */
+  X.spot = o=>{ for(let k = 0; k < (o.tries || 80); k++){ const u = (o.u0 || 0) + LF.r()*((o.u1 === undefined ? 1 : o.u1) - (o.u0 || 0)), off = ((o.dmin || 150) + LF.r()*((o.dmax || 600) - (o.dmin || 150)))*(o.side || (LF.r() < .5 ? 1 : -1)), p = X.at(u, off);
+      if(!X.free(p.x, p.z, o.r || 20, o.dmin || 150)) continue; if(o.test && !o.test(H(p.x, p.z), p.x, p.z)) continue; if(o.claim !== false) X.claim(p.x, p.z, o.r || 20); p.off = off; return p; } return null; };
+  X.site = (name, x, y, z, tx, tz)=>{ LF.sites.push(tx === undefined ? [name, Math.round(x), Math.round(y), Math.round(z)] : [name, Math.round(x), Math.round(y), Math.round(z), +tx.toFixed(3), +tz.toFixed(3)]); };
+  X.shade = (x, z, r, a)=>{ if(K.shadeDot) K.shadeDot(x, z, r, a === undefined ? .4 : a); };
+  return X; }
+function lifeBuild(K){
+  if(K.life || K.city || !LIFE[K.C.id]) return;
+  const g = new T.Group(); g.name = 'life'; K.group.add(g);
+  let seed = 7; for(const ch of K.C.id) seed = (seed*31 + ch.charCodeAt(0))|0;
+  Object.assign(LF, {K, g, anim:[], geos:[], mats:[], texs:[], regs:[], pts:[], sites:[], r:lfRng(seed)});
+  LF.mat = lfMat('std'); LF.matS = lfMat('std', {roughness:.3, metalness:.4}); LF.matE = lfMat('basic'); LF.matG = lfMat('std', {polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3});
+  LF.matA = lfMat('basic', {transparent:true, depthWrite:false, blending:T.AdditiveBlending, side:T.DoubleSide, fog:true});
+  const X = lfContext(K); LF.X = X;
+  const t0 = performance.now(); try{ LIFE[K.C.id](X); }catch(e){ window.__lifeErr = e; console.warn('course life ' + K.C.id, e); }
+  K.life = {g, anim:LF.anim, geos:LF.geos, mats:LF.mats, texs:LF.texs, regs:LF.regs, pts:LF.pts, sites:LF.sites, id:K.C.id, ms:Math.round(performance.now() - t0)};
+  if(K.shadeT) K.shadeT.needsUpdate = true;
+}
+function lifeFree(K){ const L = K && K.life; if(!L) return;
+  if(L.g.parent) L.g.parent.remove(L.g);
+  L.g.traverse(o=>{ if(o.isInstancedMesh) o.dispose(); });
+  L.geos.forEach(x=>x.dispose()); L.mats.forEach(x=>x.dispose()); L.texs.forEach(x=>x.dispose());
+  L.regs.forEach(e=>{ const i = K.cull.indexOf(e); if(i >= 0) K.cull.splice(i, 1); });
+  K.life = null; }
+function lifeFrame(K, t){ const L = K.life, hh = renderer.domElement.height;
+  const D = LF.dbg; if(D){ rCam.position.set(D[0], D[1], D[2]); if(D[6]){ rCam.fov = D[6]; rCam.updateProjectionMatrix(); } rCam.lookAt(D[3], D[4], D[5]); }
+  for(let i = 0; i < L.pts.length; i++){ const u = L.pts[i].material.uniforms; if(u.uH) u.uH.value = hh; }
+  for(let i = 0; i < L.anim.length; i++) L.anim[i](t); }
+/* ===== course life: shared builders (flat foam, spinning meshes, beams of light, dolphins, whales, ships with wakes, helicopters, ferris wheels, penguins) ===== */
+function lfTex(w, h, draw){ const cv = document.createElement('canvas'); cv.width = w; cv.height = h; draw(cv.getContext('2d'), w, h); const t = new T.CanvasTexture(cv); t.encoding = T.sRGBEncoding; LF.texs.push(t); return t; }
+/* a flat foam sprite that pulses: n instances of a horizontal plane with a texture, fn(i, t, m) sets each matrix */
+function lfFoam(tex, n, region, fn, o){ o = o || {}; const g = new T.PlaneGeometry(1, 1); g.rotateX(-Math.PI/2); LF.geos.push(g); g.boundingSphere = new T.Sphere(V(region[0], region[1], region[2]), region[3]);
+  const mat = new T.MeshBasicMaterial({map:tex, transparent:true, depthWrite:false, opacity:o.opacity || .85, fog:true, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4}); LF.mats.push(mat);
+  const im = new T.InstancedMesh(g, mat, n), m = new T.Matrix4(); im.instanceMatrix.setUsage(T.DynamicDrawUsage); im.name = o.name || 'foam'; im.renderOrder = 4;
+  const upd = t=>{ for(let i = 0; i < n; i++){ fn(i, t, m); im.setMatrixAt(i, m); } im.instanceMatrix.needsUpdate = true; }; upd(0); LF.anim.push(upd); lfReg(im, g.boundingSphere.center, region[3], o.f); return im; }
+/* a mesh that turns: bag built about its own origin, placed at x y z, yawed by ry, spun about its own axis (axis 'y' or 'z') by rate*t */
+function lfSpin(bag, x, y, z, ry, axis, rate, mat, name, f){ const g = bag.geo(), m = new T.Mesh(g, mat || LF.mat); m.position.set(x, y, z); m.rotation.y = ry; m.name = name || 'spin'; g.computeBoundingSphere();
+  const r = g.boundingSphere.radius; lfReg(m, V(x, y, z), r + 4, f); if(axis === 'z'){ LF.anim.push(t=>{ m.rotation.z = rate*t; }); } else { LF.anim.push(t=>{ m.rotation.y = ry + rate*t; }); } return m; }
+/* dolphin pods leaping out of the water in arcs, n of them from anchors [x, z] (X.spot on water): a jump every few seconds, under the surface between */
+function lfDolphins(X, anchors, o){ o = o || {}; const wl = X.wl, db = new LBag(), n = anchors.length, cyc = o.cyc || 5.5, D = o.D || 80, Hh = o.H || 26, sz = o.s || 1.5;
+  db.add('sph', '#5f7a93', 0, 0, 0, 7, 2.4, 2.6); db.add('sph', '#e8eef2', 0, -1, 0, 6.4, 1.4, 2.2); db.add('cone6', '#5f7a93', 7, 0, 0, 1.1, 4, 1.1, 0, 0, -Math.PI/2); db.add('prism', '#4f6a82', -.5, 1.8, 0, 3.4, 3, .5, 0, 0, 0);
+  db.add('box', '#4f6a82', -8, 0, 0, 3, .5, 6, 0, 0, .2); db.add('cone6', '#5f7a93', -7, 0, 0, 1.2, 4, 1.2, 0, 0, Math.PI/2);
+  return lfAnim(db, n, (i, t, m)=>{ const a = anchors[i], c = t/cyc + a.ph, k = Math.floor(c), q = (c - k)/.46; if(q >= 1){ m.makeScale(0, 0, 0); return; }
+    const h = hash2(i*17 + k, k*5 + i)*6.283, ca = Math.cos(h), sa = Math.sin(h), s = (q - .5)*D, y = Hh*4*q*(1 - q), dy = Hh*4*(1 - 2*q)/(.46*cyc)/ (D/(.46*cyc)); lfPut(m, a.x + ca*s + (hash2(k, i)*60 - 30), wl + y - 4, a.z - sa*s, h, 0, Math.atan2(dy*4, 1)*.5, sz, sz, sz); }, [anchors[0].x, wl, anchors[0].z, o.region || 7000], {name:'dolphins', f:3400}); }
+/* a long soft beam of light from the origin along +x, fading out (vertex colours into an additive material) */
+LBag.prototype.light = function(len, r0, r1, c0, n, segs){ const c = lfCol(c0); n = n || 10; segs = segs || 5;
+  for(let s = 0; s < segs; s++){ const f0 = s/segs, f1 = (s + 1)/segs, x0 = f0*len, x1 = f1*len, a0 = r0 + (r1 - r0)*f0, a1 = r0 + (r1 - r0)*f1, k0 = Math.pow(1 - f0, 1.6), k1 = Math.pow(1 - f1, 1.6);
+    for(let i = 0; i < n; i++){ const t0 = i/n*6.2832, t1 = (i + 1)/n*6.2832, q = [[x0, Math.cos(t0)*a0, Math.sin(t0)*a0, k0], [x0, Math.cos(t1)*a0, Math.sin(t1)*a0, k0], [x1, Math.cos(t1)*a1, Math.sin(t1)*a1, k1], [x1, Math.cos(t0)*a1, Math.sin(t0)*a1, k1]];
+      [[0, 1, 2], [0, 2, 3]].forEach(tr=>tr.forEach(j=>{ const p = q[j]; this.P.push(p[0], p[1], p[2]); this.N.push(0, 1, 0); this.C.push(c.r*p[3], c.g*p[3], c.b*p[3]); })); } } return this; };
+/* a flat strip of foam from the origin along -x, widening and fading (vertex colours into an additive material): a ship's wake */
+LBag.prototype.wake = function(len, w0, w1, segs){ segs = segs || 6;
+  for(let s = 0; s < segs; s++){ const f0 = s/segs, f1 = (s + 1)/segs, x0 = -f0*len, x1 = -f1*len, a0 = w0 + (w1 - w0)*f0, a1 = w0 + (w1 - w0)*f1, k0 = .55*Math.pow(1 - f0, 1.3), k1 = .55*Math.pow(1 - f1, 1.3), q = [[x0, -a0, k0], [x0, a0, k0], [x1, a1, k1], [x1, -a1, k1]];
+    [[0, 2, 1], [0, 3, 2]].forEach(tr=>tr.forEach(j=>{ const p = q[j]; this.P.push(p[0], 0, p[1]); this.N.push(0, 1, 0); this.C.push(p[2], p[2], p[2]); })); } return this; };
+function lfShipBag(kind){ const b = new LBag();
+  if(kind === 'cruise'){ b.add('box', '#f6f6f2', 0, 0, 0, 300, 24, 46); b.add('pyr', '#f6f6f2', 150, 0, 0, 24, 40, 46, 0, 0, -Math.PI/2); b.add('box', '#1d4f86', 0, -2, 0, 301, 6, 47);
+    [[0, 24, 250, 38, 16], [-10, 40, 210, 32, 14], [-20, 54, 150, 26, 12]].forEach(([x, y, l, w, h])=>{ b.add('box', '#ffffff', x, y, 0, l, h, w); b.add('box', '#2a4a6a', x, y + 4, 0, l + .6, 3.4, w + .6); });
+    b.add('cyl', '#e8353a', -30, 66, 0, 9, 24, 9); b.add('cyl', '#f4c20d', -30, 84, 0, 9.2, 6, 9.2); b.add('cyl', '#e8353a', 40, 66, 0, 9, 18, 9); b.add('box', '#2a4a6a', 80, 66, 0, 18, 10, 24); }
+  else if(kind === 'fireboat'){ b.add('box', '#d42a2a', 0, 0, 0, 90, 10, 24); b.add('pyr', '#d42a2a', 45, 0, 0, 10, 22, 24, 0, 0, -Math.PI/2); b.add('box', '#f6f6f2', -6, 10, 0, 38, 12, 18); b.add('box', '#2a4a6a', -6, 14, 0, 38.6, 4, 18.6); b.add('cyl', '#ffffff', -22, 22, 0, 4, 14, 4); b.add('box', '#ffffff', 30, 10, 0, 14, 4, 12);
+    [[28, 0], [-26, 8], [-26, -8]].forEach(([x, z])=>b.add('cyl', '#f2c230', x, 14, z, 1.8, 7, 1.8)); }
+  else { b.add('box', '#7c858d', 0, 0, 0, 220, 18, 30); b.add('pyr', '#7c858d', 110, 0, 0, 18, 70, 30, 0, 0, -Math.PI/2); b.add('box', '#b8322a', 0, -2, 0, 221, 5, 31); b.add('box', '#9aa3ab', -20, 18, 0, 60, 16, 22); b.add('box', '#7c858d', -5, 34, 0, 24, 12, 18); b.add('box', '#1d2c35', -5, 38, 0, 24.6, 3, 18.6);
+    b.add('cyl', '#3a4147', -38, 34, 0, 5, 20, 5); b.add('cyl6', '#3a4147', 0, 46, 0, 1.2, 40, 1.2); b.add('box', '#aeb6bd', 0, 80, 0, 14, 1.5, 3); b.add('sph', '#7c858d', 62, 18, 0, 9, 6, 9); b.add('cyl6', '#3a4147', 70, 22, 0, 1.2, 22, 1.2, 0, 0, -Math.PI/2); b.add('box', '#5a6066', -85, 18, 0, 36, 1, 26); b.add('sph', '#e8353a', -85, 19, 0, 1.4, .2, 1.4); }
+  return b; }
+/* ships circling an anchor: list = [{x, z, R, ph, w, s}], kind 'frigate' | 'cruise' | 'fireboat'; each with a wake and, for a fireboat, water jets */
+function lfShips(X, kind, list, o){ o = o || {}; const wl = X.wl, n = list.length; if(!n) return; const sb = lfShipBag(kind), wb = new LBag(), len = kind === 'cruise' ? 300 : kind === 'fireboat' ? 90 : 220; wb.wake(len*1.5, len*.12, len*.34, 6);
+  const pose = (i, t, out)=>{ const s = list[i], a = s.ph + t*s.w, h = a + (s.w > 0 ? Math.PI/2 : -Math.PI/2); out.x = s.x + Math.cos(a)*s.R; out.z = s.z + Math.sin(a)*s.R; out.h = h; out.y = wl - 3 + Math.sin(t*.8 + i*2)*.7; out.s = s.s; return out; }, sp = {x:0, y:0, z:0, h:0, s:1};
+  const region = [list[0].x, wl, list[0].z, o.region || 7000];
+  lfAnim(wb, n, (i, t, m)=>{ pose(i, t, sp); lfPut(m, sp.x - Math.cos(sp.h)*len*.45*sp.s, wl + .6, sp.z - Math.sin(sp.h)*len*.45*sp.s, -sp.h, 0, 0, sp.s, 1, sp.s); }, region, {name:'wakes', mat:LF.matA, f:4200});
+  const mesh = lfAnim(sb, n, (i, t, m)=>{ pose(i, t, sp); lfPut(m, sp.x, sp.y, sp.z, -sp.h, Math.sin(t*.9 + i)*.012, Math.sin(t*1.1 + i)*.01, sp.s, sp.s, sp.s); }, region, {name:'ships', mat:LF.matS, f:6500});
+  const top = kind === 'cruise' ? 80 : kind === 'frigate' ? 40 : 28, fx = kind === 'cruise' ? -30 : kind === 'frigate' ? -38 : -22;
+  if(o.smoke !== false && kind !== 'fireboat') lfPuffs(n*6, (i, t, p)=>{ const sh = i % n; pose(sh, t, sp); const age = (t/3 + i*.21) % 1, c = Math.cos(sp.h), s = Math.sin(sp.h), s0 = sp.s; p.x = sp.x + c*(fx*s0 - age*50); p.z = sp.z + s*(fx*s0 - age*50); p.y = wl + (top + 10)*s0 + age*40; p.s = (6 + age*20)*s0; p.a = (1 - age)*.55; p.r = p.g = p.b = .75 - age*.25; }, {col:'#ffffff', region, name:'funnel', f:4200});
+  if(kind === 'fireboat') lfPuffs(n*3*14, (i, t, p)=>{ const sh = Math.floor(i/42), j = Math.floor((i % 42)/14), k = i % 14, f = k/13; pose(sh, t, sp); const c = Math.cos(sp.h), s = Math.sin(sp.h), s0 = sp.s, mx = [28, -26, -26][j]*s0, mz = [0, 8, -8][j]*s0, sw = Math.sin(t*.9 + j*2)*.5, dist = (30 + 34*j)*s0*f, up = (30 + 20*Math.sin(t*.7 + j))*s0*(1 - (2*f - 1)**2)*1.6;
+    p.x = sp.x + c*(mx + dist) - s*(mz + dist*sw); p.z = sp.z + s*(mx + dist) + c*(mz + dist*sw); p.y = wl + 12*s0 + up; p.s = (3 + f*5)*s0; p.a = .8*(1 - f*.4); p.r = p.g = .92; p.b = 1; }, {col:'#ffffff', region, name:'jets', f:4200});
+  return mesh; }
+/* helicopters circling anchors {x, z, y, R, ph, w}: a body in a tint and a rotor that spins */
+function lfHelis(X, list, o){ o = o || {}; const n = list.length; if(!n) return; const hb = new LBag(), rb = new LBag(), s0 = o.s || 1.6;
+  hb.add('sph', '#ffffff', 0, 3, 0, 6.4, 3.4, 3.2); hb.add('sph', '#243b53', 3.6, 3.6, 0, 3, 2.2, 2.7); hb.beam('cyl6', '#ffffff', -4, 3.6, 0, -15, 4.6, 0, 1.3, .6); hb.add('box', '#e8353a', -15, 3.8, 0, .6, 4.4, .6); hb.add('cyl6', '#333333', 0, 6.2, 0, .5, 2, .5); hb.add('box', '#333333', 0, 0, 2.2, 9, .4, .4); hb.add('box', '#333333', 0, 0, -2.2, 9, .4, .4); hb.add('box', '#333333', 0, 0.2, 0, .4, 3, 4.4);
+  rb.add('box', '#2a2a2a', 0, 0, 0, 1.2, .25, 30); rb.add('box', '#2a2a2a', 0, 0, 0, 30, .25, 1.2); rb.add('box', '#2a2a2a', -15.4, -2.4, 0, .25, 3.6, .8);
+  const pose = (i, t, out)=>{ const h = list[i], a = h.ph + t*h.w, hd = a + (h.w > 0 ? Math.PI/2 : -Math.PI/2); out.x = h.x + Math.cos(a)*h.R; out.z = h.z + Math.sin(a)*h.R; out.y = h.y + Math.sin(t*.7 + i)*5; out.h = hd; out.b = (h.w > 0 ? -.2 : .2); }, hp = {x:0, y:0, z:0, h:0, b:0}, region = [list[0].x, list[0].y, list[0].z, o.region || 7000];
+  lfAnim(hb, n, (i, t, m)=>{ pose(i, t, hp); lfPut(m, hp.x, hp.y, hp.z, -hp.h, hp.b, .06, s0, s0, s0); }, region, {name:'helis', tint:list.map((h, i)=>(o.tints || ['#ffffff', '#ffd23a', '#ff6a3a', '#59b6ff'])[i % 4]), f:4200});
+  lfAnim(rb, n, (i, t, m)=>{ pose(i, t, hp); lfPut(m, hp.x, hp.y + 6.6*s0, hp.z, -hp.h + t*38 + i, 0, 0, s0, s0, s0); }, region, {name:'rotors', f:4200}); }
+/* whales: swim in circles, back and tail arcing, a spout of spray at each breath. list = [{x, z, R, ph, w, c}] */
+function lfWhales(X, list, o){ o = o || {}; const wl = X.wl, n = list.length; if(!n) return; const wb = new LBag(), cb = o.col || '#3c4f66', cw = o.belly || '#dfe6ee', s0 = o.s || 1.2;
+  wb.add('sph', cb, 0, 0, 0, 26, 8, 9); wb.add('sph', cb, 14, -.5, 0, 14, 7.5, 8.4); wb.add('sph', cw, 10, -3.5, 0, 14, 4.2, 7); wb.add('sph', cb, -22, 1.5, 0, 12, 4, 4.5); wb.add('box', cb, -31, 2, 0, 5, 1.6, 15, 0, 0, .25); wb.add('box', cb, 4, -2, 8, 7, 1.2, 3, .5, 0, .3); wb.add('box', cb, 4, -2, -8, 7, 1.2, 3, -.5, 0, -.3);
+  const pose = (i, t, out)=>{ const w = list[i], a = w.ph + t*w.w, ph = t*(6.283/w.c) + i*2; out.x = w.x + Math.cos(a)*w.R; out.z = w.z + Math.sin(a)*w.R; out.y = wl + Math.sin(ph)*6 - 2; out.h = a + (w.w > 0 ? Math.PI/2 : -Math.PI/2); out.p = Math.cos(ph)*.28; out.ph = ph; }, wp = {x:0, y:0, z:0, h:0, p:0, ph:0}, region = [list[0].x, wl, list[0].z, o.region || 7000];
+  lfAnim(wb, n, (i, t, m)=>{ pose(i, t, wp); lfPut(m, wp.x, wp.y, wp.z, -wp.h, 0, wp.p, s0, s0, s0); }, region, {name:'whales', f:3800});
+  lfPuffs(n*14, (i, t, p)=>{ const w = Math.floor(i/14), j = i % 14, f = j/13; pose(w, t, wp); const sp = Math.min(1, (.2 - Math.cos(wp.ph))*2.5)*Math.min(1, (Math.sin(wp.ph) - .15)*4); if(sp <= 0) return;
+    p.x = wp.x + Math.cos(wp.h)*12*s0 + Math.sin(j)*3; p.z = wp.z + Math.sin(wp.h)*12*s0 + Math.cos(j)*3; p.y = wp.y + 9*s0 + f*sp*75; p.s = 5 + f*13; p.a = sp*(1 - f*.55); p.r = p.g = .94; p.b = 1; }, {col:'#ffffff', region, name:'spout', f:3800}); }
+/* a ferris wheel at hx hy hz, plane facing 'face', radius R, legs down to base y */
+function lfFerris(X, st, hx, hy, hz, face, R, base){ const wf = new LBag(), cF = Math.cos(face), sF = Math.sin(face), gb = new LBag();
+  for(let i = 0; i < 24; i++){ const a0 = i/24*6.2832, a1 = (i + 1)/24*6.2832; [-4.5, 4.5].forEach(zz=>{ wf.beam('cyl6', '#f2f2f2', Math.cos(a0)*R, Math.sin(a0)*R, zz, Math.cos(a1)*R, Math.sin(a1)*R, zz, 1.1, 1.1); if(i % 2 === 0) wf.beam('cyl6', '#d9d9d9', 0, 0, zz, Math.cos(a0)*R, Math.sin(a0)*R, zz, .7, .7); }); }
+  wf.add('cyl', '#e8353a', 0, 0, -6, 4, 12, 4, 0, Math.PI/2); lfSpin(wf, hx, hy, hz, face, 'z', .22, null, 'wheel', 5200);
+  [-4.5, 4.5].forEach(zz=>[-1, 1].forEach(sd=>st.beam('cyl6', '#d9d9d9', hx + sF*zz, hy, hz + cF*zz, hx + sF*zz + cF*sd*26, base, hz + cF*zz - sF*sd*26, 2, 2.4)));
+  gb.add('box', '#ffffff', 0, -9, 0, 9, 6, 10); gb.add('prism', '#ffffff', 0, -3, 0, 10, 3, 11, 0); gb.add('cyl6', '#999999', 0, -3, 0, .3, 3, .3);
+  const gc = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0', '#31c4c4', '#e8353a', '#f4c20d', '#2f9fe0', '#2eb872'];
+  lfAnim(gb, 12, (i, t, m)=>{ const a = i/12*6.2832 + .22*t; lfPut(m, hx + Math.cos(a)*R*cF, hy + Math.sin(a)*R, hz - Math.cos(a)*R*sF, face, 0, 0, 1.2, 1.2, 1.2); }, [hx, hy, hz, R + 20], {name:'gondolas', tint:gc, f:5200}); }
+function lfPenguin(b, x, y, z, ry, s, lo){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o), S = lo ? 'ico' : 'sph';
+  b.add(S, '#23272e', ...at(0, 3.6*s, 0), 2*s, 3.4*s, 1.8*s, ry); b.add(S, '#f4f6f8', ...at(.8*s, 3.2*s, 0), 1.3*s, 2.7*s, 1.5*s, ry); b.add(S, '#23272e', ...at(.4*s, 6.8*s, 0), 1.35*s, 1.3*s, 1.3*s, ry);
+  b.add('cone6', '#f29a1c', ...at(1.8*s, 6.6*s, 0), .45*s, 1.3*s, .45*s, ry, 0, -Math.PI/2); [-.8, .8].forEach(o=>b.add('box', '#f29a1c', ...at(.8*s, 0, o*s), 1.5*s, .35*s, .9*s, ry)); [-1, 1].forEach(o=>b.add('box', '#23272e', ...at(0, 3.2*s, o*2*s), .5*s, 2.4*s, .4*s, ry, 0, o*.3)); }
+function lfTent(b, x, y, z, ry, s, col){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o);
+  b.add('prism', col, x, y, z, 8*s, 6.4*s, 10*s, ry); b.add('box', '#1c1c20', ...at(0, 0, 4.4*s), 2.6*s, 3.8*s, .5*s, ry); b.add('box', '#f4f1e6', ...at(0, 6.3*s, 0), .5*s, .5*s, 10.4*s, ry); }
+/* sailboats bobbing round in the water: n boats at spots beside the course where the water is deep enough (o.deep feet below the surface) */
+function lfSailboat(b){ b.add('box', '#ffffff', 0, 1, 0, 24, 4, 7); b.add('prism', '#ffffff', 13, 1, 0, 7, 4, 4, Math.PI/2, 0, 0); b.add('box', '#e8e4da', 0, 5, 0, 13, 1.4, 5.6);
+  b.add('cyl6', '#d9d5c8', 1, 5, 0, .5, 34, .5); b.add('prism', '#ffffff', -2.5, 11, 0, 17, 24, .5); b.add('prism', '#ffffff', 5.5, 8, 0, 10, 17, .4, Math.PI); b.add('box', '#c24a3a', 0, -.6, 0, 24.5, 1.2, 7.4); }
+function lfWaterSpot(X, R, deep, dmin, dmax){ const H = X.H, wl = X.wl; return X.spot({dmin, dmax, r:R, test:(y, x, z)=>{ if(y > wl - deep) return false; for(let a = 0; a < 8; a++) if(H(x + Math.cos(a*.785)*R, z + Math.sin(a*.785)*R) > wl - deep*.5) return false; return true; }}); }
+function lfBoats(X, n, o){ o = o || {}; const wl = X.wl, sb = new LBag(); lfSailboat(sb); const B = [], tints = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0', '#ffffff'], sz = o.s || 1;
+  for(let k = 0; k < n; k++){ const p = lfWaterSpot(X, 130, o.deep || 12, o.dmin || 170, o.dmax || 750); if(!p) continue; B.push({x:p.x, z:p.z, R:70 + LF.r()*50, ph:LF.r()*6.28, w:(.1 + LF.r()*.05)*(LF.r() < .5 ? 1 : -1), s:(1.3 + LF.r()*.5)*sz}); if(B.length < 3) X.site('sailboat', p.x, wl + 20, p.z, p.tx, p.tz); }
+  if(B.length) lfAnim(sb, B.length, (i, t, m)=>{ const b = B[i], a = b.ph + t*b.w, hd = a + (b.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, b.x + Math.cos(a)*b.R, wl + Math.sin(t*1.3 + i*2)*1.4, b.z + Math.sin(a)*b.R, -hd, .15*(b.w > 0 ? -1 : 1) + Math.sin(t*.9 + i)*.05, Math.sin(t*1.1 + i)*.04, b.s, b.s, b.s); }, [B[0].x, wl + 10, B[0].z, 7000], {name:'sailboats', tint:B.map((b, i)=>tints[i % tints.length]), f:3600}); return B.length; }
+/* a pier out into the sea with stalls and a ferris wheel at its end: o = {dmin, dmax, R (wheel radius)} (false if no shore fits) */
+function lfPier(X, st, o){ o = o || {}; const {H, wl} = X, R = o.R || 52;
+  const pp = X.spot({dmin:o.dmin || 200, dmax:o.dmax || 600, r:110, tries:600, test:(y, x, z)=>{ if(!(y > wl + 1 && y < wl + 16)) return false; const gx = H(x + 14, z) - H(x - 14, z), gz = H(x, z + 14) - H(x, z - 14), gl = Math.hypot(gx, gz); if(gl < 1) return false; const sx = -gx/gl, sz = -gz/gl; return H(x + sx*100, z + sz*100) < wl - (o.sea1 === undefined ? 6 : o.sea1) && H(x + sx*190, z + sz*190) < wl - (o.sea2 === undefined ? 6 : o.sea2); }});
+  if(!pp) return false;
+  const gx = H(pp.x + 14, pp.z) - H(pp.x - 14, pp.z), gz = H(pp.x, pp.z + 14) - H(pp.x, pp.z - 14), gl = Math.hypot(gx, gz) || 1, inx = gx/gl, inz = gz/gl, dx = -inx, dz = -inz;
+  for(let a = 0; a < 190; a += 10){ [-1, 1].forEach(sd=>{ const q = [pp.x + dx*a - dz*sd*10, pp.z + dz*a + dx*sd*10]; st.add('box', '#5a4a3a', q[0], wl - 14, q[1], 1.6, 20, 1.6); }); }
+  const c = [pp.x + dx*95, pp.z + dz*95]; st.add('box', '#b89a6e', c[0], wl + 5, c[1], 190, 1.6, 26, -Math.atan2(dz, dx));
+  [30, 70, 110].forEach((a, i)=>{ [-1, 1].forEach(sd=>{ const q = [pp.x + dx*a - dz*sd*8, pp.z + dz*a + dx*sd*8]; st.add('box', ['#e8353a', '#f4c20d', '#2f9fe0'][i], q[0], wl + 6.6, q[1], 12, 8, 9, -Math.atan2(dz, dx)); st.add('prism', ['#ffffff', '#f2f2f2', '#ffffff'][i], q[0], wl + 14.6, q[1], 10, 4, 14, -Math.atan2(dz, dx) + Math.PI/2); }); });
+  const hx = pp.x + dx*150, hz = pp.z + dz*150; lfFerris(X, st, hx, wl + R + 14, hz, -Math.atan2(dz, dx), R, wl + 4);
+  X.site('ferris', hx, wl + R + 14, hz, inx, inz); X.claim(pp.x + dx*90, pp.z + dz*90, 110); return true; }
+/* waterfalls pouring down steep slopes beside the course: a ribbon of moving white water hugging the ground, mist at the foot. Returns where they are. */
+function lfFalls(X, n, o){ o = o || {}; const H = X.H, P = [], UV = [], IX = [], out = [], mist = [];
+  for(let k = 0; k < n; k++){ const p = X.spot({dmin:o.dmin || 190, dmax:o.dmax || 650, r:70, tries:500, claim:false, test:(y, x, z)=>{ const sl = X.slope(x, z); return y > X.wl + 6 && sl > (o.smin || .3) && sl < 1.7; }}); if(!p) continue;
+    const gx = H(p.x + 18, p.z) - H(p.x - 18, p.z), gz = H(p.x, p.z + 18) - H(p.x, p.z - 18), gl = Math.hypot(gx, gz) || 1, dx = -gx/gl, dz = -gz/gl, sx = -dz, sz = dx, N = 16, st = 13; let ok = H(p.x - dx*80, p.z - dz*80) - H(p.x + dx*(N*st - 80), p.z + dz*(N*st - 80)) > (o.drop || 80);
+    for(let i = 0; i < N && ok; i++){ const a = -80 + i*st, b = a + st; if(H(p.x + dx*a, p.z + dz*a) < H(p.x + dx*b, p.z + dz*b) - 5) ok = false; } if(!ok) continue; X.claim(p.x, p.z, 80);
+    const base = P.length/3; for(let i = 0; i <= N; i++){ const a = -80 + i*st, x = p.x + dx*a, z = p.z + dz*a, y = H(x, z) + 2.6, w = 10 + 3*Math.sin(i*.9 + k) + i*.5; P.push(x - sx*w, y, z - sz*w, x + sx*w, y, z + sz*w); UV.push(0, i*.32, 1, i*.32); if(i < N){ const q = base + i*2; IX.push(q, q + 1, q + 2, q + 1, q + 3, q + 2); } }
+    const ex = p.x + dx*(N*st - 80), ez = p.z + dz*(N*st - 80); out.push({x:ex, y:H(ex, ez), z:ez, tx:p.tx, tz:p.tz}); X.site('waterfall', p.x, H(p.x, p.z) + 20, p.z, p.tx, p.tz); }
+  if(!out.length) return out;
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new T.Float32BufferAttribute(UV, 2)); g.setIndex(IX); g.computeBoundingSphere(); LF.geos.push(g);
+  const tex = lfTex(64, 128, (c, w, h)=>{ c.fillStyle = '#a9dcf0'; c.fillRect(0, 0, w, h); for(let i = 0; i < 70; i++){ c.fillStyle = `rgba(255,255,255,${.35 + Math.random()*.5})`; const x = Math.random()*w, l = 14 + Math.random()*40, y = Math.random()*h; c.fillRect(x, y, 2 + Math.random()*4, l); c.fillRect(x, y - h, 2, l); c.fillRect(x, y + h, 2, l); } });
+  tex.wrapS = tex.wrapT = T.RepeatWrapping;
+  const mat = new T.MeshBasicMaterial({map:tex, transparent:true, opacity:.92, depthWrite:false, side:T.DoubleSide, polygonOffset:true, polygonOffsetFactor:-4, polygonOffsetUnits:-4}); LF.mats.push(mat);
+  { const fm = new T.Mesh(g, mat); fm.name = 'waterfalls'; lfReg(fm, g.boundingSphere.center, g.boundingSphere.radius, o.f || 4200).renderOrder = 4; } LF.anim.push(t=>{ tex.offset.y = -t*.8; });
+  const R0 = out[0], per = 10;
+  lfPuffs(out.length*per, (i, t, p)=>{ const e = out[Math.floor(i/per)], age = (t/3 + i*.137) % 1, a = i*2.4; p.x = e.x + Math.cos(a)*(8 + age*22); p.z = e.z + Math.sin(a)*(8 + age*22); p.y = e.y + 4 + age*34; p.s = 18 + age*40; p.a = (1 - age)*.5; p.r = p.g = p.b = .96; }, {col:'#ffffff', region:[R0.x, R0.y + 20, R0.z, 3200], name:'fallmist', f:4200});
+  return out; }
+/* ===== course life: Farmfield Classic (windmills and wind turbines turning, farmyards with cows, sheep, hay and chimney smoke, tulip fields,
+   a tractor at work, hot-air balloons, geese) ===== */
+function lfAt(x, y, z, ry, a, h, o){ const cs = Math.cos(ry), sn = Math.sin(ry); return [x + a*cs + o*sn, y + h, z - a*sn + o*cs]; }
+function lfCow(b, x, y, z, ry, s, spots){ const w = '#f6f3ea', k = '#2b2724', pk = '#f0a8a0', c = spots ? w : '#8a5a3a', at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o);
+  b.add('box', c, ...at(0, 2.4*s, 0), 5.2*s, 2.6*s, 2.4*s, ry); b.add('box', c, ...at(3.2*s, 3.2*s, 0), 1.7*s, 1.6*s, 1.5*s, ry); b.add('box', pk, ...at(4.1*s, 3.3*s, 0), .7*s, .8*s, 1.2*s, ry);
+  [[1.6, .8], [1.6, -.8], [-1.6, .8], [-1.6, -.8]].forEach(([a, o])=>b.add('box', c, ...at(a*s, 0, o*s), .7*s, 2.5*s, .7*s, ry));
+  if(spots){ b.add('box', k, ...at(-.6*s, 2.6*s, .2*s), 1.6*s, 1.9*s, 2.5*s, ry); b.add('box', k, ...at(1.7*s, 2.5*s, -.3*s), 1.1*s, 1.9*s, 2.5*s, ry); b.add('box', k, ...at(3.2*s, 3.9*s, 0), 1.0*s, .5*s, 1.6*s, ry); }
+  b.add('box', k, ...at(-2.7*s, 1.4*s, 0), .3*s, 2.6*s, .3*s, ry); }
+function lfSheep(b, x, y, z, ry, s){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o);
+  b.add('sph', '#f4f1e8', ...at(0, 2.5*s, 0), 2.3*s, 1.7*s, 1.6*s, ry); b.add('sph', '#3a3632', ...at(2.5*s, 2.9*s, 0), .9*s, .9*s, .8*s, ry);
+  [[1, .6], [1, -.6], [-1, .6], [-1, -.6]].forEach(([a, o])=>b.add('box', '#3a3632', ...at(a*s, 0, o*s), .4*s, 1.3*s, .4*s, ry)); }
+function lfHouse(b, x, y, z, ry, w, d, h, wall, roof){ const at = (a, hh, o)=>lfAt(x, y, z, ry, a, hh, o);
+  b.add('box', wall, x, y, z, w, h, d, ry); b.add('prism', roof, x, y + h, z, d + 3, h*.55, w + 3, ry + Math.PI/2);
+  b.add('box', '#9c4a3a', ...at(w*.25, h, 0), 2.6, h*.8, 2.6, ry); b.add('box', '#7a4f2b', ...at(0, 0, d/2 + .1), 3, 6.5, .5, ry);
+  [-1, 1].forEach(a=>b.add('box', '#8cc4e8', ...at(a*w*.28, h*.35, d/2 + .1), 3.4, 3.6, .5, ry)); return at(w*.25, h*1.8, 0); }
+function lfWindmillOld(b, x, y, z, ry, hh){ const at = lfAt(x, y, z, ry, 0, hh*.92, hh*.28);
+  b.beam('cyl6', '#e9dfc9', x, y - 1, z, x, y + hh, z, hh*.3, hh*.19); b.add('cone6', '#a33a2e', x, y + hh - 1, z, hh*.23, hh*.2, hh*.23); b.add('box', '#7a5232', ...lfAt(x, y, z, ry, 0, hh*.05, hh*.28), hh*.1, hh*.2, hh*.1, ry); return at; }
+LIFE.farm = X=>{
+  const {H, wl, K} = X, g = LF.g, st = new LBag(), gnd = new LBag(), sm = [];
+  const flat = (y, x, z)=>y > wl + 3 && X.slope(x, z) < .16;
+  /* the wind farm: a row of turbines on high ground, rotors turning */
+  const tw = [], tb = LF.r();
+  { const row = X.spot({dmin:260, dmax:650, r:80, test:(y, x, z)=>y > wl + 6 && X.slope(x, z) < .3}); if(row){ const sp = 160*(LF.r() < .5 ? 1 : -1);
+      for(let k = 0; k < 7; k++){ const x = row.x + row.tx*sp*k + (LF.r() - .5)*30, z = row.z + row.tz*sp*k + (LF.r() - .5)*30, y = H(x, z);
+        if(y < wl + 5 || X.dist(x, z) < 230 || X.runway(x, z, 120) || X.slope(x, z) > .45) continue; X.claim(x, z, 40); tw.push([x, y, z]); } } }
+  if(tw.length) X.site('turbines', tw[0][0], tw[0][1] + 60, tw[0][2]);
+  const rotor = new LBag(), rY = .55, hubH = 118;
+  rotor.add('sph', '#f2f2f2', 0, 0, 0, 3.6); for(let k = 0; k < 3; k++) rotor.add('box', '#f7f7f4', 0, 0, 0, 4.4, 56, 1.3, 0, 0, k*2.0944);
+  tw.forEach(([x, y, z])=>{ st.beam('cyl', '#f1f1ee', x, y - 2, z, x, y + hubH - 4, z, 6, 3); st.add('box', '#e6e6e2', x, y + hubH - 7, z, 6.5, 7.5, 17, rY); X.shade(x, z, 60, .3); });
+  if(tw.length) lfAnim(rotor, tw.length, (i, t, m)=>lfPut(m, tw[i][0] + Math.sin(rY)*9.5, tw[i][1] + hubH - 3, tw[i][2] + Math.cos(rY)*9.5, rY, 0, t*(.85 + i*.04) + i*1.3, 1, 1, 1), [tw[0][0], tw[0][1] + hubH, tw[0][2], 1600], {name:'rotors', mat:LF.matS});
+  /* old farm windmills with four sails */
+  const mills = [], sails = new LBag();
+  for(let i = 0; i < 7; i++){ const p = X.spot({dmin:190, dmax:700, r:40, test:flat}); if(!p) continue; const ry = LF.r()*6.28, hh = 62, top = lfWindmillOld(st, p.x, p.y, p.z, ry, hh); mills.push({top, ry}); X.shade(p.x, p.z, 40, .4); X.site('mill', p.x, p.y + 30, p.z); }
+  for(let k = 0; k < 4; k++){ const a = k*Math.PI/2; sails.add('box', '#d9c9a0', 0, 0, 0, 1.6, 40, 1.6, 0, 0, a);
+    for(let q = 1; q < 6; q++){ const f = q*6.6 + 2, ca = Math.cos(a), sa = Math.sin(a); sails.add('box', '#efe6cf', -sa*f, ca*f, 0, 4.2, 5.6, .5, 0, 0, a); } }
+  if(mills.length) lfAnim(sails, mills.length, (i, t, m)=>lfPut(m, mills[i].top[0], mills[i].top[1], mills[i].top[2], mills[i].ry, 0, t*(.42 + i*.05) + i, 1, 1, 1), [mills[0].top[0], mills[0].top[1], mills[0].top[2], 1800], {name:'sails'});
+  /* farmyards by the barns: pasture fence, cows, sheep, hay, a farmhouse with a smoking chimney */
+  const barns = []; K.group.children.forEach(o=>{ if(o.name === 'building') barns.push(o.position); });
+  let yards = 0;
+  for(const bp of barns){ if(yards >= 5) break; const [ax, az] = X.away(bp.x, bp.z), px = bp.x + ax*70, pz = bp.z + az*70, ang = Math.atan2(az, ax) + (LF.r() - .5)*.8;
+    if(!X.free(px, pz, 90, 150) || X.dist(bp.x + ax*130, bp.z + az*130) < 150) continue; X.claim(px, pz, 90); yards++;
+    const ca = Math.cos(ang), sa = Math.sin(ang), W = 80, D = 56, corners = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([a, b])=>[px + ca*a*W - sa*b*D, pz + sa*a*W + ca*b*D]);
+    let ok = true; corners.forEach(c=>{ if(X.dist(c[0], c[1]) < 130 || H(c[0], c[1]) < wl + 2) ok = false; }); if(!ok) continue;
+    const fp = []; for(let k = 0; k < 4; k++){ const a = corners[k], b = corners[(k + 1) % 4], n = Math.round(Math.hypot(b[0] - a[0], b[1] - a[1])/16); for(let q = 0; q < n; q++) fp.push([a[0] + (b[0] - a[0])*q/n, a[1] + (b[1] - a[1])*q/n]); }
+    st.fence(H, fp, '#f0ece0', 3.4);
+    for(let k = 0; k < 5; k++){ const u = (LF.r() - .5)*1.5*W*.8, v = (LF.r() - .5)*1.5*D*.7, x = px + ca*u - sa*v, z = pz + sa*u + ca*v; lfCow(st, x, H(x, z), z, LF.r()*6.28, 1.8, LF.r() < .75); }
+    for(let k = 0; k < 7; k++){ const u = (LF.r() - .5)*1.6*W*.8, v = (LF.r() - .5)*1.6*D*.7, x = px + ca*u - sa*v, z = pz + sa*u + ca*v; lfSheep(st, x, H(x, z), z, LF.r()*6.28, 1.8); }
+    for(let k = 0; k < 6; k++){ const x = bp.x + ax*(24 + LF.r()*34) - az*(LF.r() - .5)*70, z = bp.z + az*(24 + LF.r()*34) + ax*(LF.r() - .5)*70; st.add('cyl', '#d9b94a', x, H(x, z), z, 4.4, 5.2, 4.4, 0, 0, Math.PI/2); }
+    const hx = bp.x - ax*50 + az*45, hz = bp.z - az*50 - ax*45; if(X.dist(hx, hz) > 110 && H(hx, hz) > wl + 2){ const top = lfHouse(st, hx, H(hx, hz), hz, ang, 34, 24, 15, '#f4efe2', '#b3382d'); sm.push(top); }
+    X.shade(px, pz, 50, .25); X.site('yard', px, H(px, pz), pz); }
+  /* herds out in the fields and rows of round hay bales */
+  for(let k = 0; k < 9; k++){ const p = X.spot({dmin:170, dmax:700, r:50, test:flat}); if(!p) continue; const cows = k % 2 === 0, n = cows ? 5 : 9;
+    for(let q = 0; q < n; q++){ const x = p.x + (LF.r() - .5)*70, z = p.z + (LF.r() - .5)*70; if(!X.free(x, z, 1, 140)) continue; if(cows) lfCow(st, x, H(x, z), z, LF.r()*6.28, 1.8, LF.r() < .7); else lfSheep(st, x, H(x, z), z, LF.r()*6.28, 1.8); } X.site(cows ? 'cows' : 'sheep', p.x, p.y, p.z); }
+  for(let k = 0; k < 8; k++){ const p = X.spot({dmin:160, dmax:700, r:60, test:flat}); if(!p) continue; const a = LF.r()*3.14;
+    for(let q = 0; q < 7; q++){ const x = p.x + Math.cos(a)*(q - 3)*14, z = p.z + Math.sin(a)*(q - 3)*14; if(X.dist(x, z) < 150) continue; st.add('cyl', '#d9b94a', x, H(x, z), z, 5, 6, 5, 0, 0, Math.PI/2); st.add('cyl', '#c9a43c', x, H(x, z), z, 5.2, .6, 5.2, 0, 0, Math.PI/2); } }
+  /* tulip and sunflower fields: big stripes of colour you can see from the air */
+  const pal = [['#e03a4a', '#f6cf3a', '#f08ac0', '#ffffff'], ['#f5c518', '#e08a14', '#7a5a1a', '#f5c518'], ['#a05ac8', '#e0a8f0', '#7a3aa8', '#e0a8f0']];
+  for(let k = 0; k < 9; k++){ const p = X.spot({dmin:170, dmax:800, r:130, test:(y, x, z)=>flat(y, x, z) && X.slope(x + 80, z) < .12 && X.slope(x, z + 80) < .12 && H(x + 80, z + 60) > wl + 3}); if(!p) continue; const P = pal[k % 3]; X.site('tulips', p.x, p.y, p.z);
+    gnd.ground(H, p.x, p.z, 230, 150, LF.r()*3.14, 23, 15, (u, v, i, j)=>P[j % P.length], .6); }
+  /* the tractor and its hay trailer, back and forth across a field with a dust cloud behind it */
+  const tr = X.spot({dmin:260, dmax:800, r:190, test:(y, x, z)=>flat(y, x, z)});
+  if(tr){ X.site('tractor', tr.x, tr.y, tr.z); const a0 = LF.r()*3.14, len = 240, ca = Math.cos(a0), sa = Math.sin(a0), tb = new LBag();
+    tb.add('box', '#c8321f', 0, 3, 0, 9, 5, 6); tb.add('box', '#c8321f', 3, 8, 0, 4.5, 7, 6); tb.add('box', '#9fd0ea', 3.2, 8.6, 0, 4.6, 4.2, 4.8); tb.add('box', '#2a2a2a', -1.6, 10, -2.2, .8, 7, .8);
+    tb.add('cyl', '#222', -2.2, 0, 3.2, 3.4, 1.8, 3.4, 0, Math.PI/2); tb.add('cyl', '#222', -2.2, 0, -3.2, 3.4, 1.8, 3.4, 0, Math.PI/2); tb.add('cyl', '#222', 4.4, 0, 3, 2.2, 1.4, 2.2, 0, Math.PI/2); tb.add('cyl', '#222', 4.4, 0, -3, 2.2, 1.4, 2.2, 0, Math.PI/2);
+    tb.add('box', '#e3b53a', -13, 2.6, 0, 12, 1.2, 6.8); for(let q = 0; q < 3; q++) tb.add('cyl', '#d9b94a', -16 + q*4.6, 4, 0, 2.3, 3.6, 2.3, 0, Math.PI/2); tb.add('cyl', '#222', -12, 0, 3.6, 2.2, 1.2, 2.2, 0, Math.PI/2); tb.add('cyl', '#222', -12, 0, -3.6, 2.2, 1.2, 2.2, 0, Math.PI/2);
+    const R = 46, per = 2*len + 2*Math.PI*R, sp = 36, pos = (t, o)=>{ let s = ((t*sp) % per + per) % per, lx, lz, h;
+      if(s < len){ lx = s - len/2; lz = -R; h = 0; } else if(s < len + Math.PI*R){ const q = (s - len)/R; lx = len/2 + Math.sin(q)*R; lz = -Math.cos(q)*R; h = q; }
+      else if(s < 2*len + Math.PI*R){ lx = len/2 - (s - len - Math.PI*R); lz = R; h = Math.PI; } else { const q = (s - 2*len - Math.PI*R)/R; lx = -len/2 - Math.sin(q)*R; lz = Math.cos(q)*R; h = Math.PI + q; }
+      o.x = tr.x + ca*lx - sa*lz; o.z = tr.z + sa*lx + ca*lz; o.h = h + a0; return o; }, tp = {x:0, z:0, h:0};
+    lfAnim(tb, 1, (i, t, m)=>{ pos(t, tp); const y = H(tp.x, tp.z), fx = Math.cos(tp.h), fz = Math.sin(tp.h), y2 = H(tp.x + fx*8, tp.z + fz*8); lfPut(m, tp.x, y, tp.z, -tp.h, 0, Math.atan2(y2 - y, 8), 2.2, 2.2, 2.2); }, [tr.x, tr.y, tr.z, len*.6 + R + 40], {name:'tractor'});
+    lfPuffs(10, (i, t, p)=>{ const age = ((t/2.4 + i/10) % 1), c = 2.4*age; pos(t - c, tp); p.x = tp.x - Math.cos(tp.h)*(14 + age*10) + Math.sin(i*7)*3; p.z = tp.z - Math.sin(tp.h)*(14 + age*10) + Math.cos(i*5)*3; p.y = H(tp.x, tp.z) + 2 + age*9; p.s = 8 + age*16; p.a = (1 - age)*.4; p.r = .9; p.g = .78; p.b = .55; }, {col:'#d8c090', region:[tr.x, tr.y + 6, tr.z, len*.6 + R + 60], name:'dust', f:3200}); }
+  /* chimney smoke */
+  if(sm.length) lfPuffs(sm.length*7, (i, t, p)=>{ const e = sm[i % sm.length], age = (t/4 + i*.137) % 1; p.x = e[0] + age*14 + Math.sin(i*3 + age*4)*2; p.y = e[1] + age*34; p.z = e[2] + age*5; p.s = 3.5 + age*11; p.a = (1 - age)*.55*Math.min(1, age*8); }, {col:'#f0f0f0', region:[sm[0][0], sm[0][1], sm[0][2], 2600], name:'smoke', f:3000});
+  st.mesh(null, 'farmstuff'); if(gnd.P.length) gnd.mesh(LF.matG, 'fields');
+  /* hot-air balloons drifting and bobbing */
+  { const bb = new LBag(); lfBalloon(bb, 30, '#ffffff', '#ffcf9a'); const tints = ['#e8353a', '#2f7fe0', '#f4c20d', '#2eb872', '#e86aa8', '#8a4fd0'], B = [];
+    for(let k = 0; k < 7; k++){ const p = X.spot({dmin:240, dmax:800, r:120, test:(y)=>y > wl + 3}); if(!p) continue; X.site('balloon', p.x, p.y + 200, p.z); B.push({x:p.x, z:p.z, y:p.y + 130 + LF.r()*120, ph:LF.r()*6.28, R:30 + LF.r()*50, w:.05 + LF.r()*.04}); }
+    if(B.length) lfAnim(bb, B.length, (i, t, m)=>{ const b = B[i], a = b.ph + t*b.w; lfPut(m, b.x + Math.cos(a)*b.R, b.y + Math.sin(t*.5 + b.ph)*7, b.z + Math.sin(a)*b.R, a*.3, Math.sin(t*.4 + i)*.04, Math.cos(t*.37 + i)*.04, 1, 1, 1); }, [B[0].x, B[0].y, B[0].z, 2600], {name:'balloons', tint:tints.slice(0, B.length)}); }
+  /* geese */
+  for(let k = 0; k < 2; k++){ const p = X.spot({dmin:420, dmax:1100, r:200, test:(y)=>y > wl + 3}); if(p) lfBirds(7, p.x, p.y + 70 + LF.r()*50, p.z, 120 + LF.r()*40, {col:'#f4f4f0', wing:'#ecebe4', tip:'#3a3a3a', size:1.5, speed:.2, dir:k ? 1 : -1, name:'geese', f:2600}); }
+};
+/* ===== course life: Red Rock Canyon (a fly-through stone arch, rim arches and hoodoos, saguaro cacti, tumbleweeds rolling, a steam train
+   on a trestle high over the canyon, eagles, a geyser and dust devils) ===== */
+function lfArch(b, cx, cy, cz, yaw, hw, rise, th, dp, cols, legTo){
+  const n = 16, c = Math.cos(yaw), s = Math.sin(yaw), W = (lx, ly)=>[cx + lx*c, cy + ly, cz - lx*s], pts = [];
+  for(let i = 0; i <= n; i++){ const a = Math.PI*i/n; pts.push([-Math.cos(a)*hw, Math.sin(a)*rise]); }
+  for(let i = 0; i < n; i++){ const p0 = pts[i], p1 = pts[i + 1], dx = p1[0] - p0[0], dy = p1[1] - p0[1], len = Math.hypot(dx, dy)*1.1, ang = Math.atan2(dy, dx), nx = -Math.sin(ang), ny = Math.cos(ang);
+    const q = W((p0[0] + p1[0])/2 - nx*th/2, (p0[1] + p1[1])/2 - ny*th/2); b.add('box', cols[i % cols.length], q[0], q[1], q[2], len, th, dp*(1 - .25*Math.sin(Math.PI*i/n)), yaw, 0, ang); }
+  [-1, 1].forEach((sd, k)=>{ const q = W(sd*hw, 0), g = legTo ? legTo(q[0], q[2]) : cy - 60, h = cy - g + 8; b.add('box', cols[k % cols.length], q[0], g - 10, q[2], th*1.25, h, dp*1.1, yaw); }); }
+function lfHoodoo(b, x, y, z, s){ const cols = ['#c9754a', '#d98b58', '#b8623c', '#e2a273'];
+  let h = 0; for(let i = 0; i < 4; i++){ const r = s*(.9 - i*.12), hh = s*(2.4 - i*.2); b.add('cyl', cols[i % 4], x, y + h - 1, z, r, hh + 1, r*.9); h += hh*.9; }
+  b.add('cyl', '#a8552f', x, y + h, z, s*1.5, s*.7, s*1.3); b.add('cone', '#b8623c', x, y + h + s*.7, z, s*1.4, s*.9, s*1.2); }
+function lfSaguaro(b, x, y, z, s){ const g = '#4f8a3e', g2 = '#5c9a48';
+  b.add('cyl6', g, x, y - .5, z, s*.95, s*8.5, s*.95); b.add('sph', g, x, y + s*8.4, z, s*.95, s*.95, s*.95); b.add('sph', '#f08ac0', x, y + s*9.3, z, s*.35, s*.3, s*.35);
+  [[1, 4.2, 5.8], [-1, 3.2, 5.0]].forEach(([sd, h0, h1])=>{ b.add('cyl6', g2, x + sd*s*1.6, y + s*h0 - .5, z, s*.62, s*.9, s*.62, 0, 0, sd*Math.PI/2); b.add('box', g2, x + sd*s*1.2, y + s*h0, z, s*1.6, s*.9, s*.9);
+    b.add('cyl6', g2, x + sd*s*2.1, y + s*h0, z, s*.65, s*(h1 - h0), s*.65); b.add('sph', g2, x + sd*s*2.1, y + s*h1, z, s*.65, s*.65, s*.65); }); }
+function lfTruss(b, ax, az, bx, bz, y, w, hh, len0){ const dx = bx - ax, dz = bz - az, L = Math.hypot(dx, dz), yaw = Math.atan2(-dz, dx), c = dx/L, s = dz/L, nb = Math.round(L/26), step = L/nb;
+  const P = (t, ly, lz)=>[ax + c*t - s*lz, y + ly, az + s*t + c*lz];   /* along the bridge, up, across */
+  const col = '#5a3a2a', col2 = '#7d5238';
+  b.add('box', '#3a2a22', ax + dx/2, y - 2.5, az + dz/2, L, 3, w + 8, yaw);
+  [-1, 1].forEach(sd=>{ const lz = sd*w/2; let q = P(L/2, hh, lz); b.add('box', col, q[0], q[1], q[2], L, 2.2, 2.2, yaw); q = P(L/2, 0, lz); b.add('box', col, q[0], q[1], q[2], L, 2.2, 2.2, yaw);
+    for(let i = 0; i <= nb; i++){ const a = P(i*step, 0, lz); b.add('box', col2, a[0], a[1], a[2], 1.6, hh, 1.6, yaw); if(i < nb){ const p0 = P(i*step, i % 2 ? hh : 0, lz), p1 = P((i + 1)*step, i % 2 ? 0 : hh, lz); b.beam('cyl6', col2, p0[0], p0[1], p0[2], p1[0], p1[1], p1[2], .9, .9); } } });
+  for(let i = 0; i <= nb; i += 2){ const q = P(i*step, hh, 0); b.add('box', col, q[0], q[1], q[2], 1.6, 1.6, w, yaw); }
+  for(let i = 0; i <= nb*2; i++){ const q = P(i*step/2, 0, 0); b.add('box', '#6b5a4a', q[0], q[1] + .4, q[2], .8, .9, w - 2, yaw); }
+  [-3.2, 3.2].forEach(lz=>{ const q = P(L/2, 1.6, lz); b.add('box', '#aaa8a0', q[0], q[1], q[2], L, .5, .6, yaw); }); }
+LIFE.canyon = X=>{
+  const {H, wl, K} = X, st = new LBag(), rockCols = ['#c9663f', '#e0a070', '#b8552f', '#d98b58'];
+  const floor = (y, x, z)=>{ const q = X.near(x, z); return Math.abs(y - (q.y - 52)) < 40 && X.slope(x, z) < .5 && y > wl + 1; };
+  const lg = (x, z)=>H(x, z) - 14;
+  /* a stone arch the racers fly through */
+  { let best = null; for(let k = 0; k < 90; k++){ const u = .16 + k*.0075, a = X.at(u, 270), b = X.at(u, -270); if(X.runway(a.x, a.z, 100)) continue;
+      const need = Math.max(a.y, b.y) - a.py; if(need < 90 && (!best || need < best.need)) best = {u, need, a, b}; }
+    if(best){ const {a, b} = best, mx = (a.x + b.x)/2, mz = (a.z + b.z)/2, yaw = Math.atan2(-(b.z - a.z), b.x - a.x), py = a.py - 55; lfArch(st, mx, py, mz, yaw, 275, 270, 62, 100, rockCols, lg); X.site('arch', mx, py + 120, mz, a.tx, a.tz); X.claim(mx, mz, 120);
+      X.shade(a.x, a.z, 60, .4); X.shade(b.x, b.z, 60, .4); } }
+  /* windows in the rock on the rims, hoodoos and balanced rocks */
+  for(let k = 0; k < 5; k++){ const p = X.spot({dmin:380, dmax:900, r:100, test:(y, x, z)=>X.slope(x, z) < .15 && y > wl + 200}); if(!p) continue; lfArch(st, p.x, p.y - 4, p.z, LF.r()*3.14, 70 + LF.r()*40, 80 + LF.r()*40, 30, 50, rockCols, lg); X.site('rimarch', p.x, p.y + 60, p.z); X.shade(p.x, p.z, 80, .35); }
+  for(let k = 0; k < 18; k++){ const p = X.spot({dmin:150, dmax:420, r:30, test:(y, x, z)=>X.slope(x, z) < .3 && y > wl + 1}); if(!p) continue; lfHoodoo(st, p.x, p.y, p.z, 7 + LF.r()*7); X.shade(p.x, p.z, 25, .35); if(k < 2) X.site('hoodoo', p.x, p.y + 20, p.z); }
+  for(let k = 0; k < 70; k++){ const p = X.spot({dmin:105, dmax:260, r:14, test:floor, tries:60}); if(!p) continue; lfSaguaro(st, p.x, p.y, p.z, 3.4 + LF.r()*2.2); if(k < 2) X.site('cactus', p.x, p.y + 15, p.z); }
+  /* the steam train on a trestle high over the canyon */
+  { let best = null; for(let k = 0; k < 70; k++){ const u = .12 + k*.011, a = X.at(u, 300), b = X.at(u, -300), top = Math.min(a.y, b.y); if(X.runway(a.x, a.z, 100) || a.y < a.py + 260 || b.y < b.py + 260) continue;
+      const a2 = X.at(u, 520), b2 = X.at(u, -520), flat = Math.max(Math.abs(a.y - b.y), Math.abs(a2.y - a.y)*.4, Math.abs(b2.y - b.y)*.4); if(!best || flat < best.flat) best = {u, flat, a, b, a2, b2, top}; }
+    if(best){ const {a, b} = best, ex = X.at(best.u, 430), ey = X.at(best.u, -430), dy = Math.max(a.y, b.y, ex.y, ey.y) + 10, ax = ex.x, az = ex.z, bx = ey.x, bz = ey.z, L = Math.hypot(bx - ax, bz - az), c = (bx - ax)/L, s = (bz - az)/L, yaw = Math.atan2(-s, c);
+      const tx0 = a.x, tz0 = a.z, tx1 = b.x, tz1 = b.z;
+      lfTruss(st, tx0, tz0, tx1, tz1, dy, 20, 30);
+      [[a, 1], [b, -1]].forEach(([e, sd])=>{ const g = Math.min(H(e.x, e.z), H(e.x + c*sd*40, e.z + s*sd*40)) - 10; st.add('box', '#9a8168', e.x, g, e.z, 60, dy - g + 3, 36, yaw);
+        const q = [e.x - c*sd*150, e.z - s*sd*150]; st.add('box', '#8a6f58', q[0], Math.min(H(q[0], q[1]), dy - 40) - 10, q[1], 90, dy + 36 - Math.min(H(q[0], q[1]), dy - 40), 60, yaw); st.add('box', '#14100e', q[0] + c*sd*45, dy - 1, q[1] + s*sd*45, 3, 24, 28, yaw); });
+      const span = Math.hypot(tx1 - tx0, tz1 - tz0), tot = span + 300, v = 80, cyc = (tot + 240)/v + 5, nC = 5, cl = 36, tcol = ['#2f6fb0', '#c8321f', '#e0a020', '#3f8f4a', '#8a4fd0'];
+      const ux = (tx1 - tx0)/span, uz = (tz1 - tz0)/span, x00 = tx0 - ux*150, z00 = tz0 - uz*150, dyaw = Math.atan2(-uz, ux), mid = [(tx0 + tx1)/2, dy, (tz0 + tz1)/2];
+      const lb = new LBag(); lb.add('cyl', '#26282b', 0, 5, 0, 5, 15, 5, 0, 0, -Math.PI/2); lb.add('box', '#c8321f', -8, 3, 0, 9, 11, 9); lb.add('prism', '#26282b', -8, 14, 0, 10, 3, 11, Math.PI/2); lb.add('cyl6', '#1a1a1a', 7, 10, 0, 1.8, 5, 1.8); lb.add('cone', '#1a1a1a', 7, 15, 0, 3.2, 2.5, 3.2);
+      lb.add('box', '#e0a020', 13, 1.5, 0, 3, 4, 8, 0, 0, .5); [[4, 4.6], [-4, 4.6], [4, -4.6], [-4, -4.6]].forEach(([x, z])=>lb.add('cyl', '#1a1a1a', x, 0, z, 3, 1.2, 3, 0, Math.PI/2));
+      const cb = new LBag(); cb.add('box', '#ffffff', 0, 2, 0, 31, 10, 8.4); cb.add('box', '#33302d', 0, .8, 0, 32, 1.6, 7); cb.add('prism', '#8a7a68', 0, 12, 0, 8.6, 2.2, 32, Math.PI/2);
+      const place = (m, t, back)=>{ const k = Math.floor(t/cyc), q = (t/cyc - k)*cyc*v - back, dir = k % 2 ? -1 : 1, sg = dir > 0 ? q : tot - q, sc = q < -40 || q > tot + 40 ? 0 : 1;
+        lfPut(m, x00 + ux*(sg + 150), dy + 3 + (back ? 2 : 0), z00 + uz*(sg + 150), dyaw + (dir > 0 ? 0 : Math.PI), 0, 0, sc, sc, sc); };
+      lfAnim(lb, 1, (i, t, m)=>place(m, t, 0), [mid[0], dy, mid[2], span*.7 + 200], {name:'train'});
+      lfAnim(cb, nC, (i, t, m)=>place(m, t, 26 + i*cl), [mid[0], dy, mid[2], span*.7 + 300], {name:'cars', tint:tcol});
+      lfPuffs(12, (i, t, p)=>{ const k = Math.floor(t/cyc), q = (t/cyc - k)*cyc*v, dir = k % 2 ? -1 : 1, age = ((t*.8 + i/12) % 1); if(q < 0 || q > tot + 40) return; const sg = (dir > 0 ? q : tot - q) + dir*(7 - age*60);
+        p.x = x00 + ux*(sg + 150); p.z = z00 + uz*(sg + 150); p.y = dy + 22 + age*30; p.s = 7 + age*20; p.a = (1 - age)*.8; p.r = p.g = p.b = .95 - age*.3; }, {col:'#ffffff', region:[mid[0], dy + 30, mid[2], span*.7 + 200], name:'steam', f:5200});
+      X.site('trestle', (tx0 + tx1)/2, dy, (tz0 + tz1)/2, best.a.tx || 0, best.a.tz || 0); } }
+  st.mesh(null, 'canyonstuff');
+  /* tumbleweeds rolling along the canyon floor */
+  { const tb = new LBag(); tb.add('ico', '#b79a62', 0, 3, 0, 3.4, 3.2, 3.4); tb.add('ico', '#9a7e4a', 0, 3, 0, 3.6, 2.6, 2.6, 1, 1); tb.add('ico', '#c8ac74', 0, 3, 0, 2.6, 3.6, 3, .6, 0, 1);
+    const W = [], N = 16; for(let i = 0; i < N; i++){ const u0 = LF.r(), off = (110 + LF.r()*110)*(LF.r() < .5 ? 1 : -1), pts = []; let ok = true; for(let k = 0; k <= 24; k++){ const p = X.at(u0 + k*.0045, off); if(p.y < wl + 1 || X.runway(p.x, p.z, 100)) ok = false; pts.push([p.x, p.y, p.z]); }
+      W.push({pts, ok, sp:.022 + LF.r()*.02, ph:LF.r(), sc:.9 + LF.r()*.7}); }
+    const good = W.filter(w=>w.ok), nn = good.length;
+    if(nn) lfAnim(tb, nn, (i, t, m)=>{ const w = good[i], q = ((t*w.sp + w.ph) % 1)*24, k = Math.min(23, Math.floor(q)), f = q - k, a = w.pts[k], b = w.pts[k + 1], x = a[0] + (b[0] - a[0])*f, z = a[2] + (b[2] - a[2])*f, y = a[1] + (b[1] - a[1])*f;
+      lfPut(m, x, y + Math.abs(Math.sin(t*3 + i*2))*3, z, Math.atan2(-(b[2] - a[2]), b[0] - a[0]), 0, -t*3 - i, w.sc, w.sc, w.sc); }, [K.centroid.x, 200, K.centroid.z, 5200], {name:'tumble', f:2600}); }
+  /* eagles over the rims */
+  for(let k = 0; k < 2; k++){ const p = X.spot({dmin:300, dmax:700, r:150, test:(y)=>y > wl + 100}); if(p){ lfBirds(k ? 3 : 4, p.x, p.y + 150 + LF.r()*80, p.z, 190, {size:3.6, col:'#5a3d26', wing:'#4a3220', tip:'#f0e8d8', head:'#f4f0e6', speed:.1, flap:3, bob:10, dir:k ? 1 : -1, name:'eagles', f:5000}); X.site('eagles', p.x, p.y + 180, p.z); } }
+  /* a geyser and dust devils on the floor */
+  { const gs = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:130, dmax:240, r:30, test:floor}); if(p){ gs.push(p); X.site('geyser', p.x, p.y + 40, p.z); } }
+    if(gs.length) lfPuffs(gs.length*22, (i, t, p)=>{ const g = gs[Math.floor(i/22)], j = i % 22, f = j/21, ph = (t + g.x*.01) % 8, er = ph < 3.2 ? Math.sin(ph/3.2*Math.PI) : 0, h = 40 + 170*er;
+      p.x = g.x + Math.sin(j*5 + t)*(2 + f*9)*(.3 + er); p.z = g.z + Math.cos(j*3 + t)*(2 + f*9)*(.3 + er); p.y = g.y + 1 + f*h; p.s = 9 + f*(18 + 34*er); p.a = .9*(1 - f*.6)*(.5 + .5*er); p.r = p.g = .95; p.b = 1; }, {col:'#ffffff', region:[gs[0].x, gs[0].y + 100, gs[0].z, 3400], name:'geyser', f:3000});
+    const dd = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:140, dmax:240, r:60, test:floor}); if(p){ dd.push(p); X.site('dustdevil', p.x, p.y + 40, p.z); } }
+    if(dd.length) lfPuffs(dd.length*26, (i, t, p)=>{ const g = dd[Math.floor(i/26)], j = i % 26, f = j/25, a = t*3.4 + f*11 + j, wx = Math.sin(t*.12 + g.x)*70, wz = Math.cos(t*.1 + g.z)*70, r = 3 + f*22;
+      p.x = g.x + wx + Math.cos(a)*r; p.z = g.z + wz + Math.sin(a)*r; p.y = g.y + 2 + f*110; p.s = 9 + f*20; p.a = .75*(1 - f*.4); p.r = .85; p.g = .62; p.b = .4; }, {col:'#e0b070', region:[dd[0].x, dd[0].y + 50, dd[0].z, 3400], name:'dust', f:3000}); }
+};
+/* ===== course life: Snowcap Pass (snow falling, a ski lift with moving chairs, skiers on the slope, a chalet village with chimney smoke,
+   snowmen, snow-dusted pines and snow drifts, ravens) ===== */
+LBag.prototype.blob = function(H, cx, cz, r, col, n, lift){ const pts = []; n = n || 12;
+  for(let i = 0; i < n; i++){ const a = i/n*6.2832, rr = r*(.7 + LF.r()*.5); pts.push([cx + Math.cos(a)*rr, cz + Math.sin(a)*rr]); }
+  const c = lfCol(col), y0 = H(cx, cz) + (lift === undefined ? 1.2 : lift);
+  for(let i = 0; i < n; i++){ const a = pts[i], b = pts[(i + 1) % n], ya = H(a[0], a[1]) + (lift === undefined ? 1.2 : lift), yb = H(b[0], b[1]) + (lift === undefined ? 1.2 : lift);
+    [[cx, y0, cz], [b[0], yb, b[1]], [a[0], ya, a[1]]].forEach(p=>{ this.P.push(p[0], p[1], p[2]); this.N.push(0, 1, 0); this.C.push(c.r, c.g, c.b); }); } return this; };
+function lfPine(b, x, y, z, h, snow){ const g1 = '#1d4529', g2 = '#27573a', w = '#f2f6fa', r = h*.34;
+  b.add('cyl6', '#5a3d28', x, y - 1, z, h*.045, h*.2, h*.045);
+  [[.14, 1.0, .46], [.36, .82, .38], [.58, .6, .3]].forEach(([f, k, hk], i)=>{ b.add('cone6', i % 2 ? g2 : g1, x, y + h*f, z, r*k, h*hk, r*k); if(snow) b.add('cone6', w, x, y + h*f + h*hk*.38, z, r*k*.7, h*hk*.62, r*k*.7); });
+  b.add('cone6', g1, x, y + h*.8, z, r*.34, h*.2, r*.34); if(snow) b.add('cone6', w, x, y + h*.86, z, r*.22, h*.14, r*.22); }
+function lfChalet(b, x, y, z, ry, w, d, h){ const at = (a, hh, o)=>lfAt(x, y, z, ry, a, hh, o), logs = ['#8a5a35', '#7a4d2c'];
+  b.add('box', logs[0], x, y - 1, z, w, h + 1, d, ry); b.add('box', logs[1], ...at(0, h*.5, 0), w + .6, 1.4, d + .6, ry); b.add('box', logs[1], ...at(0, h*.22, 0), w + .6, 1.2, d + .6, ry);
+  b.add('prism', '#c7352e', x, y + h, z, d + 5, h*.62, w + 5, ry + Math.PI/2); b.add('prism', '#f4f8fb', x, y + h + h*.2, z, d + 4.4, h*.5, w + 4.4, ry + Math.PI/2);
+  b.add('box', '#7d7a74', ...at(w*.26, h, d*.1), 3.4, h*.9, 3.4, ry); b.add('box', '#f4f8fb', ...at(w*.26, h*1.9, d*.1), 3.8, .8, 3.8, ry);
+  b.add('box', '#5a3a22', ...at(0, 0, d/2 + .1), 4, 7.5, .6, ry); [-1, 1].forEach(a=>b.add('box', '#ffd27a', ...at(a*w*.3, h*.4, d/2 + .1), 4.2, 4.4, .6, ry)); b.add('box', '#ffd27a', ...at(w/2 + .1, h*.4, 0), .6, 4.2, 4.4, ry);
+  return at(w*.26, h*2, d*.1); }
+function lfSnowman(b, x, y, z, ry, s){ const at = (a, hh, o)=>lfAt(x, y, z, ry, a, hh, o);
+  b.add('sph', '#f6f9fc', x, y + 8*s, z, 9*s, 8.5*s, 9*s); b.add('sph', '#f6f9fc', ...at(0, 20*s, 0), 6.6*s, 6.2*s, 6.6*s); b.add('sph', '#f6f9fc', ...at(0, 29*s, 0), 4.9*s, 4.6*s, 4.9*s);
+  b.add('cone6', '#f08a1c', ...at(5.2*s, 29*s, 0), .9*s, 6*s, .9*s, ry, 0, -Math.PI/2); [[1.4, 1.7], [1.4, -1.7]].forEach(([a, o])=>b.add('sph', '#1c1c1e', ...at(4.2*s, 30.5*s, o*s), .55*s));
+  [0, 1, 2].forEach(i=>b.add('sph', '#1c1c1e', ...at(6.1*s, (17.4 - i*3.8)*s, 0), .65*s));
+  b.add('cyl', '#1c1c1e', ...at(0, 32.6*s, 0), 3.4*s, .8*s, 3.4*s); b.add('cyl', '#1c1c1e', ...at(0, 33.2*s, 0), 2.4*s, 4.2*s, 2.4*s); b.add('cyl', '#c7352e', ...at(0, 33.4*s, 0), 2.5*s, .9*s, 2.5*s);
+  b.add('torus', '#c7352e', ...at(0, 26*s, 0), 4.6*s, 4.6*s, 4.6*s, ry, Math.PI/2); [1, -1].forEach(o=>b.beam('cyl6', '#5a3a22', ...at(0, 20*s, o*5.8*s), ...at(-1*s, 25*s, o*13*s), .5*s, .35*s)); }
+LIFE.mountain = X=>{
+  const {H, wl, K} = X, st = new LBag(), sn = new LBag(), sm = [];
+  const ok = (y, x, z)=>y > wl + 3 && X.slope(x, z) < .45;
+  /* falling snow: flakes all around the camera, made in the shader */
+  lfSnow(1500, {box:[240, 150, 240], fall:17, wx:15, wz:5, size:1.7});
+  /* white drifts of snow on the slopes beside the course */
+  for(let k = 0; k < 90; k++){ const p = X.spot({dmin:120, dmax:700, r:60, test:(y, x, z)=>y > wl + 3 && X.slope(x, z) < .8, claim:false}); if(p) sn.blob(H, p.x, p.z, 60 + LF.r()*120, LF.r() < .5 ? '#f4f8fc' : '#e8f0f8', 11); }
+  /* the chalet village: log cabins with red roofs under snow, smoke from the chimneys, snowmen */
+  { const v = X.spot({dmin:230, dmax:520, r:130, test:(y, x, z)=>ok(y, x, z) && X.slope(x + 70, z) < .3 && X.slope(x, z + 70) < .3}); 
+    if(v){ X.site('village', v.x, v.y + 20, v.z, v.tx, v.tz); let n = 0;
+      for(let k = 0; k < 14 && n < 6; k++){ const a = k*2.4, rr = 30 + k*11, x = v.x + Math.cos(a)*rr, z = v.z + Math.sin(a)*rr; if(!X.free(x, z, 22, 190) || X.slope(x, z) > .35 || H(x, z) < wl + 3) continue; X.claim(x, z, 24); n++;
+        sm.push(lfChalet(st, x, H(x, z), z, a + 1.2, 38 + LF.r()*14, 26, 15)); X.shade(x, z, 28, .35); }
+      for(let k = 0; k < 4; k++){ const a = LF.r()*6.28, rr = 70 + LF.r()*50, x = v.x + Math.cos(a)*rr, z = v.z + Math.sin(a)*rr; if(!X.free(x, z, 14, 180) || H(x, z) < wl + 3) continue; lfSnowman(st, x, H(x, z), z, a + Math.PI, 1.1 + LF.r()*.5); X.site('snowman', x, H(x, z) + 25, z, v.tx, v.tz); } } }
+  for(let k = 0; k < 3; k++){ const p = X.spot({dmin:170, dmax:520, r:30, test:ok}); if(p){ lfSnowman(st, p.x, p.y, p.z, LF.r()*6.28, 1.3); X.site('snowman', p.x, p.y + 25, p.z, p.tx, p.tz); } }
+  /* snow-dusted pines in clumps beside the course */
+  for(let c = 0; c < 38; c++){ const p = X.spot({dmin:160, dmax:650, r:60, test:ok, claim:false}); if(!p) continue; for(let q = 0; q < 9; q++){ const a = LF.r()*6.28, rr = Math.sqrt(LF.r())*60, x = p.x + Math.cos(a)*rr, z = p.z + Math.sin(a)*rr; if(X.dist(x, z) < 150 || !ok(H(x, z), x, z) || !X.free(x, z, 1, 150)) continue; const h = 48 + LF.r()*40; lfPine(st, x, H(x, z), z, h, true); X.shade(x, z, h*.3, .3); } }
+  /* a ski lift: pylons, a looping cable and chairs going up and coming down */
+  { let best = null; for(let k = 0; k < 40; k++){ const p = X.spot({dmin:230, dmax:520, r:30, test:(y, x, z)=>y > wl + 3, claim:false}); if(!p) continue;
+      for(let d = 0; d < 8; d++){ const a = d/8*6.2832, L = 800, x1 = p.x + Math.cos(a)*L, z1 = p.z + Math.sin(a)*L, rise = H(x1, z1) - p.y; let good = rise > 160 && rise < 520;
+        for(let q = 1; q <= 8 && good; q++){ const x = p.x + (x1 - p.x)*q/8, z = p.z + (z1 - p.z)*q/8; if(X.dist(x, z) < 190 || X.runway(x, z, 120) || H(x, z) < wl + 3) good = false; }
+        if(good && (!best || rise > best.rise)) best = {x0:p.x, z0:p.z, x1, z1, rise, p}; } }
+    if(best){ const {x0, z0, x1, z1} = best, L = Math.hypot(x1 - x0, z1 - z0), ux = (x1 - x0)/L, uz = (z1 - z0)/L, sx = -uz, sz = ux, np = Math.round(L/100), yaw = Math.atan2(-uz, ux), top = [], cab = [];
+      const cp = (s, side)=>{ const x = x0 + ux*s + sx*side, z = z0 + uz*s + sz*side; return [x, H(x, z) + 34, z]; };
+      for(let i = 0; i <= np; i++){ const s = i*L/np; [0].forEach(()=>{ const a = cp(s, 0), g = a[1] - 34; st.beam('cyl6', '#4a4f55', a[0], g - 2, a[2], a[0], g + 33, a[2], 1.6, 1.2); st.add('box', '#4a4f55', a[0], g + 32, a[2], 2.2, 2.2, 20, yaw); st.add('box', '#c7352e', a[0], g + 28, a[2], 4, 4, 4); });
+        if(i < np){ [-8, 8].forEach(sd=>{ const a = cp(i*L/np, sd), b = cp((i + 1)*L/np, sd); st.beam('cyl6', '#2a2d30', a[0], a[1] - 2, a[2], b[0], b[1] - 2, b[2], .5, .5); }); } }
+      [0, L].forEach(s=>{ const a = cp(s, 0), g = a[1] - 34; st.add('box', '#7a4d2c', a[0], g - 1, a[2], 30, 16, 30, yaw); st.add('prism', '#f4f8fb', a[0], g + 15, a[2], 36, 9, 34, yaw + Math.PI/2); });
+      X.site('skilift', (x0 + x1)/2, H((x0 + x1)/2, (z0 + z1)/2) + 40, (z0 + z1)/2, ux, uz); X.claim((x0 + x1)/2, (z0 + z1)/2, L/2);
+      const cb = new LBag(); cb.add('box', '#c7352e', 0, -11, 0, 5.4, 1.2, 7); cb.add('box', '#c7352e', -2.4, -10.5, 0, 1, 5.2, 7); cb.add('box', '#2a2d30', 0, -10, 3.4, .5, 10, .5); cb.add('box', '#2a2d30', 0, -10, -3.4, .5, 10, .5); cb.add('box', '#2a2d30', 0, -.5, 0, 1, 1, 7.4);
+      const NC = 10, per = 2*L, v = 24, hf = (s, side)=>{ const x = x0 + ux*s + sx*side, z = z0 + uz*s + sz*side; return H(x, z) + 34; };
+      lfAnim(cb, NC*2, (i, t, m)=>{ const up = i < NC, j = up ? i : i - NC, s = ((t*v + j*(L/NC)) % L + L) % L, ss = up ? s : L - s, side = up ? -8 : 8, x = x0 + ux*ss + sx*side, z = z0 + uz*ss + sz*side, y = hf(ss, side);
+        lfPut(m, x, y, z, up ? yaw : yaw + Math.PI, 0, 0, 1.5, 1.5, 1.5); }, [(x0 + x1)/2, (best.p.y + H(x1, z1))/2 + 30, (z0 + z1)/2, L*.6], {name:'chairs', f:4200});
+      /* skiers carving down beside the lift */
+      const kb = new LBag(); kb.add('cyl6', '#1c6fd0', 0, 2.6, 0, 1.5, 5, 1.5); kb.add('sph', '#f2c9a0', 0, 8.6, 0, 1.6, 1.6, 1.6); kb.add('cone6', '#c7352e', 0, 9.6, 0, 1.7, 2.4, 1.7); kb.add('box', '#222', -.5, 0, 1.2, 8, .5, .8); kb.add('box', '#222', -.5, 0, -1.2, 8, .5, .8);
+      const NS = 7, kc = ['#e8353a', '#f4c20d', '#2eb872', '#e86aa8', '#2f7fe0', '#f08a1c', '#8a4fd0'];
+      lfAnim(kb, NS, (i, t, m)=>{ const s0 = ((t*(46 + i*3) + i*L/NS*1.37) % L), ss = L - s0, side = 40 + Math.sin(ss*.02 + i*2)*26, x = x0 + ux*ss + sx*side, z = z0 + uz*ss + sz*side, e = Math.min(1, s0/60, (L - s0)/60), sc = 1.7*Math.max(.01, e);
+        lfPut(m, x, H(x, z), z, yaw + Math.PI + Math.cos(ss*.02 + i*2)*.5, 0, Math.sin(ss*.02 + i)*.25, sc, sc, sc); }, [(x0 + x1)/2, (best.p.y + H(x1, z1))/2, (z0 + z1)/2, L*.6], {name:'skiers', tint:kc, f:4200}); } }
+  st.mesh(null, 'alpinestuff'); if(sn.P.length) sn.mesh(LF.matG, 'drifts');
+  if(sm.length) lfPuffs(sm.length*6, (i, t, p)=>{ const e = sm[i % sm.length], age = (t/4.5 + i*.171) % 1; p.x = e[0] + age*16 + Math.sin(i*3 + age*5)*2; p.y = e[1] + age*40; p.z = e[2] + age*6; p.s = 5 + age*14; p.a = (1 - age)*.6*Math.min(1, age*8); p.r = p.g = p.b = .92; }, {col:'#f2f2f2', region:[sm[0][0], sm[0][1], sm[0][2], 2600], name:'smoke', f:3200});
+  for(let k = 0; k < 2; k++){ const p = X.spot({dmin:300, dmax:800, r:150, test:(y)=>y > wl + 3}); if(p) lfBirds(4, p.x, p.y + 140, p.z, 150, {col:'#2a2c32', wing:'#22242a', tip:'#2a2c32', beak:'#2a2c32', size:2.4, speed:.14, flap:5, dir:k ? 1 : -1, name:'ravens', f:4500}); }
+};
+/* ===== course life: Lighthouse Coast (a sweeping lighthouse beam, sailboats bobbing, a whale with its spout, surf breaking on sea stacks and
+   the shore, seagulls, a seaside pier with a turning ferris wheel, a row of colourful cottages) ===== */
+LIFE.coast = X=>{
+  const {H, wl, K} = X, g = LF.g, st = new LBag();
+  const sea = (y)=>y < wl - 14, beach = (y, x, z)=>y > wl + 1.5 && y < wl + 9;
+  /* the lighthouse: two long beams sweep round, and its lamp glows */
+  { let lh = null; K.group.children.forEach(o=>{ if(o.name === 'building' && o.children.length >= 5 && o.children.some(c=>c.isGroup)) lh = o; });
+    if(lh){ const lx = lh.position.x, ly = lh.position.y + 118, lz = lh.position.z; [0, Math.PI].forEach((ph, k)=>{ const bb = new LBag(); bb.light(1400, 5, 70, k ? '#ffd98a' : '#ffe9b0', 12, 6); const m = lfSpin(bb, lx, ly, lz, ph, 'y', .9, LF.matA, 'beam', 6500); m.renderOrder = 5; });
+      lfPuffs(1, (i, t, p)=>{ p.x = lx; p.y = ly; p.z = lz; p.s = 30 + Math.sin(t*3)*3; p.a = .5; p.r = 1; p.g = .9; p.b = .6; }, {col:'#ffe9a8', add:true, region:[lx, ly, lz, 60], name:'lamp', f:6500}); X.site('lighthouse', lx, ly - 30, lz, 1, 0); X.claim(lx, lz, 60); } }
+  /* sea stacks with surf breaking round them */
+  const stacks = []; for(let k = 0; k < 20; k++){ const p = X.spot({dmin:170, dmax:600, r:50, test:(y)=>y < wl - 5 && y > wl - 40}); if(!p) continue; const s = 14 + LF.r()*16; stacks.push({x:p.x, z:p.z, s});
+    st.add('ico', '#6e675f', p.x, wl - s*.4, p.z, s, s*(2.4 + LF.r()*1.6), s*.95, LF.r()*3); st.add('ico', '#8b837a', p.x + s*.5, wl - s*.2, p.z - s*.3, s*.6, s*(1.4 + LF.r()), s*.55, LF.r()*3); st.add('cone', '#f2f2ee', p.x, wl + s*1.5, p.z, s*.5, s*.6, s*.5); if(k < 2) X.site('seastack', p.x, wl + 20, p.z, p.tx, p.tz); }
+  const ringT = lfTex(128, 128, (c, w, h)=>{ c.clearRect(0, 0, w, h); for(let i = 0; i < 260; i++){ const a = Math.random()*6.283, r = 38 + Math.random()*24, x = w/2 + Math.cos(a)*r, y = h/2 + Math.sin(a)*r; const gr = c.createRadialGradient(x, y, 0, x, y, 5 + Math.random()*7); gr.addColorStop(0, 'rgba(255,255,255,.9)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); c.fillStyle = gr; c.fillRect(x - 14, y - 14, 28, 28); } });
+  if(stacks.length) lfFoam(ringT, stacks.length*2, [stacks[0].x, wl, stacks[0].z, 6000], (i, t, m)=>{ const s = stacks[i >> 1], k = i & 1, f = (t*.35 + i*.31) % 1, sc = s.s*(k ? 3.2 : 2.6)*(1.05 + .25*Math.sin(6.283*f)); lfPut(m, s.x, wl + .7, s.z, i, 0, 0, sc, 1, sc); }, {opacity:.9, name:'surf', f:3600});
+  /* surf rolling in on the beaches */
+  { const surf = []; for(let k = 0; k < 18; k++){ const p = X.spot({dmin:140, dmax:700, r:40, test:beach, claim:false}); if(!p) continue; const gx = H(p.x + 12, p.z) - H(p.x - 12, p.z), gz = H(p.x, p.z + 12) - H(p.x, p.z - 12), gl = Math.hypot(gx, gz) || 1; surf.push({x:p.x, z:p.z, nx:gx/gl, nz:gz/gl}); }
+    const stripT = lfTex(256, 64, (c, w, h)=>{ c.clearRect(0, 0, w, h); for(let r = 0; r < 4; r++){ c.fillStyle = `rgba(255,255,255,${.85 - r*.18})`; c.beginPath(); for(let x = 0; x <= w; x += 8){ const y = 14 + r*12 + Math.sin(x*.07 + r)*5 + Math.random()*3; x ? c.lineTo(x, y) : c.moveTo(x, y); } c.lineTo(w, 20 + r*12); for(let x = w; x >= 0; x -= 8) c.lineTo(x, 20 + r*12 + Math.random()*3); c.fill(); } });
+    if(surf.length) lfFoam(stripT, surf.length, [surf[0].x, wl, surf[0].z, 7000], (i, t, m)=>{ const s = surf[i], f = (t*.28 + i*.37) % 1, off = (1 - f)*34 - 8, sc = 150*(.9 + .3*Math.sin(i)), fd = Math.sin(Math.PI*f); lfPut(m, s.x - s.nx*off, wl + .8, s.z - s.nz*off, Math.atan2(-s.nx, -s.nz), 0, 0, sc, 1, sc*.22*(.15 + .85*fd)); }, {opacity:.8, name:'shore', f:3400}); }
+  /* sailboats */
+  lfBoats(X, 20, {deep:20, dmin:170, dmax:750});
+  /* whales: a back and a tail rolling through the water, a spout of spray at each breath */
+  { const W = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:220, dmax:800, r:200, test:(y, x, z)=>y < wl - 50 && H(x + 160, z) < wl - 30 && H(x - 160, z) < wl - 30 && H(x, z + 160) < wl - 30 && H(x, z - 160) < wl - 30}); if(p){ W.push({x:p.x, z:p.z, R:100 + LF.r()*40, ph:LF.r()*6.28, w:.05*(k ? 1 : -1), c:6.5 + k*1.7}); X.site('whale', p.x, wl + 40, p.z, p.tx, p.tz); } }
+    lfWhales(X, W); }
+  /* dolphins leaping beside the course */
+  { const A = []; for(let k = 0; k < 4; k++){ const p = X.spot({dmin:170, dmax:420, r:70, test:(y, x, z)=>y < wl - 25}); if(!p) continue; for(let q = 0; q < 3; q++) A.push({x:p.x + (LF.r() - .5)*60, z:p.z + (LF.r() - .5)*60, ph:LF.r()}); if(k < 2) X.site('dolphins', p.x, wl + 15, p.z, p.tx, p.tz); }
+    if(A.length) lfDolphins(X, A, {cyc:5.2, D:70, H:28, s:1.7}); }
+  /* seagulls over the shore and the waves */
+  for(let k = 0; k < 4; k++){ const p = X.spot({dmin:230, dmax:800, r:150, test:(y)=>true, claim:false}); if(p) lfBirds(6, p.x, wl + 80 + LF.r()*80, p.z, 120 + LF.r()*60, {col:'#fafafa', wing:'#f0f0f0', tip:'#3a3f48', beak:'#f2a22a', size:1.7, speed:.2, flap:8, bob:6, dir:k % 2 ? 1 : -1, name:'gulls', f:3000}); }
+  /* a seaside pier with a ferris wheel, and a row of colourful cottages */
+  lfPier(X, st, {});
+  { const cz = X.spot({dmin:200, dmax:520, r:120, test:(y, x, z)=>y > wl + 4 && X.slope(x, z) < .3}); if(cz){ const pc = ['#f6c7c0', '#f4e2a0', '#bfe3d6', '#c6d4f2', '#f6d6a8', '#e6c0e6'];
+      for(let k = 0; k < 8; k++){ const x = cz.x + cz.tx*(k - 3.5)*46, z = cz.z + cz.tz*(k - 3.5)*46; if(H(x, z) < wl + 3 || X.dist(x, z) < 170 || X.slope(x, z) > .5) continue; lfHouse(st, x, H(x, z), z, Math.atan2(-cz.tz, cz.tx), 30, 22, 16, pc[k % 6], ['#c7352e', '#d9682a', '#2f6fb0'][k % 3]); X.shade(x, z, 24, .3); }
+      X.site('cottages', cz.x, cz.y + 20, cz.z, cz.tx, cz.tz); } }
+  st.mesh(null, 'coaststuff');
+};
+/* ===== course life: Glacier Bay Speedway (light snow flurries, frozen lakes with skaters, seals and an ice-fishing hut, penguin parades and
+   colonies, a husky sled team and snowmobiles running round the ice, polar bears, igloos, towers of blue ice that twinkle, a rescue helicopter) ===== */
+function lfIgloo(b, x, y, z, ry, s){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o);
+  b.add('sph', '#a9c8de', x, y, z, 10*s, 7.4*s, 10*s); b.add('sph', '#7fa6c4', ...at(0, 0, 0), 10.3*s, 2.2*s, 10.3*s, ry); b.add('sph', '#7fa6c4', ...at(0, 4*s, 0), 10.2*s, .9*s, 10.2*s, ry); b.add('sph', '#e8353a', ...at(0, 7*s, 0), .9*s, 1.3*s, .9*s, ry);
+  b.add('box', '#9bbdd6', ...at(7.4*s, -1, 0), 7*s, 5.6*s, 6.4*s, ry); b.add('box', '#25384a', ...at(11*s, -1, 0), .5*s, 4.2*s, 3.6*s, ry); }
+function lfSpire(b, x, y, z, h){ const r = h*.17, lean = (LF.r() - .5)*.3;
+  b.add('cone6', '#3aa4dc', x, y - 2, z, r, h, r, LF.r()*3, 0, lean); b.add('cone6', '#bfe8fa', x, y + h*.72, z, r*.3, h*.3, r*.3, 0, 0, lean*.5);
+  [0, 1, 2].forEach(i=>{ const a = i*2.1 + LF.r(), hh = h*(.4 + LF.r()*.3); b.add('cone6', i % 2 ? '#62bfe8' : '#2c8fcc', x + Math.cos(a)*r*1.3, y - 2, z + Math.sin(a)*r*1.3, r*.7, hh, r*.7, a, 0, -.25*Math.cos(a)); }); }
+function lfDogBag(){ const b = new LBag(); b.add('box', '#ffffff', 0, 3, 0, 7, 3, 3.2); b.add('sph', '#f4f4f4', 3, 4.4, 0, 2, 1.9, 1.6); b.add('sph', '#ffffff', 4.8, 6.6, 0, 1.8, 1.7, 1.7); b.add('box', '#f2f2f2', 5.6, 5.4, 0, 2.4, 1.2, 1.4); b.add('box', '#222222', 7.9, 5.9, 0, .8, .8, .9);
+  [-1, 1].forEach(o=>{ b.add('cone6', '#ffffff', 4.2, 7.5, o*1.1, .7, 1.7, .7); [-2.6, 2.6].forEach(a=>b.add('box', '#ffffff', a, 0, o*1.2, .9, 3.2, .9)); }); b.beam('cyl6', '#ffffff', -3.4, 5.2, 0, -6.2, 8, 0, .5, .35); return b; }
+function lfSledBag(){ const b = new LBag(); b.add('box', '#8a5a35', 0, 1.6, 0, 14, 1, 5); [-2.2, 2.2].forEach(o=>{ b.add('box', '#444444', 0, 0, o, 16, .8, .6); b.add('box', '#444444', 7.6, .6, o, 2, .8, .6, 0, 0, .5); }); b.add('box', '#2f9fe0', 1, 2.6, 0, 6, 3, 4);
+  b.add('cyl6', '#e8353a', -5, 2.6, 0, 1.7, 5.6, 1.7); b.add('sph', '#f2c9a0', -5, 8.8, 0, 1.5, 1.5, 1.5); b.add('cone6', '#2f7fe0', -5, 9.5, 0, 1.6, 2, 1.6); b.beam('cyl6', '#5a3a22', -7, 2.6, -2, -8.6, 6.4, -2, .35, .35); b.beam('cyl6', '#5a3a22', -7, 2.6, 2, -8.6, 6.4, 2, .35, .35); return b; }
+function lfBearBag(){ const b = new LBag(), c = '#f7f4ee', c2 = '#eae6dc'; b.add('sph', c, 0, 7, 0, 9, 5.6, 5.2); b.add('sph', c2, -5, 6.6, 0, 5.4, 5.2, 4.8); b.add('sph', c, 10, 8.4, 0, 3.1, 2.8, 2.8); b.add('sph', c2, 12.6, 7.6, 0, 1.9, 1.4, 1.5); b.add('sph', '#222222', 14, 8, 0, .6, .5, .6);
+  [-1, 1].forEach(o=>{ b.add('sph', c, 9, 11, o*2, 1.1, 1.1, 1.1); [-5, 5].forEach(a=>b.add('cyl6', c2, a, 0, o*2.9, 1.7, 5.4, 1.7)); }); return b; }
+function lfSnowmobile(){ const b = new LBag(); b.add('box', '#ffffff', 0, 2, 0, 12, 3.4, 5); b.add('box', '#ffffff', 5, 3.6, 0, 5, 2, 4.6, 0, 0, -.25); b.add('box', '#7fd0f0', 2, 5, 0, .5, 3.2, 4, 0, 0, -.4); b.add('box', '#2a2a2a', -3, 0, 0, 9, 1.8, 3.8); [-2.2, 2.2].forEach(o=>b.add('box', '#555555', 7, 0, o, 7, .5, .7, 0, 0, .3));
+  b.add('cyl6', '#2f6fe0', -2, 4.6, 0, 1.5, 4.4, 1.5); b.add('sph', '#f2c9a0', -2, 9.4, 0, 1.4, 1.4, 1.4); b.add('sph', '#e8353a', -2, 9.8, 0, 1.6, 1.3, 1.6); return b; }
+function lfSkaterBag(){ const b = new LBag(); b.add('cyl6', '#ffffff', 0, 2.6, 0, 1.4, 4.4, 1.4); b.add('sph', '#f2c9a0', 0, 8, 0, 1.4, 1.4, 1.4); b.add('sph', '#ffffff', 0, 9, 0, 1.5, 1, 1.5); b.add('sph', '#ffffff', 0, 10.6, 0, .5, .5, .5);
+  [-1, 1].forEach(o=>{ b.beam('cyl6', '#2a3a5a', 0, 2.4, o*.6, o*0 + 1.6*o, 0, o*.7, .5, .5); b.beam('cyl6', '#ffffff', 0, 6, o*1.3, 1.4, 5, o*4.4, .4, .3); }); b.add('box', '#d8e4ee', 0, -.1, 0, 4, .25, .6); return b; }
+function lfSealBag(){ const b = new LBag(); b.add('sph', '#6f7882', 0, 0, 0, 5.6, 2.6, 2.6); b.add('sph', '#7d8691', 5, .6, 0, 2, 1.8, 1.8); b.add('sph', '#222222', 6.6, .9, 0, .5, .4, .5); [-1, 1].forEach(o=>{ b.add('sph', '#222222', 6, 2, o*.9, .3, .3, .3); b.add('box', '#6f7882', 1.4, -1, o*2.6, 2.2, .4, 1.2, o*.4); }); b.add('box', '#6f7882', -6.2, -.5, 0, 3, .5, 3, 0, 0, .3); return b; }
+LIFE.glacier = X=>{
+  const {H, wl, K} = X, st = new LBag(), ice = new LBag(), sn = new LBag(), PI2 = 6.2832;
+  const flat = (r, hmax)=>(y, x, z)=>{ if(y < wl + 3 || y > hmax) return false; for(let a = 0; a < 8; a++){ const h = H(x + Math.cos(a*.785)*r, z + Math.sin(a*.785)*r); if(Math.abs(h - y) > 11) return false; } return X.slope(x, z) < .18; };
+  const sparkle = (cx, cy, cz, R, n, nm)=>{ const q = []; for(let i = 0; i < n; i++){ const a = LF.r()*PI2, r = Math.sqrt(LF.r())*R; q.push([cx + Math.cos(a)*r, cy + LF.r()*R*.55, cz + Math.sin(a)*r, LF.r()*PI2, 4 + LF.r()*6]); }
+    lfPuffs(n, (i, t, p)=>{ const e = q[i], k = Math.pow(Math.max(0, Math.sin(t*2.2 + e[3]*3)), 8); p.x = e[0]; p.y = e[1]; p.z = e[2]; p.s = e[4]*(.4 + k); p.a = k; p.r = .8; p.g = .95; p.b = 1; }, {col:'#ffffff', add:true, region:[cx, cy, cz, R*1.4], name:nm || 'twinkle', f:3600}); };
+  const lakes = [], LY = L=>()=>L.y - 1.4;
+  for(let k = 0; k < 3; k++){ const R = 120 + LF.r()*55, p = X.spot({dmin:R + 100, dmax:R + 800, r:R + 70, tries:700, test:flat(R, 140)}); if(!p) continue; let hm = H(p.x, p.z); for(let a = 0; a < 8; a++) hm = Math.max(hm, H(p.x + Math.cos(a*.785)*R, p.z + Math.sin(a*.785)*R)); lakes.push({x:p.x, z:p.z, y:hm + 1.4, R, tx:p.tx, tz:p.tz}); X.shade(p.x, p.z, R, .2); }
+  lfSnow(1100, {box:[240, 150, 240], fall:11, wx:7, wz:3, size:1.5});
+  /* drifts of snow */
+  for(let k = 0; k < 50; k++){ const p = X.spot({dmin:120, dmax:700, r:50, test:(y)=>y > wl + 3, claim:false}); if(p) sn.blob(H, p.x, p.z, 60 + LF.r()*110, LF.r() < .5 ? '#f4f8fc' : '#e6f0f8', 11); }
+  /* towers of blue ice, and the twinkles in them */
+  for(let c = 0; c < 9; c++){ const p = X.spot({dmin:200, dmax:700, r:90, test:(y, x, z)=>y > wl + 3 && X.slope(x, z) < .6}); if(!p) continue; let n = 0;
+    for(let q = 0; q < 7; q++){ const a = LF.r()*PI2, rr = Math.sqrt(LF.r())*70, x = p.x + Math.cos(a)*rr, z = p.z + Math.sin(a)*rr; if(X.dist(x, z) < 160) continue; lfSpire(ice, x, H(x, z), z, q === 0 ? 150 + LF.r()*90 : 40 + LF.r()*70); n++; }
+    if(n){ if(c < 4) sparkle(p.x, p.y + 20, p.z, 100, 28); X.site('ice', p.x, p.y + 70, p.z, p.tx, p.tz); } }
+  /* frozen lakes: skaters, an ice-fishing hut, seals; a parade of penguins round the rim; a husky team and snowmobiles run around the lakes */
+  lakes.forEach((L, k)=>{ ice.blob(LY(L), L.x, L.z, L.R, '#2f8fd0', 16, 1.2); ice.blob(LY(L), L.x + L.R*.1, L.z - L.R*.05, L.R*.7, '#58b4e6', 14, 1.6); ice.blob(LY(L), L.x - L.R*.15, L.z + L.R*.12, L.R*.34, '#8ad0f2', 10, 2);
+    for(let i = 0; i < 7; i++){ const a = LF.r()*PI2, rr = LF.r()*L.R*.55, l = 30 + LF.r()*50; ice.add('box', '#ffffff', L.x + Math.cos(a)*rr, L.y + .9, L.z + Math.sin(a)*rr, l, .2, 1.1, LF.r()*3); }
+    sparkle(L.x, L.y + 4, L.z, L.R, 30, 'lakeglint'); X.site('lake', L.x, L.y + 30, L.z, L.tx, L.tz); });
+  const rim = L=>{ const hx = L.x + Math.cos(L.tz + 1)*L.R*.5, hz = L.z + Math.sin(L.tz + 1)*L.R*.5; return [hx, hz]; };
+  if(lakes[0]){ const L = lakes[0], [hx, hz] = rim(L); st.add('box', '#d9532e', hx, L.y, hz, 22, 16, 16, .6); st.add('prism', '#f4f8fb', hx, L.y + 16, hz, 19, 8, 24, .6 + Math.PI/2); st.add('box', '#2a2a30', hx + 9.4, L.y, hz - 5, .6, 9.6, 5.4, .6);
+    ice.add('cyl', '#0d2a44', hx + 22, L.y + .3, hz + 9, 6, .2, 6); X.site('fishhut', hx, L.y + 15, hz, L.tx, L.tz); }
+  /* skaters, seals, penguin parades */
+  { const sk = lfSkaterBag(), N = lakes.length*3, ST = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0', '#31c4c4', '#e8353a'];
+    if(N) lfAnim(sk, N, (i, t, m)=>{ const L = lakes[Math.floor(i/3)], j = i % 3, w = (.2 + j*.05)*(j === 1 ? -1 : 1), a = i*2 + t*w, r = L.R*(.38 + j*.17), hd = a + (w > 0 ? Math.PI/2 : -Math.PI/2);
+      lfPut(m, L.x + Math.cos(a)*r, L.y + .6, L.z + Math.sin(a)*r, -hd, 0, Math.sin(t*1.5 + i)*.18, 2.1, 2.1, 2.1); }, [lakes[0].x, lakes[0].y, lakes[0].z, 3200], {name:'skaters', tint:ST.slice(0, N), f:3400}); }
+  { const sl = lfSealBag(), N = Math.min(lakes.length, 2)*2; if(N) lfAnim(sl, N, (i, t, m)=>{ const L = lakes[i >> 1], a = i*2.3 + 1, k = Math.max(0, Math.sin(t*.45 + i*1.7)), up = Math.min(1, k*3), r = L.R*.8;
+      lfPut(m, L.x + Math.cos(a)*r, L.y + 1.4*up - 1.2, L.z + Math.sin(a)*r, -a - 1, 0, .22*Math.sin(t*1.1 + i), 2.6*Math.max(.01, up), 2.6*Math.max(.01, up), 2.6*Math.max(.01, up)); }, [lakes[0].x, lakes[0].y, lakes[0].z, 3200], {name:'seals', f:3400}); }
+  { const pb = new LBag(); lfPenguin(pb, 0, 0, 0, Math.PI/2, 2.6); const P = [];
+    lakes.forEach((L, k)=>{ if(k > 1) return; for(let i = 0; i < 6; i++) P.push({L, a0:i*.19 - k, w:(k ? -1 : 1)*18/(L.R*1.22)}); });
+    if(P.length) lfAnim(pb, P.length, (i, t, m)=>{ const e = P[i], a = e.a0 + e.w*t, r = e.L.R*1.22, x = e.L.x + Math.cos(a)*r, z = e.L.z + Math.sin(a)*r, hd = a + (e.w > 0 ? Math.PI/2 : -Math.PI/2);
+        lfPut(m, x, H(x, z) + Math.abs(Math.sin(t*6 + i))*.9, z, -hd - Math.PI/2, 0, Math.sin(t*6 + i*1.7)*.2, 1, 1, 1); }, [lakes[0].x, lakes[0].y, lakes[0].z, 3200], {name:'parade', f:3400}); }
+  /* a husky sled team round the biggest lake, snowmobiles round another */
+  { let L = lakes[0]; lakes.forEach(l=>{ if(l.R > L.R) L = l; });
+    if(L){ const Rr = L.R + 85, w = 40/Rr, ND = 6, pos = (k, t, o)=>{ const a = k*(-19/Rr) + t*w + 1.3, x = L.x + Math.cos(a)*Rr, z = L.z + Math.sin(a)*Rr; o.x = x; o.z = z; o.y = H(x, z); o.hd = a + Math.PI/2; }, q = {x:0, y:0, z:0, hd:0}, reg = [L.x, L.y, L.z, Rr + 60];
+      lfAnim(lfDogBag(), ND, (i, t, m)=>{ pos(Math.floor(i/2) + .1*(i % 2), t, q); const off = (i % 2 ? 1 : -1)*7; lfPut(m, q.x - Math.sin(q.hd)*off, q.y + Math.abs(Math.sin(t*9 + i*1.3))*2.6, q.z + Math.cos(q.hd)*off, -q.hd, 0, Math.sin(t*9 + i)*.12, 2.4, 2.4, 2.4); }, reg, {name:'huskies', tint:['#8a8f96', '#6b4a32', '#f2f2f2', '#3a3a3a', '#c89a6a', '#8a8f96'], f:3400});
+      lfAnim(lfSledBag(), 1, (i, t, m)=>{ pos(3.4, t, q); lfPut(m, q.x, q.y, q.z, -q.hd, 0, 0, 2.4, 2.4, 2.4); }, reg, {name:'sled', f:3400}); X.site('sled', L.x + Rr, L.y + 25, L.z, L.tx, L.tz); }
+    const M = lakes.filter(l=>l !== L)[0] || lakes[0];
+    if(M){ const Rr = M.R + 70, sb = lfSnowmobile(), q = {x:0, z:0};
+      lfAnim(sb, 2, (i, t, m)=>{ const w = (i ? -1 : 1)*50/Rr, a = i*3.1 + t*w, x = M.x + Math.cos(a)*Rr, z = M.z + Math.sin(a)*Rr, hd = a + (w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, x, H(x, z), z, -hd, 0, 0, 2.8, 2.8, 2.8); }, [M.x, M.y, M.z, Rr + 40], {name:'snowmobiles', tint:['#e8353a', '#f4c20d'], f:3400});
+      X.site('snowmobile', M.x + Rr, M.y + 20, M.z, M.tx, M.tz); } }
+  /* penguin colonies: stands of penguins on the slopes */
+  for(let c = 0; c < 6; c++){ const p = X.spot({dmin:170, dmax:420, r:90, test:(y, x, z)=>y > wl + 3 && X.slope(x, z) < .3}); if(!p) continue; const ry0 = LF.r()*PI2;
+    for(let q = 0; q < 26; q++){ const a = LF.r()*PI2, rr = Math.sqrt(LF.r())*80, x = p.x + Math.cos(a)*rr, z = p.z + Math.sin(a)*rr; if(X.dist(x, z) < 140 || X.slope(x, z) > .45) continue; lfPenguin(st, x, H(x, z), z, ry0 + (LF.r() - .5)*2, 2.4 + LF.r()*1, true); }
+    if(c < 3) X.site('colony', p.x, p.y + 20, p.z, p.tx, p.tz); }
+  /* igloos */
+  { const v = X.spot({dmin:170, dmax:480, r:130, test:flat(80, 140)}); if(v){ for(let k = 0; k < 4; k++){ const a = k*1.6 + .4, rr = 55 + k*28, x = v.x + Math.cos(a)*rr, z = v.z + Math.sin(a)*rr; lfIgloo(st, x, H(x, z), z, a + 3, 2.4 + (k % 2)*.7); X.shade(x, z, 18, .3); } X.site('igloos', v.x, v.y + 20, v.z, v.tx, v.tz); } }
+  /* polar bears pacing a patch of snow */
+  { const B = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:180, dmax:480, r:120, test:flat(60, 140)}); if(!p) continue; B.push({x:p.x, z:p.z, R:60, ph:k*2, w:(k ? -1 : 1)*.15, s:3.4 - k*.8}); X.site('bear', p.x, p.y + 25, p.z, p.tx, p.tz); }
+    if(B.length) lfAnim(lfBearBag(), B.length, (i, t, m)=>{ const e = B[i], a = e.ph + e.w*t, x = e.x + Math.cos(a)*e.R, z = e.z + Math.sin(a)*e.R, hd = a + (e.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, x, H(x, z) + Math.abs(Math.sin(t*2.2 + i))*.8, z, -hd, 0, Math.sin(t*2.2 + i)*.05, e.s, e.s, e.s); }, [B[0].x, B[0].y, B[0].z, 3500], {name:'bears', f:3600}); }
+  st.mesh(null, 'glacierstuff'); ice.mesh(LF.matG, 'glacierice'); if(sn.P.length) sn.mesh(LF.matG, 'drifts');
+  { const p = X.spot({dmin:480, dmax:900, r:200, test:(y)=>y > wl}); if(p) lfHelis(X, [{x:p.x, z:p.z, y:p.y + 260, R:130, ph:0, w:.1}], {tints:['#e8353a'], s:3}); }
+  for(let k = 0; k < 2; k++){ const p = X.spot({dmin:300, dmax:800, r:150, test:(y)=>y > wl}); if(p) lfBirds(6, p.x, p.y + 150, p.z, 150, {col:'#fafafa', wing:'#f4f4f4', tip:'#33383f', beak:'#f08a1c', size:2.2, speed:.16, flap:6, dir:k ? 1 : -1, name:'terns', f:4500}); }
+};
+/* ===== course life: Metro Spire Circuit (a monorail shuttling over the rooftops, blimps and a hot-air balloon drifting over the city, helicopters, a cruise ship, a fireboat with water jets
+   and sailboats in the harbour, a waterfront ferris wheel, rooftop beacons that blink, helipads, gardens and water tanks, pigeons and gulls) ===== */
+function lfBlimpBag(){ const b = new LBag(); b.add('sph', '#ffffff', 0, 0, 0, 36, 12, 12); [[-30, 0, 1], [-30, 0, -1]].forEach(([x, y, o])=>b.add('box', '#e8353a', x, y, o*7, 12, .6, 12, 0, o*.5)); b.add('box', '#e8353a', -30, 7, 0, 12, 12, .6, 0, 0); b.add('box', '#e8353a', -30, -7, 0, 12, 12, .6, 0, 0); b.add('box', '#333a44', 4, -13.5, 0, 14, 4, 5); b.add('box', '#7fd0f0', 4, -11, 0, 10, 1.4, 5.2); return b; }
+function lfCarBag(){ const b = new LBag(); b.add('box', '#ffffff', 0, 3, 0, 24, 9, 9); b.add('box', '#2a3d5c', 0, 7, 0, 24.4, 3, 9.4); b.add('box', '#ffffff', 12, 3, 0, 4, 7, 8.6, 0, 0, -.5); b.add('box', '#444b55', 0, 0, 0, 22, 3, 5); return b; }
+LIFE.skyline = X=>{
+  const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832, tw = [];
+  K.group.traverse(o=>{ if(o.name === 'city' && o.isInstancedMesh){ const a = o.instanceMatrix.array; for(let i = 0; i < o.count; i++){ const q = i*16; tw.push({x:a[q + 12], y:a[q + 13], z:a[q + 14], w:Math.hypot(a[q], a[q + 1], a[q + 2]), h:Math.hypot(a[q + 4], a[q + 5], a[q + 6]), d:Math.hypot(a[q + 8], a[q + 9], a[q + 10]), ry:Math.atan2(-a[q + 2], a[q])}); } } });
+  const clear = (x, z, m)=>{ for(let i = 0; i < tw.length; i++){ const t = tw[i]; if(Math.hypot(t.x - x, t.z - z) < Math.max(t.w, t.d)*.75 + m) return false; } return true; };
+  /* the rooftops: beacons that blink on the tall towers, helipads, gardens, water tanks and flags on the others */
+  const bl = []; let hp = 0;
+  tw.forEach((t, i)=>{ const top = t.y + t.h, w = t.w, d = t.d;
+    if(t.h > 190){ const ah = 50 + LF.r()*50; st.beam('cyl6', '#8a929a', t.x, top, t.z, t.x, top + ah, t.z, 2.2, .8); st.add('sph', '#d0d6dc', t.x, top + ah, t.z, 2.4); bl.push([t.x, top + ah + 3, t.z, LF.r()*PI2]); [-1, 1].forEach(o=>st.add('box', '#6e7680', t.x + o*w*.3, top, t.z, 3, 6, 3)); }
+    else if(t.h > 110){ const k = i % 5;
+      if(k === 0){ st.add('box', '#5fae5f', t.x, top, t.z, w*.72, 2.4, d*.72, t.ry); st.add('ico', '#3f8f4a', t.x + w*.15, top + 4, t.z, 6, 6, 6); st.add('ico', '#4aa457', t.x - w*.2, top + 4, t.z + d*.1, 5, 5, 5); }
+      else if(k === 1){ [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b])=>st.add('box', '#6d5a48', t.x + a*5, top, t.z + b*5, 1.4, 10, 1.4)); st.add('cyl', '#9a6a44', t.x, top + 10, t.z, 8, 12, 8); st.add('cone', '#5a4638', t.x, top + 22, t.z, 8.6, 5, 8.6); }
+      else if(k === 2 && hp < 6){ hp++; const r = Math.min(w, d)*.34; st.add('cyl', '#3d4650', t.x, top, t.z, r + 3, 1, r + 3); st.add('cyl', '#f4c20d', t.x, top + 1, t.z, r, .6, r); st.add('box', '#ffffff', t.x - r*.3, top + 1.6, t.z, 1.6, .3, r*.9); st.add('box', '#ffffff', t.x + r*.3, top + 1.6, t.z, 1.6, .3, r*.9); st.add('box', '#ffffff', t.x, top + 1.6, t.z, r*.7, .3, 1.4); X.site('helipad', t.x, top + 20, t.z); }
+      else if(k === 3){ st.add('box', '#1f3b6e', t.x, top, t.z, w*.6, 1.4, d*.4, t.ry, .25); st.add('box', '#6e7680', t.x, top, t.z, w*.62, .6, d*.42, t.ry); }
+      else { st.beam('cyl6', '#cfd4d9', t.x, top, t.z, t.x, top + 34, t.z, .7, .6); st.add('box', ['#e8353a', '#f4c20d', '#2f9fe0'][i % 3], t.x + 7, top + 24, t.z, 14, 9, .5, t.ry); } } });
+  if(bl.length) lfPuffs(bl.length, (i, t, p)=>{ const e = bl[i], k = Math.max(0, Math.sin(t*3 + e[3]*5)); p.x = e[0]; p.y = e[1]; p.z = e[2]; p.s = 14 + 12*k; p.a = .25 + .75*k; p.r = 1; p.g = .18; p.b = .15; }, {col:'#ff3a30', add:true, region:[1000, 200, 500, 2600], name:'beacons', f:6000});
+  /* a monorail: a track high over the rooftops on pylons, a train shuttling end to end */
+  { let best = null; for(let k = 0; k < 90 && !best; k++){ const p = X.spot({dmin:230, dmax:850, r:40, claim:false, test:(y)=>y > wl + 6}); if(!p) continue; const a = LF.r()*PI2, L = 1000, ux = Math.cos(a), uz = Math.sin(a); let ok = true, hm = -1e9;
+      for(let q = 0; q <= 25 && ok; q++){ const x = p.x + ux*L*q/25, z = p.z + uz*L*q/25, h = H(x, z); if(h < wl + 5 || X.dist(x, z) < 230 || X.runway(x, z, 120) || !clear(x, z, 48)) ok = false; hm = Math.max(hm, h); }
+      if(ok) best = {x:p.x, z:p.z, ux, uz, L, y:hm + 125, a}; }
+    if(best){ const {x, z, ux, uz, L, y, a} = best, yaw = -a, np = 10; X.claim(x + ux*L/2, z + uz*L/2, L/2);
+      st.beam('cyl6', '#aeb6c0', x, y, z, x + ux*L, y, z + uz*L, 4.4, 4.4); st.beam('cyl6', '#e8eef4', x, y + 5, z, x + ux*L, y + 5, z + uz*L, 1.5, 1.5);
+      for(let i = 0; i <= np; i++){ const px = x + ux*L*i/np, pz = z + uz*L*i/np, g = H(px, pz); st.beam('cyl', '#c9d0d8', px, g - 3, pz, px, y - 2, pz, 3.4, 2.6); st.add('box', '#9aa4ae', px, y - 6, pz, 14, 5, 14, yaw); }
+      [0, L].forEach(s=>{ const px = x + ux*s, pz = z + uz*s; st.add('box', '#e8353a', px, y - 12, pz, 56, 6, 22, yaw); st.add('prism', '#f4f4f4', px, y - 6, pz, 22, 8, 60, yaw + Math.PI/2); });
+      const NC = 5, v = 70, tr = t=>{ const ph = (t*v/(L - 160))%2, f = ph < 1 ? ph : 2 - ph; return 80 + (L - 160)*(f*f*(3 - 2*f)); };
+      lfAnim(lfCarBag(), NC, (i, t, m)=>{ const s = tr(t) - i*30, d = Math.cos(t*v/(L - 160)*Math.PI) ; lfPut(m, x + ux*s, y + 7, z + uz*s, yaw, 0, 0, 1.5, 1.5, 1.5); }, [x + ux*L/2, y, z + uz*L/2, L*.62], {name:'monorail', tint:['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#e86aa8'], f:4200});
+      X.site('monorail', x + ux*L/2, y + 30, z + uz*L/2, -uz, ux); } }
+  /* blimps and balloons over the city, helicopters between the towers */
+  { const B = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:380, dmax:900, r:250, test:(y)=>y > wl + 4}); if(p) B.push({x:p.x, z:p.z, R:200 + LF.r()*90, ph:LF.r()*PI2, w:(k ? -1 : 1)*.045, y:p.y + 430 + k*70}); }
+    if(B.length){ lfAnim(lfBlimpBag(), B.length, (i, t, m)=>{ const b = B[i], a = b.ph + t*b.w, hd = a + (b.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, b.x + Math.cos(a)*b.R, b.y + Math.sin(t*.4 + i)*8, b.z + Math.sin(a)*b.R, -hd, 0, Math.sin(t*.5 + i)*.05, 2.4, 2.4, 2.4); }, [B[0].x, B[0].y, B[0].z, 3500], {name:'blimps', tint:['#ffd84a', '#59b6ff'].slice(0, B.length), f:6200}); B.forEach(b=>X.site('blimp', b.x + b.R, b.y, b.z)); } }
+  { const bb = new LBag(); lfBalloon(bb, 30, '#ffffff', '#ffcf9a'); const tints = ['#e8353a', '#2f7fe0', '#f4c20d', '#2eb872'], B = [];
+    for(let k = 0; k < 4; k++){ const p = X.spot({dmin:260, dmax:800, r:120, test:(y)=>y > wl + 4}); if(!p) continue; B.push({x:p.x, z:p.z, y:p.y + 240 + LF.r()*120, ph:LF.r()*PI2, R:30 + LF.r()*50, w:.05 + LF.r()*.04}); }
+    if(B.length) lfAnim(bb, B.length, (i, t, m)=>{ const b = B[i], a = b.ph + t*b.w; lfPut(m, b.x + Math.cos(a)*b.R, b.y + Math.sin(t*.5 + b.ph)*7, b.z + Math.sin(a)*b.R, a*.3, Math.sin(t*.4 + i)*.04, Math.cos(t*.37 + i)*.04, 1, 1, 1); }, [B[0].x, B[0].y, B[0].z, 3200], {name:'balloons', tint:tints.slice(0, B.length), f:5000}); }
+  { const Hs = []; for(let k = 0; k < 2; k++){ const p = X.spot({dmin:420, dmax:900, r:150, test:(y)=>y > wl + 4}); if(p) Hs.push({x:p.x, z:p.z, y:p.y + 230 + k*40, R:110, ph:k*3, w:(k ? -1 : 1)*.14}); } if(Hs.length) lfHelis(X, Hs, {tints:['#f4c20d', '#59b6ff'], s:2.6}); }
+  /* the harbour: a cruise ship, a fireboat with jets, sailboats, and a ferris wheel on the waterfront */
+  { const c = lfWaterSpot(X, 380, 8, 200, 1000); if(c){ lfShips(X, 'cruise', [{x:c.x, z:c.z, R:300, ph:LF.r()*PI2, w:-.012, s:1.3}], {region:3000}); X.site('cruise', c.x + 300, wl + 40, c.z, c.tx, c.tz); } }
+  { const f = lfWaterSpot(X, 220, 6, 180, 800); if(f){ lfShips(X, 'fireboat', [{x:f.x, z:f.z, R:130, ph:LF.r()*PI2, w:.05, s:2.4}], {region:2200}); X.site('fireboat', f.x + 130, wl + 40, f.z, f.tx, f.tz); } }
+  lfBoats(X, 14, {deep:8, dmin:180, dmax:800, s:1.7});
+  lfPier(X, st, {dmin:220, dmax:900, R:62, sea1:1, sea2:4});
+  for(let k = 0; k < 3; k++){ const p = X.spot({dmin:300, dmax:900, r:150, test:(y)=>true, claim:false}); if(p) lfBirds(k ? 7 : 9, p.x, (p.y > wl ? p.y : wl) + (k ? 70 : 210), p.z, 130, {col:k ? '#fafafa' : '#9aa2ad', wing:k ? '#f0f0f0' : '#7c848f', tip:k ? '#3a3f48' : '#5b6370', beak:k ? '#f2a22a' : '#c9a24a', size:k ? 1.8 : 1.5, speed:.2, flap:k ? 6 : 9, dir:k % 2 ? -1 : 1, name:k ? 'gulls' : 'pigeons', f:4200}); }
+  /* parks with trees and a roundabout with cars going round, big bright signs on the towers, neon lights that change colour */
+  { const gr = new LBag(), cars = []; let rb = null;
+    for(let k = 0; k < 14; k++){ const p = X.spot({dmin:170, dmax:900, r:130, tries:120, claim:false, test:(y, x, z)=>y > wl + 5 && X.slope(x, z) < .2 && clear(x, z, 140)}); if(!p) continue; X.claim(p.x, p.z, 120); const r = 70 + LF.r()*50;
+      gr.blob(H, p.x, p.z, r, '#5fae52', 14, 1); gr.blob(H, p.x + r*.1, p.z - r*.1, r*.62, '#79c463', 12, 1.5);
+      if(k % 4 === 1){ gr.blob(H, p.x, p.z, r*.3, '#4fb0e0', 10, 2.2); } else for(let q = 0; q < 9; q++){ const a = q*2.4 + LF.r(), rr = r*(.25 + LF.r()*.6), x = p.x + Math.cos(a)*rr, z = p.z + Math.sin(a)*rr, h = 22 + LF.r()*20; st.add('cyl6', '#6b4a2e', x, H(x, z) - 1, z, 2, h*.5, 2); st.add('ico', q % 3 ? '#3f9a45' : '#d98a3a', x, H(x, z) + h*.55, z, h*.42, h*.45, h*.42); }
+      if(!rb && k > 1 && X.slope(p.x, p.z) < .1){ rb = p; gr.blob(H, p.x, p.z, 8, '#cfd6dc', 8, 2.4); } if(k < 3) X.site('park', p.x, p.y + 40, p.z, p.tx, p.tz); }
+    gr.mesh(LF.matG, 'parks');
+    if(rb){ const R = 105, y0 = H(rb.x, rb.z) + 1.4; st.add('torus', '#3b4048', rb.x, y0, rb.z, R, R, 1.2, 0, Math.PI/2); st.add('torus', '#e8e2c0', rb.x, y0 + .5, rb.z, R, R, .3, 0, Math.PI/2);
+      lfAnim(lfCarBag(), 8, (i, t, m)=>{ const w = (i % 2 ? -1 : 1)*38/R, a = i*.78 + t*w, hd = a + (w > 0 ? Math.PI/2 : -Math.PI/2), r = R + (i % 2 ? -8 : 8); lfPut(m, rb.x + Math.cos(a)*r, y0 + 1.2, rb.z + Math.sin(a)*r, -hd, 0, 0, .55, .55, .55); }, [rb.x, y0, rb.z, R + 30], {name:'traffic', tint:['#e8353a', '#f4c20d', '#2f9fe0', '#ffffff', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0'], f:3600}); X.site('roundabout', rb.x, y0 + 50, rb.z, rb.tx, rb.tz); } }
+  { const sg = new LBag(), pal = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0'], nl = []; let n = 0;
+    tw.forEach((t, i)=>{ if(n > 70 || t.h < 120) return; const q = X.near(t.x, t.z), dd = Math.hypot(q.x - t.x, q.z - t.z); if(dd > 1500) return; const dx = (q.x - t.x)/dd, dz = (q.z - t.z)/dd, ry = Math.atan2(-dz, dx), hw = Math.abs(dx*Math.cos(t.ry) - dz*Math.sin(t.ry))*t.w/2 + Math.abs(dx*Math.sin(t.ry) + dz*Math.cos(t.ry))*t.d/2 + .6, c = pal[i % pal.length], c2 = pal[(i + 3) % pal.length], y = t.y + t.h*(.5 + LF.r()*.3), w = Math.min(t.w, t.d)*.6;
+      const bx = t.x + dx*hw, bz = t.z + dz*hw; sg.add('box', c, bx, y, bz, .8, 26, w, ry); sg.add('box', c2, bx + dx*.5, y + 16, bz + dz*.5, .6, 6, w*.8, ry); sg.add('box', '#ffffff', bx + dx*.5, y + 6, bz + dz*.5, .6, 5, w*.45, ry); n++;
+      if(n % 2 === 0) nl.push([bx + dx*3, y + 13, bz + dz*3, LF.r()*PI2]); });
+    if(sg.P.length) sg.mesh(LF.matE, 'signs');
+    if(nl.length) lfPuffs(nl.length, (i, t, p)=>{ const e = nl[i], k = t*.7 + e[3]; p.x = e[0]; p.y = e[1]; p.z = e[2]; p.s = 26 + 6*Math.sin(t*2 + e[3]*4); p.a = .55 + .3*Math.sin(t*3 + e[3]*3); p.r = .55 + .45*Math.sin(k); p.g = .55 + .45*Math.sin(k + 2.1); p.b = .55 + .45*Math.sin(k + 4.2); }, {col:'#ffffff', add:true, region:[500, 200, 500, 2800], name:'neon', f:6000}); }
+  st.mesh(null, 'metrostuff');
+};
+/* ===== course life: Sun Temple Ruins (a sacred pool with a fountain, butterflies, golden dust, macaws and toucans flying, llamas wandering the hillsides, a golden sun disc turning over the great temple,
+   flaming torches round the temples, colourful totem poles, an explorers' camp with a campfire, mist rising from the canopy) ===== */
+function lfLlamaBag(){ const b = new LBag(); b.add('box', '#ffffff', 0, 5.4, 0, 12, 7.4, 6.6); b.add('sph', '#ffffff', -5.6, 9.4, 0, 3.6, 4, 3.6); b.beam('cyl6', '#ffffff', 3.4, 11, 0, 6.6, 18, 0, 1.7, 1.2); b.add('sph', '#ffffff', 7.4, 19, 0, 2.2, 1.9, 1.7); b.add('box', '#e8d6b8', 8.8, 17.6, 0, 1.6, 1.4, 1.4);
+  [-1, 1].forEach(o=>{ b.add('cone6', '#ffffff', 6.8, 20.4, o*1, .5, 1.8, .5); [-4.2, 4.2].forEach(a=>b.add('box', '#e8d6b8', a, 0, o*2.2, 1.5, 6, 1.5)); }); b.add('box', '#e8353a', 0, 12.6, 0, 3.4, .6, 6.8); return b; }
+function lfTotem(b, x, y, z, ry, s){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o), cs = [['#d9402e', '#f4c20d'], ['#2f9fa8', '#f08a1c'], ['#f4c20d', '#2f6fb0']][Math.floor(LF.r()*3)];
+  [0, 1, 2, 3].forEach(i=>{ const c = cs[i % 2]; b.add('box', c, x, y + i*12*s, z, 11*s, 12.4*s, 11*s, ry); b.add('box', '#ffffff', ...at(5.6*s, (i*12 + 8)*s, -2.6*s), .6*s, 2.6*s, 2.6*s, ry); b.add('box', '#ffffff', ...at(5.6*s, (i*12 + 8)*s, 2.6*s), .6*s, 2.6*s, 2.6*s, ry); b.add('box', '#1c1c20', ...at(5.9*s, (i*12 + 8.4)*s, -2.6*s), .4*s, 1.2*s, 1.2*s, ry); b.add('box', '#1c1c20', ...at(5.9*s, (i*12 + 8.4)*s, 2.6*s), .4*s, 1.2*s, 1.2*s, ry); b.add('box', '#1c1c20', ...at(5.8*s, (i*12 + 3.4)*s, 0), .4*s, 2*s, 5*s, ry); });
+  b.add('cone6', '#f2c230', ...at(5*s, 49*s, 0), 3.4*s, 8*s, 3.4*s, ry); [-1, 1].forEach(o=>b.add('box', cs[1], ...at(0, 30*s, o*11*s), 1*s, 3*s, 12*s, ry, 0, 0)); }
+LIFE.pyramid = X=>{
+  const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832, fl = [], sm = [], tmp = V(0, 0, 0);
+  const flat = (r, hmax)=>(y, x, z)=>{ if(y < wl + 4 || y > hmax) return false; for(let a = 0; a < 8; a++){ if(Math.abs(H(x + Math.cos(a*.785)*r, z + Math.sin(a*.785)*r) - y) > 14) return false; } return X.slope(x, z) < .22; };
+  /* the great temple: a golden sun disc turning on top, torches burning at the corners of every temple */
+  const temples = []; K.group.traverse(o=>{ if(o.name === 'temple' && o.isGroup) temples.push(o); }); K.group.updateMatrixWorld(true);
+  temples.forEach((g, ti)=>{ const c0 = g.children[0], w = c0 && c0.geometry && c0.geometry.parameters ? c0.geometry.parameters.width : 120, big = w > 200, hw = w/2 - 6;
+    [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(([a, b])=>{ tmp.set(a*hw, 0, b*hw); g.localToWorld(tmp); const gy = H(tmp.x, tmp.z); st.add('cyl6', '#7d6e57', tmp.x, gy - 4, tmp.z, 3.2, 20, 3.2); st.add('cyl', '#c9a24a', tmp.x, gy + 15, tmp.z, 5.4, 4.5, 5.4); fl.push([tmp.x, gy + 22, tmp.z, LF.r()*PI2]); });
+    if(big){ tmp.set(0, 270, 0); g.localToWorld(tmp); const q = X.near(tmp.x, tmp.z), ry = Math.atan2(-(q.z - tmp.z), q.x - tmp.x) + Math.PI/2, sb = new LBag();
+      sb.add('cyl', '#f4c20d', 0, 0, 0, 40, 4, 40, 0, Math.PI/2); sb.add('cyl', '#e8353a', 0, 0, 2, 24, 3, 24, 0, Math.PI/2); sb.add('sph', '#ffe27a', 0, 0, 5, 10, 10, 5);
+      for(let i = 0; i < 14; i++){ const a = i/14*PI2; sb.add('prism', i % 2 ? '#f4c20d' : '#f08a1c', Math.cos(a)*44, Math.sin(a)*44, 0, 14, 30, 4, 0, 0, a - Math.PI/2); }
+      lfSpin(sb, tmp.x, tmp.y, tmp.z, ry, 'z', .45, LF.matS, 'sundisc', 6500); st.beam('cyl6', '#7d6e57', tmp.x, tmp.y - 38, tmp.z, tmp.x, tmp.y, tmp.z, 3, 3); X.site('sundisc', tmp.x, tmp.y + 10, tmp.z, q.x - tmp.x, q.z - tmp.z); } });
+  if(fl.length) lfPuffs(fl.length*3, (i, t, p)=>{ const e = fl[i % fl.length], k = Math.floor(i/fl.length), f = (t*2.2 + i*.37) % 1; p.x = e[0] + Math.sin(t*5 + i*3)*1.2; p.y = e[1] + f*18 + k*2; p.z = e[2] + Math.cos(t*4 + i*2)*1.2; p.s = (11 - f*8)*(1 - k*.2); p.a = 1 - f*.7; p.r = 1; p.g = .55 + .35*(1 - f); p.b = .12; }, {col:'#ffffff', add:true, region:[fl[0][0], fl[0][1], fl[0][2], 3400], name:'flames', f:4200});
+  /* totem poles beside the course */
+  for(let k = 0; k < 14; k++){ const p = X.spot({dmin:150, dmax:420, r:26, test:(y, x, z)=>y > wl + 4 && X.slope(x, z) < .5}); if(!p) continue; const q = X.near(p.x, p.z); lfTotem(st, p.x, H(p.x, p.z) - 1, p.z, Math.atan2(-(q.z - p.z), q.x - p.x), 1.5 + LF.r()*.5); X.shade(p.x, p.z, 14, .35); if(k < 2) X.site('totem', p.x, p.y + 50, p.z, p.tx, p.tz); }
+  /* an explorers' camp: tents round a campfire */
+  { const c = X.spot({dmin:200, dmax:520, r:80, test:flat(40, 160)}); if(c){ const cc = ['#e8d6a0', '#d98a3a', '#7fb05a']; for(let k = 0; k < 4; k++){ const a = k*1.7 + .5, rr = 38, x = c.x + Math.cos(a)*rr, z = c.z + Math.sin(a)*rr; lfTent(st, x, H(x, z), z, a + 1.57, 2.4, cc[k % 3]); }
+      [0, 1, 2].forEach(i=>{ const a = i*2.1; st.add('box', '#9a6a3a', c.x + Math.cos(a)*9, c.y, c.z + Math.sin(a)*9, 3, 12, .8, a, 0, .5); }); st.add('cyl', '#5a5a5e', c.x, c.y, c.z, 6, 1.5, 6); fl.push([c.x, c.y + 4, c.z, 0]); sm.push([c.x, c.y + 8, c.z]);
+      [0, 1].forEach(i=>st.add('box', '#8a5a2a', c.x + 20 + i*10, c.y, c.z - 20, 8, 7, 7, i)); st.beam('cyl6', '#ddd', c.x - 14, c.y, c.z + 30, c.x - 14, c.y + 36, c.z + 30, .7, .6); st.add('box', '#e8353a', c.x - 6, c.y + 28, c.z + 30, 14, 8, .5); X.site('camp', c.x, c.y + 30, c.z, c.tx, c.tz); } }
+  /* llamas wandering the gentle hillsides */
+  { const L = []; for(let k = 0; k < 5; k++){ const p = X.spot({dmin:160, dmax:480, r:90, test:flat(55, 220)}); if(!p) continue; for(let q = 0; q < 4; q++) L.push({x:p.x, z:p.z, R:34 + q*7, ph:q*1.6 + k, w:(q % 2 ? -1 : 1)*(.12 + q*.012)}); X.site('llamas', p.x, p.y + 25, p.z, p.tx, p.tz); }
+    if(L.length) lfAnim(lfLlamaBag(), L.length, (i, t, m)=>{ const e = L[i], a = e.ph + e.w*t, x = e.x + Math.cos(a)*e.R, z = e.z + Math.sin(a)*e.R, hd = a + (e.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, x, H(x, z) + Math.abs(Math.sin(t*3 + i*1.7))*.7, z, -hd, 0, Math.sin(t*3 + i*1.7)*.04, 2, 2, 2); }, [L[0].x, L[0].y, L[0].z, 3400], {name:'llamas', tint:L.map((e, i)=>['#f1e2c4', '#b88c5c', '#ffffff', '#6b4a32', '#d8c4a0'][i % 5]), f:3600}); }
+  if(sm.length) lfPuffs(sm.length*6, (i, t, p)=>{ const e = sm[i % sm.length], age = (t/4 + i*.17) % 1; p.x = e[0] + age*14 + Math.sin(i*3 + age*5)*2; p.y = e[1] + age*50; p.z = e[2] + age*5; p.s = 5 + age*16; p.a = (1 - age)*.5; p.r = p.g = p.b = .55; }, {col:'#d8d8d8', region:[sm[0][0], sm[0][1], sm[0][2], 2800], name:'campsmoke', f:3200});
+  /* mist rising from the jungle valleys */
+  { const M = []; for(let k = 0; k < 5; k++){ const p = X.spot({dmin:200, dmax:700, r:80, claim:false, test:(y)=>y > wl + 4}); if(p) M.push(p); }
+    if(M.length) lfPuffs(M.length*8, (i, t, p)=>{ const e = M[Math.floor(i/8)], age = (t/9 + i*.123) % 1, a = i*2.1; p.x = e.x + Math.cos(a)*50 + age*30; p.y = e.y + 12 + age*60; p.z = e.z + Math.sin(a)*50; p.s = 70 + age*60; p.a = Math.sin(age*3.1416)*.28; p.r = .9; p.g = 1; p.b = .95; }, {col:'#ffffff', region:[M[0].x, M[0].y, M[0].z, 3400], name:'mist', f:4000}); }
+  /* broken colonnades: rows of stone pillars, some fallen */
+  for(let k = 0; k < 6; k++){ const p = X.spot({dmin:160, dmax:460, r:60, tries:150, test:(y, x, z)=>y > wl + 4 && X.slope(x, z) < .3}); if(!p) continue; const q = X.near(p.x, p.z), ang = Math.atan2(q.z - p.z, q.x - p.x) + Math.PI/2, ux = Math.cos(ang), uz = Math.sin(ang);
+    for(let i = -3; i <= 3; i++){ const x = p.x + ux*i*22, z = p.z + uz*i*22, y = H(x, z), h = 40 + LF.r()*34, br = LF.r() < .3; if(br){ st.add('cyl', '#b9aa8a', x, y - 1, z, 5, 14, 5); st.add('cyl', '#a89a7a', x + 8, y + 2, z + 6, 5, 30, 5, 0, 0, Math.PI/2 - .1); } else { st.add('cyl', '#b9aa8a', x, y - 2, z, 5.4, h, 5.4); st.add('box', '#9a8c6e', x, y + h - 2, z, 13, 4, 13); st.add('box', '#c9bc9c', x, y - 2, z, 11, 4, 11); } }
+    X.shade(p.x, p.z, 50, .25); if(k < 2) X.site('colonnade', p.x, p.y + 40, p.z, p.tx, p.tz); }
+  /* a sacred pool with a stone fountain, golden dust and butterflies in the sunlight */
+  { const pl = X.spot({dmin:190, dmax:520, r:110, tries:300, test:flat(70, 200)}); if(pl){ const R = 62, gr = new LBag(), y0 = H(pl.x, pl.z); let hm = y0; for(let q = 0; q < 8; q++) hm = Math.max(hm, H(pl.x + Math.cos(q*.785)*R, pl.z + Math.sin(q*.785)*R)); const ly = hm + 1;
+      gr.blob(()=>ly - 1.2, pl.x, pl.z, R + 8, '#a89a80', 14, 1.2); gr.blob(()=>ly - 1, pl.x, pl.z, R, '#2fb7c0', 14, 1.7); gr.mesh(LF.matG, 'pool');
+      for(let q = 0; q < 16; q++){ const a = q/16*PI2; st.add('ico', q % 2 ? '#8d7f66' : '#a89a80', pl.x + Math.cos(a)*(R + 6), ly, pl.z + Math.sin(a)*(R + 6), 7, 6, 7, a); }
+      st.add('cyl', '#a89a80', pl.x, ly, pl.z, 16, 5, 16); st.add('cyl', '#b8aa90', pl.x, ly + 5, pl.z, 9, 6, 9); st.add('cyl', '#c9bca2', pl.x, ly + 11, pl.z, 4, 8, 4);
+      lfPuffs(36, (i, t, p)=>{ const j = i % 12, k = Math.floor(i/12), f = ((t*.9 + j/12)%1), a = k*2.094 + j*.2; p.x = pl.x + Math.cos(a)*f*34; p.z = pl.z + Math.sin(a)*f*34; p.y = ly + 19 + 26*Math.sin(f*Math.PI) - f*f*20; p.s = 5 + f*3; p.a = .85*(1 - f*.5); p.r = .85; p.g = .97; p.b = 1; }, {col:'#ffffff', region:[pl.x, ly + 20, pl.z, 160], name:'fountain', f:3400});
+      X.site('pool', pl.x, ly + 40, pl.z, pl.tx, pl.tz); lfBirds(8, pl.x, ly + 40, pl.z, 90, {col:'#f08a1c', wing:'#f4c20d', tip:'#1c1c20', head:'#1c1c20', beak:'#1c1c20', size:.7, speed:.3, flap:16, bob:5, name:'butterflies', f:3400}); } }
+  if(temples.length){ const T0 = temples[0]; tmp.set(0, 80, 0); T0.localToWorld(tmp); const cx = tmp.x, cy = tmp.y, cz = tmp.z, D = []; for(let i = 0; i < 45; i++){ const a = LF.r()*PI2, r = Math.sqrt(LF.r())*260; D.push([cx + Math.cos(a)*r, cy + (LF.r() - .3)*200, cz + Math.sin(a)*r, LF.r()*PI2, 3 + LF.r()*3]); }
+    lfPuffs(D.length, (i, t, p)=>{ const e = D[i], k = Math.pow(Math.max(0, Math.sin(t*1.3 + e[3]*3)), 2); p.x = e[0] + Math.sin(t*.4 + e[3])*14; p.y = e[1] + Math.sin(t*.5 + e[3]*2)*9; p.z = e[2] + Math.cos(t*.35 + e[3])*14; p.s = e[4]*(.6 + k); p.a = .15 + .6*k; p.r = 1; p.g = .85; p.b = .4; }, {col:'#ffffff', add:true, region:[cx, cy, cz, 360], name:'dust', f:3800}); }
+  st.mesh(null, 'ruinsstuff');
+  /* macaws and toucans flying over the canopy */
+  [['#e8353a', '#2f6fe0', '#f4c20d', 6, 0], ['#2f6fe0', '#f4c20d', '#2f6fe0', 5, 1], ['#1c1c20', '#222226', '#1c1c20', 4, 0]].forEach(([c, w, tp, n, d], k)=>{ const p = X.spot({dmin:250, dmax:750, r:150, claim:false, test:(y)=>y > wl}); if(p) lfBirds(n, p.x, p.y + 80 + k*25, p.z, 140, {col:c, wing:w, tip:tp, head:k === 2 ? '#fafafa' : c, beak:k === 2 ? '#f08a1c' : '#f4f4f4', size:k === 2 ? 2.8 : 3.4, speed:.17, flap:7, dir:d ? 1 : -1, name:k === 2 ? 'toucans' : 'macaws', f:4200}); });
+};
+/* ===== course life: Lookout Ridge Trail (hang gliders soaring along the ridge, waterfalls with mist, a rainbow, deer in the meadows, hikers on the trail, a campsite with a campfire,
+   wildflower meadows, eagles circling, an anemometer spinning on the fire lookout) ===== */
+function lfGliderBag(){ const b = new LBag(); b.add('box', '#ffffff', -9, 0, 4, 18, .5, 10, .45); b.add('box', '#ffffff', 9, 0, 4, 18, .5, 10, -.45); b.add('box', '#ffffff', 0, 0, 2, 5, .6, 12); b.add('box', '#e8353a', -9, .3, 4, 5, .3, 9.6, .45); b.add('box', '#e8353a', 9, .3, 4, 5, .3, 9.6, -.45);
+  b.add('cyl6', '#333a44', 0, -8, 0, .8, 8, .8); b.add('cyl6', '#2f6fe0', 0, -14, 1, 1.6, 6, 1.6, 0, -1.2); b.add('sph', '#f2c9a0', 0, -10.4, -3.2, 1.4); b.add('sph', '#e8353a', 0, -10, -3.2, 1.6, 1.2, 1.6);
+  [-1, 1].forEach(o=>b.beam('cyl6', '#555', o*7, 0, 4, o*.6, -8, 0, .2, .2)); return b; }
+function lfDeerBag(){ const b = new LBag(); b.add('box', '#ffffff', 0, 6.4, 0, 9, 5, 4.6); b.beam('cyl6', '#ffffff', 3.4, 9, 0, 5.6, 14.6, 0, 1.5, 1.1); b.add('sph', '#ffffff', 6.4, 15, 0, 2.3, 1.8, 1.6); b.add('box', '#2a2a2a', 8.4, 14.6, 0, .6, .6, .8);
+  [-1, 1].forEach(o=>{ b.add('cone6', '#ffffff', 5.8, 15.6, o*1.3, .6, 1.8, .6); b.beam('cyl6', '#6b5a48', 6, 16.4, o*1, 5.4, 21, o*3, .3, .2); b.beam('cyl6', '#6b5a48', 5.7, 19, o*2.2, 7.6, 22, o*3.2, .25, .2); [-3.2, 3.2].forEach(a=>b.add('box', '#ffffff', a, 0, o*1.5, 1.1, 6.6, 1.1)); }); b.add('sph', '#f4ece0', -4.6, 8.2, 0, 1.2, 1.4, 1.2); return b; }
+function lfHikerBag(){ const b = new LBag(); b.add('cyl6', '#ffffff', 0, 3.2, 0, 1.5, 5, 1.5); b.add('sph', '#f2c9a0', 0, 9, 0, 1.5); b.add('cone6', '#7a5232', 0, 9.8, 0, 2.4, 1.4, 2.4); b.add('box', '#e8853a', -1.6, 4.2, 0, 1.6, 4.4, 2.8);
+  [-1, 1].forEach(o=>b.add('box', '#3d4c6b', 0, 0, o*.7, 1.1, 3.4, 1)); b.beam('cyl6', '#6b4a2e', 1.4, 5, 2.4, 2.8, 1.5, 2.4, .25, .25); return b; }
+LIFE.lookout = X=>{
+  const {H, wl, K} = X, st = new LBag(), fl = new LBag(), PI2 = 6.2832, sm = [], flm = [];
+  const flat = (r, hmax)=>(y, x, z)=>{ if(y < wl + 6 || y > hmax) return false; for(let a = 0; a < 8; a++){ if(Math.abs(H(x + Math.cos(a*.785)*r, z + Math.sin(a*.785)*r) - y) > 12) return false; } return X.slope(x, z) < .2; };
+  /* waterfalls down the steep slopes */
+  lfFalls(X, 5, {dmin:230, dmax:700, smin:.4, drop:90});
+  /* wildflower meadows */
+  for(let k = 0; k < 40; k++){ const p = X.spot({dmin:140, dmax:600, r:40, claim:false, test:(y, x, z)=>y > wl + 6 && X.slope(x, z) < .2 && X.slope(x + 40, z) < .25 && X.slope(x, z - 40) < .25}); if(!p) continue; fl.blob(H, p.x, p.z, 28 + LF.r()*34, ['#f08ab4', '#f4d23a', '#b48af0', '#ffffff', '#f09a3a'][k % 5], 10, .9); }
+  if(fl.P.length) fl.mesh(LF.matG, 'flowers');
+  /* a rainbow arching over the far valley */
+  { const p = X.spot({dmin:700, dmax:1400, r:300, claim:false, tries:40, test:(y)=>y > wl}); if(p){ const Rb = 460, c = [p.x, Math.max(p.y, wl) - 30, p.z], bag = new LBag(), cols = ['#ff4a4a', '#ff9a3a', '#ffe23a', '#4ad45a', '#3ab4ff', '#4a5aff', '#a24aff'], seg = 20, ux = p.tx, uz = p.tz, w = 20;
+      cols.forEach((col, b)=>{ const cc = lfCol(col), r0 = Rb + b*w, r1 = r0 + w; for(let i = 0; i < seg; i++){ const a0 = i/seg*Math.PI, a1 = (i + 1)/seg*Math.PI, P = (r, a)=>[c[0] + ux*Math.cos(a)*r, c[1] + Math.sin(a)*r, c[2] + uz*Math.cos(a)*r], q = [P(r0, a0), P(r1, a0), P(r1, a1), P(r0, a1)];
+          [[0, 1, 2], [0, 2, 3]].forEach(tr=>tr.forEach(j=>{ bag.P.push(q[j][0], q[j][1], q[j][2]); bag.N.push(0, 0, 1); bag.C.push(cc.r, cc.g, cc.b); })); } });
+      bag.mesh(lfMat('basic', {transparent:true, opacity:.5, depthWrite:false, side:T.DoubleSide}), 'rainbow', 9000); X.site('rainbow', c[0], c[1] + Rb, c[2], -uz, ux); } }
+  /* hang gliders soaring in wide circles */
+  { const G = []; for(let k = 0; k < 4; k++){ const p = X.spot({dmin:420, dmax:950, r:200, test:(y)=>y > wl + 10}); if(p) G.push({x:p.x, z:p.z, y:p.y + 150 + k*50, R:120 + k*25, ph:k*1.7, w:(k % 2 ? -1 : 1)*(.12 - k*.012)}); }
+    if(G.length){ lfAnim(lfGliderBag(), G.length, (i, t, m)=>{ const e = G[i], a = e.ph + e.w*t, hd = a + (e.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, e.x + Math.cos(a)*e.R, e.y + Math.sin(t*.5 + i)*10, e.z + Math.sin(a)*e.R, -hd - Math.PI/2, 0, (e.w > 0 ? -1 : 1)*.28 + Math.sin(t*.8 + i)*.06, 2.6, 2.6, 2.6); }, [G[0].x, G[0].y, G[0].z, 4200], {name:'gliders', tint:['#ffd23a', '#2fb7e8', '#ff6a8a', '#7ad35a'].slice(0, G.length), f:4800}); X.site('glider', G[0].x + G[0].R, G[0].y, G[0].z); } }
+  /* deer grazing the meadows, hikers on the trail, a campsite */
+  { const D = []; for(let k = 0; k < 3; k++){ const p = X.spot({dmin:170, dmax:520, r:80, test:flat(45, 700)}); if(!p) continue; for(let q = 0; q < 4; q++) D.push({x:p.x, z:p.z, R:26 + q*6, ph:q*1.5 + k, w:(q % 2 ? -1 : 1)*(.1 + q*.015)}); X.site('deer', p.x, p.y + 25, p.z, p.tx, p.tz); }
+    if(D.length) lfAnim(lfDeerBag(), D.length, (i, t, m)=>{ const e = D[i], a = e.ph + e.w*t, x = e.x + Math.cos(a)*e.R, z = e.z + Math.sin(a)*e.R, hd = a + (e.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, x, H(x, z) + Math.abs(Math.sin(t*2.6 + i*1.9))*.6, z, -hd, 0, Math.sin(t*2.6 + i)*.04, 2.2, 2.2, 2.2); }, [D[0].x, D[0].y, D[0].z, 3400], {name:'deer', tint:D.map((e, i)=>['#a8763e', '#8a5a2e', '#b98a52', '#7a4e28'][i % 4]), f:3600}); }
+  { const Hk = []; for(let k = 0; k < 3; k++){ const p = X.spot({dmin:160, dmax:420, r:70, test:flat(40, 800)}); if(!p) continue; for(let q = 0; q < 3; q++) Hk.push({x:p.x, z:p.z, R:30 + q*8, ph:q*.5 + k*2, w:(k % 2 ? -1 : 1)*(.16 - q*.02)}); X.site('hikers', p.x, p.y + 20, p.z, p.tx, p.tz); }
+    if(Hk.length) lfAnim(lfHikerBag(), Hk.length, (i, t, m)=>{ const e = Hk[i], a = e.ph + e.w*t, x = e.x + Math.cos(a)*e.R, z = e.z + Math.sin(a)*e.R, hd = a + (e.w > 0 ? Math.PI/2 : -Math.PI/2); lfPut(m, x, H(x, z) + Math.abs(Math.sin(t*5 + i))*.7, z, -hd, 0, Math.sin(t*5 + i)*.05, 2.2, 2.2, 2.2); }, [Hk[0].x, Hk[0].y, Hk[0].z, 3400], {name:'hikers', tint:Hk.map((e, i)=>['#e8353a', '#2f9fe0', '#f4c20d', '#2eb872', '#e86aa8'][i % 5]), f:3600}); }
+  { const c = X.spot({dmin:190, dmax:520, r:80, test:flat(40, 800)}); if(c){ const cc = ['#e8853a', '#2f9fe0', '#7fb05a']; for(let k = 0; k < 3; k++){ const a = k*2.1 + .5, rr = 36, x = c.x + Math.cos(a)*rr, z = c.z + Math.sin(a)*rr; lfTent(st, x, H(x, z), z, a + 1.57, 2.6, cc[k % 3]); }
+      [0, 1, 2].forEach(i=>{ const a = i*2.1; st.add('box', '#9a6a3a', c.x + Math.cos(a)*9, c.y, c.z + Math.sin(a)*9, 3, 12, .8, a, 0, .5); }); st.add('cyl', '#5a5a5e', c.x, c.y, c.z, 6, 1.5, 6); flm.push([c.x, c.y + 4, c.z]); sm.push([c.x, c.y + 8, c.z]);
+      [0, 1].forEach(i=>st.add('box', '#7a5232', c.x + 14 + i*18, c.y, c.z - 8, 14, 4, 4, .4 + i)); X.site('campsite', c.x, c.y + 30, c.z, c.tx, c.tz); } }
+  if(flm.length) lfPuffs(flm.length*3, (i, t, p)=>{ const e = flm[i % flm.length], f = (t*2.2 + i*.37) % 1; p.x = e[0] + Math.sin(t*5 + i*3)*1.2; p.y = e[1] + f*16; p.z = e[2] + Math.cos(t*4 + i*2)*1.2; p.s = 11 - f*8; p.a = 1 - f*.7; p.r = 1; p.g = .55 + .35*(1 - f); p.b = .12; }, {col:'#ffffff', add:true, region:[flm[0][0], flm[0][1], flm[0][2], 80], name:'campfire', f:3200});
+  if(sm.length) lfPuffs(sm.length*6, (i, t, p)=>{ const e = sm[i % sm.length], age = (t/4 + i*.17) % 1; p.x = e[0] + age*14 + Math.sin(i*3 + age*5)*2; p.y = e[1] + age*50; p.z = e[2] + age*5; p.s = 5 + age*16; p.a = (1 - age)*.5; p.r = p.g = p.b = .6; }, {col:'#d8d8d8', region:[sm[0][0], sm[0][1], sm[0][2], 120], name:'campsmoke', f:3200});
+  /* the anemometer spinning on top of the fire lookout */
+  { let tw = null; K.group.children.forEach(o=>{ if(o.name === 'tower') tw = o; }); if(tw){ const ab = new LBag(); [0, 1, 2].forEach(i=>{ const a = i*2.094; ab.beam('cyl6', '#cfd4d9', 0, 0, 0, Math.cos(a)*7, 0, Math.sin(a)*7, .5, .5); ab.add('sph', '#e8353a', Math.cos(a)*7, -1.6, Math.sin(a)*7, 2.4, 1.6, 2.4); });
+      lfSpin(ab, tw.position.x, tw.position.y + 110 + 44 + 6, tw.position.z, 0, 'y', 3.2, null, 'anemometer', 4200); X.site('lookouttop', tw.position.x, tw.position.y + 150, tw.position.z, 1, 0); } }
+  st.mesh(null, 'ridgestuff');
+  for(let k = 0; k < 2; k++){ const p = X.spot({dmin:300, dmax:800, r:150, claim:false, test:(y)=>y > wl}); if(p) lfBirds(4, p.x, p.y + 130 + k*60, p.z, 170, {col:'#6b4a2e', wing:'#5a3d26', tip:'#2a1c12', head:'#fafafa', beak:'#f2c230', size:3.4, speed:.12, flap:3.5, bob:10, dir:k ? 1 : -1, name:'eagles', f:4800}); }
+};
+/* ===== course life: Ocean Armada Run and Carrier Launch (warships steaming with wakes and funnel smoke, helicopters on plane guard, jets parked and deck crew at work on the carriers, a spinning radar, a yellow submarine,
+   bobbing buoys with blinking lights, bursts of colourful flares, dolphins, whales, gulls; on the Carrier Launch deck: chasing edge lights, steam, tractors) ===== */
+function lfJetBag(b, x, y, z, ry, s){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o);
+  b.add('cyl', '#9aa3ab', ...at(-14*s, 4*s, 0), 2.6*s, 30*s, 2.6*s, ry, 0, -Math.PI/2); b.add('cone6', '#9aa3ab', ...at(16*s, 4*s, 0), 2.6*s, 9*s, 2.6*s, ry, 0, -Math.PI/2); b.add('sph', '#2f6fb0', ...at(6*s, 6*s, 0), 5*s, 1.9*s, 1.7*s, ry);
+  [-1, 1].forEach(o=>{ b.add('box', '#aab2ba', ...at(-4*s, 3.6*s, o*8*s), 9*s, .6*s, 11*s, ry + o*.5, 0, 0); b.add('box', '#aab2ba', ...at(-12*s, 5*s, o*2.6*s), 6*s, 5*s, .5*s, ry, o*.3, 0); b.add('box', '#e8353a', ...at(-4*s, 4.1*s, o*11*s), 4*s, .3*s, 4*s, ry); }); }
+function lfCrewBag(){ const b = new LBag(); b.add('cyl6', '#ffffff', 0, 2.4, 0, 1.4, 4.4, 1.4); b.add('sph', '#f2c9a0', 0, 8, 0, 1.4, 1.4, 1.4); b.add('sph', '#ffffff', 0, 8.8, 0, 1.55, 1.1, 1.55); [-1, 1].forEach(o=>b.add('box', '#2a3a5a', 0, 0, o*.6, 1.1, 3, 1)); b.beam('cyl6', '#f2c9a0', 0, 6, 1.3, 1.6, 8.4, 2.4, .35, .3); return b; }
+function lfSubBag(){ const b = new LBag(); b.add('sph', '#f4c20d', 0, 0, 0, 38, 8, 8); b.add('box', '#f4c20d', 4, 5, 0, 10, 8, 5); b.add('box', '#e8353a', 4, 11, 0, 11, 1.2, 5.4); b.beam('cyl6', '#555', 6, 12, 0, 6, 22, 0, .5, .5); b.add('box', '#555', 6.8, 21, 0, 2.4, .6, .6); [-1, 1].forEach(o=>{ [-3, 6].forEach(a=>b.add('sph', '#7fd0f0', 4 + a, 1.6, o*7.3, 1.5, 1.5, .8)); b.add('box', '#e8353a', -34, 0, o*6, 5, .6, 7); }); b.add('box', '#e8353a', -36, 0, 0, 5, 7, .6); b.add('cyl', '#444', -40, -.6, 0, 3, 1.4, 3, 0, 0, Math.PI/2); return b; }
+function lfTractorBag(){ const b = new LBag(); b.add('box', '#f4c20d', 0, 2, 0, 9, 3, 5); b.add('box', '#f4c20d', -1.6, 5, 0, 4, 3.6, 4.4); b.add('box', '#7fd0f0', -1.6, 6.2, 0, 4.2, 2, 4.6); [[-3, 2.4], [3, 2.4], [-3, -2.4], [3, -2.4]].forEach(([a, o])=>b.add('cyl', '#222222', a, 1.2, o, 1.3, 1.1, 1.3, 0, Math.PI/2)); return b; }
+function lfBuoys(X, n, o){ o = o || {}; const wl = X.wl, bb = new LBag(), P = []; bb.add('cyl', '#e8353a', 0, -2, 0, 7, 11, 7); bb.add('cone', '#f4f4f4', 0, 8, 0, 6, 9, 6); bb.add('cyl6', '#555555', 0, 16, 0, .6, 8, .6); bb.add('cyl', '#ffffff', 0, 5, 0, 7.2, 2, 7.2);
+  for(let k = 0; k < n; k++){ const p = lfWaterSpot(X, 20, 6, o.dmin || 120, o.dmax || 320); if(p) P.push(p); }
+  if(!P.length) return 0; lfAnim(bb, P.length, (i, t, m)=>{ const e = P[i]; lfPut(m, e.x, wl + Math.sin(t*1.4 + i*2)*1.6, e.z, 0, Math.sin(t*1.1 + i)*.08, Math.cos(t*.9 + i)*.08, 1.4, 1.4, 1.4); }, [P[0].x, wl, P[0].z, 6000], {name:'buoys', f:3600});
+  lfPuffs(P.length, (i, t, p)=>{ const e = P[i], k = Math.max(0, Math.sin(t*3 + i*1.3)); p.x = e.x; p.y = wl + 25 + Math.sin(t*1.4 + i*2)*1.6; p.z = e.z; p.s = 10 + 8*k; p.a = .2 + .8*k; p.r = 1; p.g = .3; p.b = .25; }, {col:'#ffffff', add:true, region:[P[0].x, wl, P[0].z, 6000], name:'buoylights', f:3600}); return P.length; }
+function lfFlares(X, sites, o){ o = o || {}; const N = 36, dirs = []; for(let i = 0; i < N; i++){ const a = LF.r()*6.2832, b = Math.acos(2*LF.r() - 1); dirs.push([Math.sin(b)*Math.cos(a), Math.cos(b), Math.sin(b)*Math.sin(a)]); }
+  const cols = [[1, .25, .25], [1, .85, .2], [.3, .9, .4], [.3, .7, 1], [1, .4, .9]], T0 = o.period || 5.5;
+  lfPuffs(sites.length*N, (i, t, p)=>{ const si = Math.floor(i/N), j = i % N, e = sites[si], f = ((t + e.off)/T0) % 1; if(f > .6) return; const q = f/.6, d = dirs[j], c = cols[(si + Math.floor((t + e.off)/T0)) % 5];
+    p.x = e.x + d[0]*q*95; p.y = e.y + d[1]*q*95 - q*q*38; p.z = e.z + d[2]*q*95; p.s = 9*(1 - q*.5); p.a = (1 - q)*1; p.r = c[0]; p.g = c[1]; p.b = c[2]; }, {col:'#ffffff', add:false, region:[sites[0].x, sites[0].y, sites[0].z, 6000], name:'flares', f:4800}); }
+function lfFleet(X, o){ const wl = X.wl;
+  const fr = []; for(let k = 0; k < (o.frigates || 4); k++){ const R = 210 + LF.r()*120, c = lfWaterSpot(X, R + 110, 8, o.dmin || 300, o.dmax || 1300); if(c){ fr.push({x:c.x, z:c.z, R, ph:LF.r()*6.28, w:(k % 2 ? -1 : 1)*(.035 + LF.r()*.01), s:1.4}); X.site('frigate', c.x + R, wl + 40, c.z, c.tx, c.tz); } }
+  if(fr.length) lfShips(X, 'frigate', fr, {region:5200});
+  const W = []; for(let k = 0; k < 2; k++){ const p = lfWaterSpot(X, 200, 40, 250, 900); if(p){ W.push({x:p.x, z:p.z, R:100 + LF.r()*40, ph:LF.r()*6.28, w:.05*(k ? 1 : -1), c:6.5 + k*1.7}); X.site('whale', p.x, wl + 40, p.z, p.tx, p.tz); } } if(W.length) lfWhales(X, W);
+  const A = []; for(let k = 0; k < 4; k++){ const p = lfWaterSpot(X, 70, 20, 170, 450); if(!p) continue; for(let q = 0; q < 3; q++) A.push({x:p.x + (LF.r() - .5)*60, z:p.z + (LF.r() - .5)*60, ph:LF.r()}); if(k < 2) X.site('dolphins', p.x, wl + 30, p.z, p.tx, p.tz); } if(A.length) lfDolphins(X, A, {cyc:5.2, D:70, H:28, s:1.7});
+  for(let k = 0; k < 3; k++){ const p = X.spot({dmin:230, dmax:800, r:150, test:()=>true, claim:false}); if(p) lfBirds(6, p.x, wl + 80 + LF.r()*80, p.z, 120 + LF.r()*60, {col:'#fafafa', wing:'#f0f0f0', tip:'#3a3f48', beak:'#f2a22a', size:1.9, speed:.2, flap:8, dir:k % 2 ? -1 : 1, name:'gulls', f:4200}); }
+  lfBuoys(X, o.buoys || 12, {dmin:130, dmax:330}); }
+LIFE.armada = X=>{
+  const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832; let car = null; K.group.updateMatrixWorld(true);
+  K.group.children.forEach(o=>{ if(o.name === 'ship' && o.isGroup){ const sz = new T.Box3().setFromObject(o).getSize(V(0, 0, 0)); if(sz.x > 600 || sz.z > 600) car = o; } });
+  lfFleet(X, {frigates:4, buoys:12});
+  if(car){ const th = car.rotation.y, W = (lx, ly, lz)=>car.localToWorld(V(lx, ly, lz)); X.site('carrier', car.position.x, car.position.y + 90, car.position.z, Math.cos(th), -Math.sin(th));
+    [-300, -230, -160, -90, -20, 50].forEach((lx, i)=>{ const q = W(lx, 49.4, i % 2 ? -34 : -4); lfJetBag(st, q.x, q.y, q.z, th + (i % 2 ? .5 : -.4), 1.4); });
+    const cr = lfCrewBag(), pos = [[-250, 42], [-120, 38], [20, -50], [-60, 44], [150, -30], [-200, -60]].map(([a, b])=>W(a, 49.4, b));
+    lfAnim(cr, pos.length, (i, t, m)=>{ const q = pos[i]; lfPut(m, q.x + Math.cos(t*.6 + i*2)*7, q.y + Math.abs(Math.sin(t*4 + i))*.5, q.z + Math.sin(t*.6 + i*2)*7, -(t*.6 + i*2) - 1.57, 0, Math.sin(t*4 + i)*.08, 1.6, 1.6, 1.6); }, [car.position.x, car.position.y + 49, car.position.z, 520], {name:'deckcrew', tint:['#f4c20d', '#3d9b4a', '#c8382e', '#f4f4f4', '#f4c20d', '#2f7fe0'], f:3400});
+    const rb = new LBag(); rb.add('box', '#cfd4d9', 0, 0, 0, 32, 1.6, 5); rb.add('cyl6', '#cfd4d9', 0, -3, 0, 1.4, 4, 1.4); rb.add('sph', '#e8353a', 16, .8, 0, 1.6); const rp = W(120, 164, 62); lfSpin(rb, rp.x, rp.y, rp.z, 0, 'y', 1.8, null, 'radar', 5200);
+    const Hs = [], cc = W(0, 0, 0); for(let k = 0; k < 2; k++) Hs.push({x:cc.x, z:cc.z, y:car.position.y + 150 + k*30, R:540 + k*70, ph:k*3.1, w:(k ? -1 : 1)*.08}); lfHelis(X, Hs, {tints:['#aab2ba', '#f08a1c'], s:2.4, region:3000}); }
+  { const c = lfWaterSpot(X, 330, 8, 250, 1000); if(c){ const R = 250, sub = {x:c.x, z:c.z}; lfAnim(lfSubBag(), 1, (i, t, m)=>{ const a = 1 + t*.045, hd = a + Math.PI/2; lfPut(m, sub.x + Math.cos(a)*R, wl + 1.5 + Math.sin(t*.7)*1.5, sub.z + Math.sin(a)*R, -hd, 0, 0, 2.4, 2.4, 2.4); }, [sub.x, wl, sub.z, R + 140], {name:'submarine', f:4200});
+      lfPuffs(14, (i, t, p)=>{ const a = 1 + t*.045 - i*.012, age = i/14; p.x = sub.x + Math.cos(a)*R; p.z = sub.z + Math.sin(a)*R; p.y = wl + 1; p.s = 14 - age*4; p.a = .55*(1 - age); p.r = p.g = p.b = .95; }, {col:'#ffffff', region:[sub.x, wl, sub.z, R + 100], name:'subwake', f:4200}); X.site('submarine', sub.x + R, wl + 30, sub.z, c.tx, c.tz); } }
+  { const F = [], so = [[0, 0], [1.7, 1.2], [3.4, 2.5]]; for(let k = 0; k < 3; k++){ const p = lfWaterSpot(X, 120, 8, 260, 800); if(p) F.push({x:p.x, y:wl + 280 + k*40, z:p.z, off:so[k][1]}); } if(F.length) lfFlares(X, F); }
+  st.mesh(null, 'fleetstuff');
+};
+LIFE.carrier = X=>{
+  const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832, dk = K.C.deck || 62, bow = CARRIER.bow, stern = CARRIER.stern, L = bow - stern;
+  lfFleet(X, {frigates:3, buoys:10, dmin:350, dmax:1400});
+  /* the flight deck at work: crew walking the deck edges, tractors, a radar turning on the island, steam, running lights */
+  { const cr = lfCrewBag(), N = 10, tn = ['#f4c20d', '#3d9b4a', '#c8382e', '#f4f4f4', '#f4c20d', '#2f7fe0', '#3d9b4a', '#c8382e', '#f4c20d', '#f4f4f4'];
+    lfAnim(cr, N, (i, t, m)=>{ const side = i % 2 ? 1 : -1, x0 = stern + 200 + (i*131)%700, rg = 140 + (i % 3)*40, sp = .35 + (i % 4)*.05, f = .5 - .5*Math.cos(t*sp + i*1.3), x = x0 + f*rg - rg*.5, dir = Math.sin(t*sp + i*1.3) > 0 ? 0 : Math.PI;
+      lfPut(m, x, dk + Math.abs(Math.sin(t*4.4 + i))*.5, side*(86 + (i % 3)*8), dir, 0, Math.sin(t*4.4 + i)*.07, 1.7, 1.7, 1.7); }, [stern + L/2, dk, 0, L*.6], {name:'deckcrew', tint:tn, f:3600}); }
+  { const tb = lfTractorBag(); lfAnim(tb, 2, (i, t, m)=>{ const f = .5 - .5*Math.cos(t*.22 + i*2), x = stern + 300 + i*60 + f*380, dir = Math.sin(t*.22 + i*2) > 0 ? 0 : Math.PI; lfPut(m, x, dk, -100 - i*10, dir, 0, 0, 1.6, 1.6, 1.6); }, [stern + L/2, dk, 0, L*.6], {name:'tractors', f:3600}); }
+  { const rb = new LBag(); rb.add('box', '#cfd4d9', 0, 0, 0, 34, 1.8, 5); rb.add('cyl6', '#cfd4d9', 0, -3, 0, 1.4, 4, 1.4); rb.add('sph', '#e8353a', 17, .8, 0, 1.7); lfSpin(rb, stern + 515, dk + 173, 104, 0, 'y', 1.8, null, 'radar', 5200); X.site('radar', stern + 515, dk + 190, 104, 1, 0); }
+  { const lt = []; for(let x = stern + 60; x < bow - 10; x += 32){ lt.push([x, dk + 2, 114, 0]); lt.push([x, dk + 2, -114, 1]); }
+    lfPuffs(lt.length, (i, t, p)=>{ const e = lt[i], k = Math.pow(Math.max(0, Math.sin((e[0] - t*240)*.026)), 3); p.x = e[0]; p.y = e[1]; p.z = e[2]; p.s = 5 + 4*k; p.a = .35 + .65*k; if(e[3]){ p.r = 1; p.g = .25; p.b = .2; } else { p.r = .25; p.g = 1; p.b = .4; } }, {col:'#ffffff', add:true, region:[stern + L/2, dk, 0, L*.6], name:'deckrow', f:3600}); }
+  { const sv = []; [-1, 1].forEach(sd=>[bow - 170, bow - 120, bow - 70].forEach(x=>sv.push([x, dk, sd*118]))); lfPuffs(sv.length*4, (i, t, p)=>{ const e = sv[i % sv.length], age = (t/2.2 + i*.23) % 1; p.x = e[0] - age*14; p.y = e[1] + 2 + age*30; p.z = e[2] + Math.sign(e[2])*age*10; p.s = 5 + age*16; p.a = (1 - age)*.55; p.r = p.g = p.b = .96; }, {col:'#ffffff', region:[bow - 100, dk, 0, 300], name:'steam', f:3000}); }
+  { const Hs = []; for(let k = 0; k < 2; k++) Hs.push({x:stern + L*(.35 + k*.3), z:(k ? -1 : 1)*400, y:dk + 150 + k*30, R:150, ph:k*3.1, w:(k ? -1 : 1)*.12}); lfHelis(X, Hs, {tints:['#aab2ba', '#f08a1c'], s:2.4, region:3000}); }
+  st.mesh(null, 'fleetstuff');
+};
 function useCourse(idx){
   ensureRaceScene();
   const K = rCourses[idx]; if(!K) return;
   if(SC.race && !K.city) crFree();   // leaving Sky City Sprint for another course (Next, a random course): the city goes first
-  Object.values(rCourses).forEach(k=>{ if(k.group.parent) rScene.remove(k.group); });
-  rScene.add(K.group); rCourse = K; rCurve = K.curve; rL = K.L; rPylons = K.pylons; rGate.copy(K.gate);
+  Object.values(rCourses).forEach(k=>{ if(k.group.parent) rScene.remove(k.group); if(k !== K) lifeFree(k); });
+  rScene.add(K.group); lifeBuild(K); rCourse = K; rCurve = K.curve; rL = K.L; rPylons = K.pylons; rGate.copy(K.gate);
   if(K.city){ crUse(K); return; }
   rScene.fog = new T.Fog(K.fogColor, K.C.fog[0], K.C.fog[1]); rScene.background = null; rScene.environment = K.envMap;
   rSun.userData.off = K.sunDir.clone().multiplyScalar(700); rSun.color.copy(K.sunCol); rSun.intensity = K.C.sunI;
@@ -7160,6 +7987,7 @@ function useCourse(idx){
 function raceEnvFrame(dt){
   const K = rCourse; if(!K) return; if(CS.dome){ if(CS.on && (WM.done || !WM.r) && !WM.on) csEnd(); if(CS.dome.visible) csFollow(); } const t = RACE.clock;
   if(K.city) return crFrame(dt);   // Sky City Sprint: the city's own frame (section "sky city race")
+  if(K.life) lifeFrame(K, t);
   K.sky.position.copy(rCam.position);
   K.water.uniforms.uTime.value = t; K.terrainU.uTime.value = t; FLAG_UNI.uTime.value = t;
   K.spin.forEach(s=>s.rotation.y = t*.9);
@@ -8138,6 +8966,7 @@ function endRace(keep){   // keep (raceSwap): the racers' copies the next race u
   if(!keep) try{ if(document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(()=>{}); }catch(e){}
   RACE.racers.forEach(r=>{ racerDetailRestore(r); setGearFor(r.c, 0); r.c.B.glows.forEach(g=>g.visible=false); rScene.remove(r.root); });
   if(SC.race) crFree();   // Sky City Sprint: the city, its sound and the course's pieces go; the racers lose its haze
+  Object.values(rCourses).forEach(lifeFree);   // the course's life (section "course life") goes with the race
   RACE.racers = []; RACE.list = []; raceRelease(keep); wmStop();   // the racers' light copies are thrown away (and a winner's routine: section "win moves")
   voDrop(n=>!voRacePack(n) || (keep && !/-bl-./.test(n))); VO.heldType = keep ? RACE.type : null;   // and so are the race's voice packs; Race again (keep) holds them for the next race (2026-10-26: it decoded about 300 MB again at every Race again, the old and the new copies alive together), except the blimp's per-plane packs
   if(keep) return;
@@ -16125,6 +16954,21 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
   raceNoDraw: on=>{ RACE.noDraw = !!on; CR.skipDraw = !!on; return true; },   // tests: the race runs without drawing (software rendering: so the race clock keeps the wall clock's pace and her lines and shots line up as on a phone)
   blimpLog: ()=>({log: BL.log.slice(), lapT: Object.assign({}, BL.lapT), sB: Math.round(BL.sB), yaw0: +BL.yaw0.toFixed(2), last: BL.rec && BL.rec.last, cur: RACE.shot ? {type: RACE.shot.type, age: +(RACE.clock - RACE.shot.t0).toFixed(2), dur: RACE.shot.dur || null, hold: !!RACE.shot.hold, ahead: RACE.shot.r ? Math.round(BL.sB - ((((RACE.shot.r.d - RACE.shot.r.take) % rL) + rL) % rL)) : null, cam: rCam.position.toArray().map(Math.round), P: BL.P.toArray().map(Math.round), lead: RACE.shot.r ? RACE.shot.r.P.toArray().map(Math.round) : null} : null}),   // her shots, when and why, and how long she was on in each lap
   blimpFit: (x, y, z, yaw)=>SC.race ? crBlimpFit(x, y, z, yaw || 0) : null, blimpPut: (x, y, z, yaw)=>{ BL.ax = x; BL.alt = y; BL.az = z; if(yaw != null) BL.yaw0 = yaw; blimpFrame(0); return true; },   // tuning her station in Sky City
+  lifeInfo: ()=>{ const K = rCourse, L = K && K.life; if(!L) return null; let meshes = 0, tris = 0; L.g.traverse(o=>{ if(!(o.isMesh || o.isPoints) || !o.visible) return; meshes++; const gg = o.geometry, n = gg.index ? gg.index.count/3 : gg.attributes.position.count/3; if(!o.isPoints) tris += n*(o.isInstancedMesh ? o.count : 1); });
+    return {id: L.id, ms: L.ms, meshes, tris: Math.round(tris), anim: L.anim.length, sites: L.sites, err: window.__lifeErr ? String(window.__lifeErr) : null}; },   // section "course life": what the course's scenery adds (tests)
+  lifeRender: ()=>{ try{ renderer.render(rScene, rCam); return null; }catch(e){ return String(e.stack); } },   // (tests: a draw that says what failed)
+  lifeProbe: (n, offs)=>{ const K = rCourse, out = []; for(let i = 0; i < n; i++){ const u = i/n, q = K.curve.getPointAt(u), tg = K.curve.getTangentAt(u), nl = Math.hypot(tg.x, tg.z) || 1; out.push([+u.toFixed(3), Math.round(q.x), Math.round(q.y), Math.round(q.z), ...offs.map(o=>Math.round(K.H(q.x - tg.z/nl*o, q.z + tg.x/nl*o)))]); } return out; },   // (tests: the ground beside the racing line)
+  lifeMap: (x0, z0, x1, z1, st)=>{ const K = rCourse, rows = []; for(let z = z0; z <= z1; z += st){ let r = ''; for(let x = x0; x <= x1; x += st){ const h = K.H(x, z); r += h < K.wl + 1 ? '~' : h < 40 ? '.' : h < 120 ? 'o' : h < 300 ? 'O' : '#'; } rows.push(r); } return rows.join('\n') + '\nwl ' + K.wl; },   // (tests: a character map of the ground, ~ water)
+  lifeX: ()=>LF.X,   // (tests: the course-life context)
+  lifeNear: (x, z)=>{ const K = rCourse; let b = 1e12, bu = 0; for(let i = 0; i < 600; i++){ const q = K.curve.getPointAt(i/600), d = (q.x - x)**2 + (q.z - z)**2; if(d < b){ b = d; bu = i/600; } } const q = K.curve.getPointAt(bu), tg = K.curve.getTangentAt(bu); return {x: q.x, y: q.y, z: q.z, tx: tg.x, ty: tg.y, tz: tg.z, d: Math.sqrt(b)}; },   // (tests: the racing line beside a place)
+  lifeCam: a=>{ LF.dbg = a || null; if(!a){ rCam.fov = 52; rCam.updateProjectionMatrix(); } return !!a; },   // a free camera [x, y, z, lookX, lookY, lookZ, fov] over the race, for pictures of the scenery
+  lifeBlock: ()=>{ const K = rCourse, L = K && K.life; if(!L || !RACE.on) return null; const rc = new T.Raycaster(), list = [], o = rCam.position, hits = [], dv = V(0,0,0);
+    L.g.traverse(m=>{ if(m.isMesh && m.visible) list.push(m); });
+    const test = (from, to, tag)=>{ dv.subVectors(to, from); const dist = dv.length(); if(dist < 1) return; dv.normalize(); rc.set(from, dv); rc.near = 0; rc.far = dist; const h = rc.intersectObjects(list, false); if(h.length) hits.push({tag, name: h[0].object.name, d: Math.round(h[0].distance)}); };
+    RACE.racers.forEach(r=>test(o, r.P, 'cam-' + r.c.def.id));
+    [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]].forEach(d=>{ const e = V(d[0], d[1], d[2]).multiplyScalar(40).add(o); test(o, e, 'near-cam'); });
+    RACE.racers.forEach(r=>{ const u = ((r.d - r.take)/rL % 1 + 1) % 1; for(let k = 0; k < 8; k++){ const a = rCurve.getPointAt((u + k*60/rL) % 1), b = rCurve.getPointAt((u + (k + 1)*60/rL) % 1); test(a, b, 'line'); } });
+    return {n: hits.length, hits: hits.slice(0, 12)}; },
   raceShot: (type, id)=>{ const r = RACE.racers.find(x=>x.c.def.id === id) || RACE.racers[0]; if(!r) return; if(PACK_SHOTS.includes(type)) makeShot(type); else newShot(type, r); RACE.nextCut = RACE.clock + 30; },
   inView: ()=>{ rCam.updateMatrixWorld(); return RACE.racers.map(r=>{ const q = r.P.clone().project(rCam); return {id: r.c.def.id, x: +q.x.toFixed(2), y: +q.y.toFixed(2), on: q.z < 1 && Math.abs(q.x) < 1 && Math.abs(q.y) < 1}; }); },
   fireworks: ()=>{ if(RACE.racers[0]) fireworks(RACE.racers[0]); }, field: ()=>({on: FIELD.on, n: Object.keys(FIELD.planes).length, busy: FIELD.busy, swoop: !!FIELD.swoop, fit: Math.round(FIELD.cam.fit)}), fieldTapId: id=>{ const p = FIELD.planes[id]; if(!p) return false; const c = p.spr.userData.base.clone(); c.y += FIELD.group.position.y; c.project(camera); const r = canvas.getBoundingClientRect(); fieldTap((c.x + 1)/2*r.width + r.left, (1 - c.y)/2*r.height + r.top); return !!FIELD.swoop; }, fieldShootId: async id=>{ const def = MODELS.find(m=>m.id === id); const c = await loadRacer(def); c.model.updateMatrixWorld(true); applyPaint(c); applyDraw(c); if(!c.face) buildFace(c); else applyFaceStyle(c); if(!c.stkApplied){ c.stkApplied = true; applyStickers(c); } return fieldShoot(c); }, err: ()=>({...ERR}), mem: async ()=>{ let px = 0; let vmb = 0, vrate = 0; for(const n of Object.keys(VO.packs)){ const x = await VO.packs[n]; if(x){ vmb += x.mb || 0; vrate = x.sampleRate; } } VO.mb = vmb; VO.rate = vrate; const seen = new Set(); [scene, rScene, SC.scene].forEach(sc=>sc && sc.traverse(o=>{ const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; ms.forEach(m=>['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap'].forEach(t=>{ const x = m[t]; if(x && x.image && !seen.has(x)){ seen.add(x); px += (x.image.width || 0)*(x.image.height || 0); } })); }));
