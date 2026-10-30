@@ -6647,7 +6647,7 @@ const rCourses = {};
 const R_FRONT = -560;
 const CARRIER = {bow: R_FRONT + 130, stern: R_FRONT - 1190};   // Carrier Launch: the flight deck runs from the stern to the bow, 130 ft ahead of the front row
 const COURSES = [
-  {id:'farm', en:'Farmfield Classic', es:'Clásico de la Granja', haze:[.3941,.4233,.4503], sunAz:50.9, sunEl:47, sunCol:'#fff1de', sunI:1.9, fog:[900, 6300], water:-6,
+  {id:'farm', en:'Farmfield Classic', es:'Clásico de la Granja', haze:[.5,.68,.96], sunAz:50.9, sunEl:40, sunCol:'#fff0d0', sunI:2.0, fog:[900, 6300], water:-6,
     tex:{A:'t_grass.jpg', B:'t_rock.jpg', C:'t_sand.jpg', D:'t_forest.jpg'}, imp:'imp_island.webp', impAspect:.812, hero:'m_tree',
     pts:[[0,70,0],[700,90,-80],[1300,130,150],[1500,100,600],[1200,80,1000],[700,170,950],[300,110,1250],[-300,90,1300],[-900,150,1000],[-1150,100,500],[-800,75,120],[-400,72,-30]]},
   {id:'canyon', en:'Red Rock Canyon', es:'Cañón de Roca Roja', haze:[1.15,.78,.58], sunAz:139, sunEl:17, sunCol:'#ff9650', sunI:2.3, fog:[1400, 7600], water:-3,
@@ -8043,7 +8043,7 @@ LIFE2.canyon = X=>{
 };
 /* ===== second pass, Snowcap Pass: big snowy pines and crags beside the line, chalets, giant snowmen, slalom flags, and ski lifts that cross over the course with chairs riding the cables ===== */
 LIFE2.mountain = X=>{
-  const {H, wl} = X, grey = ['#8a919b', '#767e89', '#9aa1ab', '#6c747e'], good = (p, gy)=>gy > wl + 3 && X.slope(p.x, p.z) < .6 && p.py - gy > -25;
+  const {H, wl} = X, grey = ['#8a919b', '#767e89', '#9aa1ab', '#6c747e'], good = (p, gy)=>gy > wl + 3 && X.slope(p.x, p.z) < 1.0 && p.py - gy > -150;
   const hgt = (c, lo, hi)=>Math.max(lo, Math.min(hi, c.rise*.5 + 50 + c.r*60));
   const tpl = [
     {w:3.4, kr:62, off:[85, 145], ok:good, put:(b, c)=>{ const n = 4 + Math.floor(c.r*3); for(let q = 0; q < n; q++){ const a = (q - n/2)*22 + (c.r - .5)*8, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a; lfPine(b, x, H(x, z), z, 80 + ((q*37 + c.i*11) % 50) + c.r*20, true); } }},
@@ -8211,12 +8211,13 @@ function lfNavy(X, o){ const {H, wl} = X, gr = '#7a828c', pen = ['#e8353a', '#f4
     {w:o.subs, off:[92, 130], sea:true, ok:seaOk, put:(b, c)=>{ lfSubOut(b, c.x, wl, c.z, c.ry + (c.r > .5 ? Math.PI : 0), 2.6); }},
     {w:o.buoys, off:[88, 128], sea:true, ok:seaOk, put:(b, c)=>{ const s = 2.1 + c.r*.8; b.add('cyl', '#e8353a', c.x, wl - 3*s, c.z, 7*s, 12*s, 7*s); b.add('cyl', '#f6f2ea', c.x, wl + 5*s, c.z, 6.3*s, 5*s, 6.3*s); b.add('cyl', '#e8353a', c.x, wl + 9*s, c.z, 5.6*s, 5*s, 5.6*s); b.add('cone', '#f6f2ea', c.x, wl + 13*s, c.z, 4.6*s, 7*s, 4.6*s); b.beam('cyl6', '#aab2ba', c.x, wl + 20*s, c.z, c.x, wl + 28*s, c.z, .6*s, .4*s); b.add('sph', '#ffd24a', c.x, wl + 28.5*s, c.z, 2.2*s); }},
     {w:o.rocks, off:[95, 150], sea:true, ok:(p, gy)=>gy < wl - 4, put:(b, c)=>{ const s = 20 + c.r*22; b.add('ico', '#6e675f', c.x, wl - s*.3, c.z, s*1.2, s*(1.6 + c.r), s, c.r*3); b.add('ico', '#8b837a', c.x + s*.7, wl - s*.2, c.z, s*.7, s*.9, s*.6); b.add('cone6', '#c7352e', c.x, wl + s*1.1, c.z, 2.4, 22, 2.4); b.add('cone6', '#ffffff', c.x, wl + s*1.1 + 22, c.z, 3, 6, 3); }},
-    {w:o.isle, off:[100, 150], ok:(p, gy)=>gy > wl + 2 && X.slope(p.x, p.z) < .5, put:(b, c)=>{ const n = 3; for(let q = 0; q < n; q++){ const a = (q - 1)*20, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a; lfPalm(b, x, H(x, z), z, 60 + q*6, .2, c.fy + q); } }}];
+    {w:o.isle, off:[88, 150], ok:(p, gy)=>gy > wl + 1.5 && gy < wl + 40 && X.slope(p.x, p.z) < .5, put:(b, c)=>{ const n = 4 + Math.floor(c.r*3); for(let q = 0; q < n; q++){ const a = (q - n/2)*18 + (c.r - .5)*8, x = c.x + Math.cos(c.ry)*a, z = c.z - Math.sin(c.ry)*a; lfPalm(b, x, H(x, z), z, 62 + ((q*29 + c.i*7) % 24), .2, c.fy + q); } }},
+    {w:o.isle*.6, off:[92, 140], ok:(p, gy)=>gy > wl + 1.5 && gy < wl + 40 && X.slope(p.x, p.z) < .5, put:(b, c)=>{ const h = 100 + c.r*20, y = c.y - 2, r = 9; for(let i = 0; i < 6; i++) b.add('cyl', i % 2 ? '#f6f2ea' : '#d9382c', c.x, y + i*h/6, c.z, r*(1 - i*.07), h/6 + .6, r*(1 - i*.07)); b.add('cyl', '#2a2d30', c.x, y + h, c.z, r*.9, 3, r*.9); b.add('cyl', '#ffe9a0', c.x, y + h + 3, c.z, r*.55, 7, r*.55); b.add('cone', '#d9382c', c.x, y + h + 10, c.z, r*.9, 7, r*.9); }}];
   const ds = lfDress(X, {step:o.step || 50, types:tpl, name:'navyline', chunks:o.chunks || 5});
   const gb = new LBag(); for(let k = 0; k < (o.gates || 6); k++) lfSignalGate(X, gb, .08 + k*(.84/(o.gates || 6)) + (LF.r() - .5)*.02, k, pen); gb.mesh(null, 'signalgates', 5200);
   X.site('navyline', X.at(.3, 0).x, X.at(.3, 0).py, X.at(.3, 0).z, X.at(.3, 0).tx, X.at(.3, 0).tz); window.__dressInfo = ds; }
-LIFE2.armada = X=>lfNavy(X, {ships:4.0, subs:.8, buoys:2.4, rocks:1.6, isle:.8, gates:6});
-LIFE2.carrier = X=>lfNavy(X, {ships:3.0, subs:.4, buoys:2.6, rocks:1.4, isle:.6, gates:6});
+LIFE2.armada = X=>lfNavy(X, {ships:4.0, subs:.8, buoys:2.4, rocks:1.6, isle:2.4, gates:6});
+LIFE2.carrier = X=>lfNavy(X, {ships:3.0, subs:.4, buoys:2.6, rocks:1.4, isle:2.4, gates:6});
 function useCourse(idx){
   ensureRaceScene();
   const K = rCourses[idx]; if(!K) return;
