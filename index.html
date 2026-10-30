@@ -1420,7 +1420,7 @@ G({id:'aw139', glb:'models/aw139.json', heli:true, film:'fr', name:'AgustaWestla
   ]});
 /* Windlifter's part in Fire & Rescue: the Sikorsky S-64 Skycrane heavy-lift helicopter. No free model exists, so it is
    built in code (buildSkycrane, BUILDERS) and painted in the film's spirit, green and cream. */
-G({id:'skycrane', build:'skycrane', heli:true, film:'fr', name:'Sikorsky S-64 Skycrane', short:'Skycrane', character:'Windlifter',
+G({id:'skycrane', build:'skycrane', heli:true, faceEyes:'shield', film:'fr', name:'Sikorsky S-64 Skycrane', short:'Skycrane', character:'Windlifter',
   credit:'Skycrane built in code for this game',
   note:{en:'The Skycrane is a giant helicopter that lifts heavy things. It can carry a huge tank of water to fires.',
         es:'El Skycrane es un helicóptero gigante que levanta cosas pesadas. Puede llevar un tanque enorme de agua a los incendios.'},
@@ -1437,7 +1437,7 @@ G({id:'skycrane', build:'skycrane', heli:true, film:'fr', name:'Sikorsky S-64 Sk
     S('rotor',P('Main rotor','Rotor principal','prop',6),'^(mr_|mrb|rotor)',{en:['Last part: 6 giant blades','The 6 giant blades lift heavy loads into the sky.'],es:['Última pieza: 6 aspas gigantes','Las 6 aspas gigantes suben cargas pesadas al cielo.']})
   ]});
 /* Cabbie's part in Fire & Rescue: the Fairchild C-119 Flying Boxcar, built in code (buildBoxcar), gray and white. */
-G({id:'c119', build:'boxcar', twin:true, film:'fr', name:'Fairchild C-119 Flying Boxcar', short:'Boxcar', character:'Cabbie',
+G({id:'c119', build:'boxcar', twin:true, faceEyes:'shield', film:'fr', name:'Fairchild C-119 Flying Boxcar', short:'Boxcar', character:'Cabbie',
   credit:'Flying Boxcar built in code for this game',
   note:{en:'The Flying Boxcar is a cargo plane with 2 tail booms. Its back opens wide to load big boxes.',
         es:'El Flying Boxcar es un avión de carga con 2 colas. Su parte trasera se abre para meter cajas grandes.'},
@@ -2173,7 +2173,7 @@ function hvKit(T, K, X, lod){
      start, 2 both ends, 3 the end), the ring from A0(x) to A1(x) (0 the top, PI/2 the +z side); o.zc, o.grow, o.inside (faces in);
      o.holes: [x0, x1, a0, a1] boxes of (x, ring angle) cut out of it */
   const loft = (S, x0, x1, nx, A0, A1, na, o)=>{ o = o || {}; const fa = fnA(A0), fb = fnA(A1), zc = o.zc || 0, gr = o.grow || 0, ek = o.ease || 0, sg = o.inside ? -1 : 1;
-    const xm = t=>x0 + (x1 - x0)*ease(ek, t), ang = (x, v)=>fa(x) + (fb(x) - fa(x))*v;
+    const xm = t=>x0 + (x1 - x0)*ease(ek, Math.min(1, Math.max(0, t))), ang = (x, v)=>fa(x) + (fb(x) - fa(x))*v;   // (clamped: the normals' differences step past the ends)
     const g = K.surf((t, v)=>{ const x = xm(t), s = S(x), a = ang(x, v), c = Math.cos(a), sn = Math.sin(a), up = c >= 0, e = up ? s[4] : s[5];
       return [x, s[0] + ((up ? s[2] : s[3]) + gr)*sp(c, e), zc + (s[1] + gr)*sp(sn, e)]; }, 0, 1, nx, 0, 1, na, (p, t, v)=>{ const a = ang(xm(t), v); return [0, sg*Math.cos(a), sg*Math.sin(a)]; });
     const uv = g.attributes.uv, px = new Float32Array(uv.count), pa = new Float32Array(uv.count);
@@ -2238,14 +2238,14 @@ function buildSkycrane(T, lod){
   const YC = 11.3, CX = 13.2, fN = x=>nose(x, 4.6, 2.2);
   const CS = x=>{ const f = fN(x); return [YC, Math.max(.01, W0(x)*f), Math.max(.01, (T0(x) - YC)*f), Math.max(.01, (YC - B0(x))*f), 2.3, 2.9]; };
   const aB = 2.8;   // the cream chin and floor below this ring angle
-  const win = [[.75, 6, -1.05, 1.05], [.6, 3.6, 1.95, 2.7], [.6, 3.6, -2.7, -1.95], [6.7, 10.7, 1.02, 1.75], [6.7, 10.7, -1.75, -1.02]];   // windscreen and roof windows, chin windows, door windows [x0, x1, a0, a1]
+  const win = [[.75, 5.1, -1.05, 1.05], [.6, 3.6, 1.95, 2.7], [.6, 3.6, -2.7, -1.95], [6.7, 10.7, 1.02, 1.75], [6.7, 10.7, -1.75, -1.02]];   // windscreen and roof windows, chin windows, door windows [x0, x1, a0, a1]
   put(body, loft(CS, 0, CX, n(36, 8), -aB, L > 1 ? 2*PI - aB : aB, n(52, 10), {ease: 1, holes: D ? win : null}), main);
   if(L < 2) put(body, loft(CS, 0, CX, n(36, 8), aB, 2*PI - aB, n(8, 2), {ease: 1}), belly);
   put(body, K.surf((u, v)=>{ const s = CS(CX), a = 2*PI*v, c = Math.cos(a), sn = Math.sin(a), up = c >= 0, e = up ? s[4] : s[5], k = 1 - u; return [CX, s[0] + k*(up ? s[2] : s[3])*K.sp(c, e), k*s[1]*K.sp(sn, e)]; }, 0, 1, 2, 0, 1, n(60, 10), ()=>[-1, 0, 0]), main);   // its back wall
   win.forEach(w=>put(body, loft(CS, w[0], w[1], n(10, 2), w[2], w[3], n(10, 2), {ease: 1, grow: D ? -.05 : .04}), glassM, 'glass'));
   if(D){ const fr = (x0, x1, a0, a1, nx, na)=>put(body, loft(CS, x0, x1, nx || 6, a0, a1, na || 3, {ease: 1, grow: .07}), main);   // the frames over the windows' edges
-    [[.62, .9], [5.86, 6.14], [3.45, 3.68]].forEach(([a, b])=>fr(a, b, -1.12, 1.12, 2, 24));
-    [-1, 1].forEach(s=>{ fr(.62, 6.14, s > 0 ? .99 : -1.12, s > 0 ? 1.12 : -.99, 16, 2); fr(.62, 6.14, s > 0 ? .02 : -.11, s > 0 ? .11 : -.02, 16, 2);
+    [[.62, .9], [4.96, 5.24], [3.0, 3.22]].forEach(([a, b])=>fr(a, b, -1.12, 1.12, 2, 24));
+    [-1, 1].forEach(s=>{ fr(.62, 5.24, s > 0 ? .99 : -1.12, s > 0 ? 1.12 : -.99, 16, 2); fr(.62, 5.24, s > 0 ? .02 : -.11, s > 0 ? .11 : -.02, 16, 2);
       fr(.48, .72, s > 0 ? 1.9 : -2.76, s > 0 ? 2.76 : -1.9, 2, 6); fr(3.5, 3.74, s > 0 ? 1.9 : -2.76, s > 0 ? 2.76 : -1.9, 2, 6);
       fr(.48, 3.74, s > 0 ? 1.9 : -2.0, s > 0 ? 2.0 : -1.9, 10, 1); fr(.48, 3.74, s > 0 ? 2.65 : -2.76, s > 0 ? 2.76 : -2.65, 10, 1);
       fr(6.58, 10.82, s > 0 ? .97 : -1.08, s > 0 ? 1.08 : -.97, 10, 1); fr(6.58, 10.82, s > 0 ? 1.7 : -1.81, s > 0 ? 1.81 : -1.7, 10, 1);
@@ -2426,10 +2426,11 @@ function buildBoxcar(T, lod){
       put(eng, loft(NS, 24, 24.08, 1, 0, 2*PI, 36, {zc: z, grow: .02}), dark); } });   // a cowl seam
   // the propellers: four blades about 15 ft across, yellow tips, a spinner
   [1, -1].forEach(s=>{ const z = 13.5*s, y = ny(16), px = 14.6;
-    put(prop, H.lathe(x=>1.3*nose(x - 12.7, 2.5, 2), 12.7, 15.3, n(10, 3), y, z, n(28, 6)), dark, 'prop');
+    const pn = s > 0 ? 'prop-r' : 'prop-l';   // each propeller its own meshes: prepareGLB spins each cluster about its own hub
+    put(prop, H.lathe(x=>1.3*nose(x - 12.7, 2.5, 2), 12.7, 15.3, n(10, 3), y, z, n(28, 6)), dark, pn);
     const bs = [[px - .45, y + .9, z, .8, .2], [px - .55, y + 2.6, z, 1.15, .12], [px - .5, y + 6.4, z, .95, .08], [px - .4, y + 7.45, z, .6, .004]];
     for(let k = 0; k < 4; k++){ const R = g=>{ H.rotAbout(g, new T.Vector3(0, 1, 0), .5*s, [X(px), 0, z]); return H.rotAbout(g, new T.Vector3(1, 0, 0), k*PI/2 + PI/4, [0, y, z]); };
-      [1, -1].forEach(sd=>{ put(prop, R(H.foil(bs, [0, 0, 1], sd, 0, 1, n(7, 3), n(8, 3))), dark, 'prop'); if(D) put(prop, R(H.foil(H.slice(bs, .82, .97), [0, 0, 1], sd, 0, 1, 8, 2)), yel, 'prop'); }); } });
+      [1, -1].forEach(sd=>{ put(prop, R(H.foil(bs, [0, 0, 1], sd, 0, 1, n(7, 3), n(8, 3))), dark, pn); if(D) put(prop, R(H.foil(H.slice(bs, .82, .97), [0, 0, 1], sd, 0, 1, 8, 2)), yel, pn); }); } });
   // the tail: the booms from the nacelles back to two tall fins, one tailplane between them, boots on their leading edges
   const by = K.curve([42, 83], [16.2, 16.8]), bw = K.curve([42, 60, 83], [1.85, 1.4, 1.05]), bt = K.curve([42, 60, 83], [2.1, 1.62, 1.25]), bb = K.curve([42, 60, 83], [1.95, 1.5, 1.15]);
   const BS = x=>{ const e = nose(83.2 - x, 1.4, 2.2); return [by(x), bw(x)*e + .01, bt(x)*e + .01, bb(x)*e + .01, 2.1, 2.1]; };
@@ -4877,7 +4878,7 @@ const GLASS = {color:'#ffffff', opacity:.21, roughness:.45, metalness:.1, env:.7
 const FACE_K = {at:.6, size:.45, sep:.27, max:.09, elev:58*Math.PI/180, az:63*Math.PI/180, tilt:35*Math.PI/180};   // the Hornet's eyes face 58 degrees up, 63 degrees out from straight ahead   // Hornet-style default eyes: where, how big and how far apart, against the nose's width
 const FACES = [['off','Off','Sin cara'],['friendly','Friendly','Amigable'],['racer','Racer','Corredor'],['silly','Silly','Chistosa']];
 function faceStyleOf(id){ return saveGet('hangar-face-'+id) || 'friendly'; }
-function faceDefault(c){ return {eyes:'nose', mouth:'chin', scale:1}; }   // Windshield is offered where a plane has glass; not the default until its sizing is checked on every plane
+function faceDefault(c){ return {eyes:(c && c.def && c.def.faceEyes) || 'nose', mouth:'chin', scale:1}; }   // Windshield is offered where a plane has glass; not the default until its sizing is checked on every plane (def.faceEyes: Windlifter and Cabbie look out of their windscreens, as in the film; owner, 2026-10-30: the eyes on their blunt noses looked squashed)
 function facePlaceSaved(id){ return saveJSON('hangar-faceplace2-'+id, null); }
 function saveFacePlace(c){ saveSet('hangar-faceplace2-'+c.def.id, JSON.stringify(c.facePlace)); }
 /* the face spots as plain numbers (model metres: [x, y, z, nx, ny, nz] per spot), for Sky City's traffic files (phase 6:
@@ -15653,7 +15654,7 @@ function scFaceAtlas(){
   return t; }
 /* where a type's face goes: his saved placement for that aircraft, read as resolveFace reads it, else the game's default */
 function scFaceSpots(d){
-  const F = d.face; if(!F) return null; const def = MODELS.find(x=>x.id === d.id), saved = def ? facePlaceSaved(d.id) : null, pl = saved || faceDefault(), sc = pl.scale || 1;
+  const F = d.face; if(!F) return null; const def = MODELS.find(x=>x.id === d.id), saved = def ? facePlaceSaved(d.id) : null, pl = saved || faceDefault({def}), sc = pl.scale || 1;
   const S = a=>a ? {p: V(a[0], a[1], a[2]), n: V(a[3], a[4], a[5]).normalize()} : null;
   const out = {src: saved ? 'saved' : 'default', eyeRot: (pl.eyeRot || 0)*Math.PI/180, mouthRot: (pl.mouthRot || 0)*Math.PI/180, noMouth: pl.mouth === 'none', eyeSize: F.size.eye*sc, eyes: null, snap: false};
   if(typeof pl.eyes === 'string'){ const e = F.eyes[pl.eyes] || F.eyes.nose || F.eyes.sides; if(e) out.eyes = e.map(S);
