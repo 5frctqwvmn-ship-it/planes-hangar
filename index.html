@@ -8740,7 +8740,7 @@ function celebrate(r){
   const wl = annOn() ? blLine('win', r) : null, bw = blimpWinCut(r, wl);
   /* then its own routine in the air (section "win moves", owner 2026-10-13): wm is the seconds from now to its end (0: none); the show's doors,
      the cheer and the card all come after it, and both limits on the card grow by it (RACE.wmX) */
-  const wm = wmArm(r, bw); if(!wm && r.c.pair) twinCue(r, 'mroll');   // (Ned & Zed without one: their mirror roll for the win)
+  const wm = SOLO.on ? wmArm(r, bw, SOLO.key, SOLO.side) : wmArm(r, bw); if(!wm && r.c.pair) twinCue(r, 'mroll');   // (Ned & Zed without one: their mirror roll for the win)
   const lead = wm ? wm + WM_GAP : SHOW_LEAD + bw, sh = showCan(r.c) && showStart(r.c, 'race', -lead); RACE.showX = sh ? lead + SHOW_REVEAL[r.c.def.id] : 0; RACE.wmX = wm;
   const run = RACE.run; RACE.winEnd = performance.now() + ((RACE.winCap || 12) + Math.max(RACE.showX, wm))*1000;
   const done = ()=>{ if(RACE.run !== run) return; const me = VO.who === r.c.def.id; RACE.winEnd = Math.min(RACE.winEnd, Math.max(performance.now(), me ? VO.wall || 0 : 0) + 700); RACE.winSaid = me ? {id: r.c.def.id, t0: VO.t0, t1: VO.wall} : null; };
@@ -9050,7 +9050,7 @@ function raceFrame(dt){
     if(RACE.shot.type === 'launch') RACE.shot.r = lead;
     const nearEnd = lead && (lead.finished !== null || lead.D - lead.d < 800);
     if(WL.m) RACE.nextCut = Math.max(RACE.nextCut, RACE.clock + 1.5);   // Word Launch: the camera stays on the rings until the moment is over
-    if(nearEnd && RACE.shot.type !== 'finish' && !RACE.finishers.length && !WL.m) newShot('finish', lead);
+    if(nearEnd && RACE.shot.type !== 'finish' && !RACE.finishers.length && !WL.m && !(SOLO.on && SOLO.u < 1)) newShot('finish', lead);   // (the win show from the hangar, finishing away from the gate: its own shot)
     else if(!nearEnd && (RACE.clock > RACE.nextCut || (RACE.shot.auto && !TW.on && RACE.shot.bur > .35))){ nextRaceShot();   // (a plane buried under a bigger one: the next shot now, BURY)
       RACE.nextCut = RACE.clock + (RACE.shot.dur || (rCourse && rCourse.city ? 5.5 + Math.random()*1.5 : 3.4 + Math.random()*1.2)); }   // (Sky City Sprint: fewer, longer shots, owner 2026-10-23)
     const w = RACE.finishers[0], bw = (RACE.shot.type === 'blimpWin' && RACE.clock < (BL.winEnd || 0)) || wmHold(w);   // (her winner call on screen first, then the winner's routine: wmHold)
@@ -9196,14 +9196,38 @@ function endRace(keep){   // keep (raceSwap): the racers' copies the next race u
    (the cheer). It starts SOLO.fly s before the finish line, crosses it and celebrates; then, in place of the results card, two big buttons:
    Watch again (the same copies, nothing loads; the Concorde's and El Chupacabra's shows keep taking turns, csTurn and wmTurn) and Back to
    hangar (endRace, which frees what a race frees). The X leaves at any time. After it, RACE.type and RACE.course are the race setup's again. */
-const SOLO = {on: false, type: null, course: null, fly: 3, ms: 0, n: 0};
+const SOLO = {on: false, type: null, course: null, fly: 3, ms: 0, n: 0, key: null, u: 1, side: 0, pick: null, tries: [], placeMs: 0};
+/* where it finishes (owner's coordinator, 2026-10-30: the farm's start and finish, its arch and flags, shrank the Concorde's sonic boom, Fire Dusty's
+   rainbow and Echo & Bravo's lob to nothing): the routine is the point here, so before each show its own plan (wmPlan, the same check a race makes)
+   is tried at a few places on the last lap (SOLO_U: a share of the lap, 1 the finish line itself, first) on each side, on each course already built
+   (the race setup's first), and it finishes at the first place where the whole routine fits at full size (k 1); else the best one. Only when no
+   built course has such a place is one more built (SOLO_NEW, in that order, and only while fewer than SOLO_MAX courses are built), once per start.
+   Checked at run time, so new scenery near the racing line just moves it elsewhere. Real races keep their finish line. */
+const SOLO_U = [1, .5, .25, .75, .125, .375, .625, .875], SOLO_NEW = ['farm', 'coast', 'glacier'], SOLO_MAX = 2;
 Object.assign(UI.en, {soloBtn: 'Win show', soloAgain: 'Watch again'}); Object.assign(UI.es, {soloBtn: 'Baile de victoria', soloAgain: 'Ver otra vez'});   // labels only, not spoken
 function soloReady(){ return !!(raceLoader && cur && cur.def === MODELS[mi] && $('loading').hidden && !SOLO.on && !RACE.on && !RACE.loading && !SHOW.c && !BBH.c && !FIELD.on && !SC.on && !CE.on && !studioTab
   && app.dataset.mode === 'home' && flight.mode === 'parked' && $('hangarSheet').hidden && $('learnSheet').hidden); }
 function soloBtnSync(){ const b = $('soloBtn'); if(!b) return; const on = soloReady();
   if(on){ const t = UI[lang].soloBtn, e = $('soloTxt'); if(e.textContent !== t) e.textContent = t; }
   if(b.hidden === !on) return; b.hidden = !on; }
-const soloCourse = ()=>{ const ok = k=>!!rCourses[k] && !COURSES[k].city; if(ok(RACE.course)) return RACE.course; const k = Object.keys(rCourses).map(Number).find(ok); return k !== undefined ? k : 0; };   // a course already built costs nothing; else the farm (never Sky City)
+const soloOK = k=>!!rCourses[k] && !COURSES[k].city;
+const soloBuilt = ()=>{ const ks = Object.keys(rCourses).map(Number).filter(soloOK).sort((a, b)=>a - b); return ks.includes(RACE.course) ? [RACE.course].concat(ks.filter(k=>k !== RACE.course)) : ks; };   // the built courses (never Sky City), the race setup's first
+const soloNext = ()=>soloBuilt().length >= SOLO_MAX ? -1 : SOLO_NEW.map(id=>COURSES.findIndex(C=>C.id === id)).filter(k=>k >= 0).concat([-1]).find(k=>k < 0 || !rCourses[k]);   // the next course to build, if one may be
+/* its finish u of the way round its last lap (1: the finish line) */
+function soloSet(r, u){ if(r.D0 === undefined){ r.D0 = r.D; r.Tp0 = r.Tp; } r.D = r.take + ((RACE.laps || 2) - 1 + u)*rL; r.Tp = r.Tp0*r.D/r.D0; }   // (its race speed, D/Tp, kept)
+/* the plan its routine would get if it finished there (as the race does it: WM_LEAD s after the line, from its racing line then) */
+function soloTry(r, key, u, side){ soloSet(r, u); const tf = r.Tp + 1.5; r.finished = tf; RACE.finishers = [r]; RACE.t = tf + WM_LEAD;
+  r.d = racerDist(r, RACE.t); racerPos(r, r.d, RACE.t, r.P); r.root.position.copy(r.P);
+  wmArm(r, 0, key, side); wmPlan(r); const o = {u, side, k: WM.k, lift: Math.round(WM.lift), why: WM.why, rnd: {A: r.A, w: r.w, ph: r.ph, ph2: r.ph2, Tp: r.Tp0}};   // (rnd: the racer's random pace and wobbles, which its racing line depends on)
+  wmStop(); r.wm = false; r.finished = null; r.d = 0; RACE.finishers = []; RACE.t = 0; return o; }
+/* the routine's start in the show: the race clock and the racer exactly as soloTry had them (the finish and the start land on frames, up to a
+   couple of frames late; on a hillside that was enough to change the plan), a jump of a few feet at most */
+function soloSnap(r){ const tf = r.Tp + 1.5; r.finished = tf; RACE.t = tf + WM_LEAD; r.d = racerDist(r, RACE.t); racerPos(r, r.d, RACE.t, r.P); r.root.position.copy(r.P); }
+/* the first place on these courses where it fits at full size, else the best */
+function soloPlace(key, cs){ const t0 = performance.now(); let best = null; SOLO.tries = [];
+  try{ for(const ci of cs){ if(!soloOK(ci)) continue; useCourse(ci); setupRacers(RACE.list); const r = RACE.racers[0];
+      for(const u of SOLO_U) for(const sd of [1, -1]){ const o = soloTry(r, key, u, sd); o.ci = ci; SOLO.tries.push([ci, u, sd, o.k]); if(!best || o.k > best.k) best = o; if(o.k >= 1) return best; } }
+    return best; } finally { SOLO.placeMs = performance.now() - t0; } }
 async function soloStart(){
   if(!soloReady()) return; audio();
   const u = UI[lang], def = cur.def, t0 = performance.now(); let ok = false;
@@ -9212,31 +9236,36 @@ async function soloStart(){
     voDrop(voRacePack); VO.heldType = null; raceRelease(); fieldDrop(); evictModels('');   // room first, as a race makes it (the hangar's plane loads again after: endRace)
     showLoading(true, u.loadingRacers(1, 1), 0);
     const c = await loadRacer(def, ''); if(!c) return;
-    const ci = soloCourse(); RACE.course = ci; showLoading(true, u.buildingCourse(COURSES[ci][lang]), 1);
-    await new Promise(r=>setTimeout(r, 60));
-    ensureRaceScene(); await buildCourse(ci); if(!rCourses[ci]) return;
     c.model.position.set(0,0,0); pairDetach(c); pairObj(c).updateMatrixWorld(true);
     applyPaint(c); applyDraw(c); capeApply(c); if(!c.face) buildFace(c); else applyFaceStyle(c); if(!c.stkApplied){ c.stkApplied = true; applyStickers(c); }   // (as startRaceLoad: its paint, drawings, cape, face and stickers)
+    ensureRaceScene(); RACE.list = [c]; const key = wmKey(def.id);   // (this time's routine: one turn taken)
+    const build = async ci=>{ showLoading(true, u.buildingCourse(COURSES[ci][lang]), 1); await new Promise(r=>setTimeout(r, 60)); await buildCourse(ci); return soloOK(ci); };
+    if(!soloBuilt().length && !(await build(soloNext()))) return;   // nothing built yet: the first of SOLO_NEW
+    let P = soloPlace(key, soloBuilt());
+    if(P.k < 1){ const nx = soloNext(); if(nx >= 0 && await build(nx)){ const Q = soloPlace(key, [nx]); if(Q && Q.k > P.k) P = Q; } }   // nowhere it fits: one more course, if one may be built
     const pv = planeRacePack({c}); if(pv) await Promise.race([voPack(pv), new Promise(r=>setTimeout(r, 4000))]);   // its cheer, in its own voice (at most 4 s of waiting on a slow link)
     showLoading(false); closeStudio(); if(flight.mode !== 'parked') resetFlight();
     RACE.list = [c]; raceQualityStart(); voWarm(true);
     closeHangar(); $('rhud').hidden = false; $('rhud').classList.add('solo');
     $('rQuit').setAttribute('aria-label', u.backHangar); $('rSnd').setAttribute('aria-label', u.sound); $('rSndP').hidden = true;
-    SOLO.ms = performance.now() - t0; soloRun(); ok = true;
-  } finally { RACE.loading = false; if(!ok){ showLoading(false); soloOff(); raceRelease(); loadModel(mi); } syncUI(); }
+    SOLO.ms = performance.now() - t0; soloRun(key, P); ok = true;
+  } finally { RACE.loading = false; if(!ok){ showLoading(false); soloOff(); RACE.list = []; RACE.racers = []; raceRelease(); loadModel(mi); } syncUI(); }
 }
-/* one show (the start, and Watch again): the racer SOLO.fly s from the line on its last lap, the finish shot; celebrate does the rest */
-function soloRun(){
+/* one show (the start, and Watch again): routine key at place P (soloPlace), the racer SOLO.fly s before it; the finish shot at the finish line, else
+   a shot from ahead of it; celebrate does the rest */
+function soloRun(key, P){
+  SOLO.key = key; SOLO.pick = P; SOLO.u = P ? P.u : 1; SOLO.side = P ? P.side : 0; if(P) RACE.course = P.ci;
   useCourse(RACE.course); ringsBuild(); raceSoundStop(); setupRacers(RACE.list); LEARN.on = false; showWarm(RACE.list);
   BL.on = false; if(BL.g) BL.g.visible = false;
   RACE.on = true; RACE.run = (RACE.run || 0) + 1; RACE.resUp = false; RACE.winEnd = 0; RACE.winSaid = null; RACE.showX = 0; RACE.wmX = 0; RACE.cm = null; RACE.quip = null; RACE.annT0 = RACE.annEnd = RACE.introQ = RACE.helloWait = 0;
   $('rhud').classList.remove('res'); $('rResults').hidden = true; $('rSolo').hidden = true; $('rWin').hidden = true; $('rAnn').hidden = true; $('rTitle').hidden = true; $('rCount').textContent = ''; confetti = [];
   const r = RACE.racers[0]; RACE.lapShown = RACE.laps; RACE.photo = true; r.ringK = RACE.laps*3;   // no lap banner, no photo finish, no rings to fly through (ringsFrame: all of them at once, from so far along)
-  RACE.clock = 0; RACE.phase = 'race'; RACE.phaseT = 0; RACE.t = Math.max(0, r.Tp + 1.5 - SOLO.fly); RACE.si = -1; newShot('finish', r); RACE.nextCut = 1e9;   // (racerDist: the line at t = Tp + 1.5)
+  if(P) Object.assign(r, P.rnd); soloSet(r, SOLO.u);   // the racing line its plan was checked on (its pace and wobbles), and its finish there
+  RACE.clock = 0; RACE.phase = 'race'; RACE.phaseT = 0; RACE.t = Math.max(0, r.Tp + 1.5 - SOLO.fly); RACE.si = -1; newShot(SOLO.u < 1 ? 'front' : 'finish', r); RACE.nextCut = 1e9;   // (racerDist: the finish at t = Tp + 1.5)
   raceHud(true); SOLO.n++; }
 function soloEnd(){ const u = UI[lang]; RACE.resUp = true; RACE.resT = performance.now(); $('rhud').classList.add('res');   // the title fades, the camera frames its face over the buttons (resBand)
   $('soloAgainT').textContent = u.soloAgain; $('soloBackT').textContent = u.backHangar; $('rSolo').hidden = false; }
-function soloAgain(){ if(!SOLO.on || !RACE.on || !RACE.list.length || !RACE.resUp) return; audio(); sfx.pop(); soloRun(); }
+function soloAgain(){ if(!SOLO.on || !RACE.on || !RACE.list.length || !RACE.resUp) return; audio(); sfx.pop(); const key = wmKey(RACE.list[0].def.id); soloRun(key, soloPlace(key, soloBuilt())); }   // (the built courses only: nothing loads)
 function soloOff(){ SOLO.on = false; $('rSolo').hidden = true; $('rhud').classList.remove('solo'); if(SOLO.type !== null){ RACE.type = SOLO.type; RACE.course = SOLO.course; } SOLO.type = SOLO.course = null; }   // (endRace)
 $('soloBtn').addEventListener('click', ()=>{ sfx.pop(); if(voUnlock) voUnlock(); soloStart(); });
 $('soloAgain').addEventListener('click', soloAgain); $('soloBack').addEventListener('click', ()=>endRace());
@@ -11079,9 +11108,11 @@ function wmBuild(def){
   return {steps: st, carry: Float32Array.from(carry), t0, ev, len: t, bb, dd, mc, pens}; }
 /* the winner (celebrate): its routine starts when the blimp's call of it is over (bw s), or WM_LEAD s after the finish; returns the seconds
    from now to its end (0: none) */
-function wmArm(r, bw, id){
-  if(!r || RO.on) return 0; const W = WM; let key = id && WIN_MOVE[id] ? id : r.c.def.id; if(!id && key === 'concorde') key = csTurn(); if(!id && key === 'geebee') key = wmTurn('hangar-wmturn-gb2', 'geebee2', 'geebee'); if(!id && key === 'dh88') key = wmTurn('hangar-wmturn-dh88q', 'dh88q', 'dh88');   // (the Concorde: its two shows take turns; El Chupacabra's and Bulldog's too, the new one first)
-  W.side = Math.random() < .5 ? 1 : -1; const D0 = WIN_MOVE[key] || WIN_MOVE._, D1 = rCourse && rCourse.city && D0.cs ? Object.assign({}, D0, {s: D0.cs, flat: 0}) : D0, B = wmBuild(D1); wmStop();   // (the side first: a shape that is drawn turned for the far side is built the right way round) CS.peak = CS.hidN = CS.coneN = CS.ringN = 0;
+/* the routine a plane flies this time (a plane with two takes turns, saved: the Concorde, El Chupacabra and Bulldog, the new one first) */
+function wmKey(id){ if(id === 'concorde') return csTurn(); if(id === 'geebee') return wmTurn('hangar-wmturn-gb2', 'geebee2', 'geebee'); if(id === 'dh88') return wmTurn('hangar-wmturn-dh88q', 'dh88q', 'dh88'); return id; }
+function wmArm(r, bw, id, side){   // id: this routine (no turn taken); side: this side (the win show from the hangar: the one its plan was checked for, soloTry)
+  if(!r || RO.on) return 0; const W = WM; let key = id && WIN_MOVE[id] ? id : r.c.def.id; if(!id) key = wmKey(key);
+  W.side = side || (Math.random() < .5 ? 1 : -1); const D0 = WIN_MOVE[key] || WIN_MOVE._, D1 = rCourse && rCourse.city && D0.cs ? Object.assign({}, D0, {s: D0.cs, flat: 0}) : D0, B = wmBuild(D1); wmStop();   // (the side first: a shape that is drawn turned for the far side is built the right way round) CS.peak = CS.hidN = CS.coneN = CS.ringN = 0;
   Object.assign(W, B, {r, run: RACE.run, id: WIN_MOVE[key] ? key : '_', def: D1, cam: D1.cam || 'q', side: W.side, S: Math.max(22, r.c.size),
     k: 1, lift: 0, tw: !!r.c.pair, why: '', on: false, done: false, pend: null, t: 0, ei: 0, rec: W.recOn ? wmRecNew() : null});
   const lead = Math.max(bw || 0, WM_LEAD); W.at = RACE.clock + lead; r.wm = true; return lead + W.len; }
@@ -11183,7 +11214,7 @@ function wmPush(d){ const W = WM; W.at = RACE.clock + d; RACE.wmX = (RACE.wmX ||
 /* each frame (updateRacer, after its pose on the racing line): the routine's offset and angles on top */
 function wmPose(r, dt){
   const W = WM; if(W.r !== r || W.run !== RACE.run || W.done){ r.wm = false; return; }
-  if(!W.on){ if(RACE.clock < W.at) return; if(WL.m || (LEARN.q && !LEARN.q.done)){ wmPush(.25); return; } wmBegin(r); }
+  if(!W.on){ if(RACE.clock < W.at) return; if(WL.m || (LEARN.q && !LEARN.q.done)){ wmPush(.25); return; } if(SOLO.on) soloSnap(r); wmBegin(r); }   // (the win show from the hangar: exactly where its plan was checked, soloSnap)
   W.t += dt; r.twWant = null; r.twLast = RACE.t;   // (Ned & Zed: no trick of their own while it plays)
   if(W.t >= W.len){ wmFinish(r); return; }
   W.A.copy(r.root.position); const o = wmEval(W.t, _wmO), cy = Math.cos(r.yaw), sy = Math.sin(r.yaw); inkOv(o, r);   // (the extra flip a tap gives, on top)
@@ -17151,7 +17182,7 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
   cityRQ: ()=>({frame: SC.frames, shot: SC.shotN || 0, t: SC.t, pr: renderer.getPixelRatio(), next: RQ.next, rooms: SC.U ? SC.U.uRooms.value : null, want: SC.qWant || null}),   // and what it is doing, cheaply (every frame)
   voCtx: ()=>voCtx(),   // tools/tts/dump_lines.mjs: ctx.json for gen.py (phrase words and word parts cut from their whole)
   far: on=>{ if(on !== undefined) FAR.on = !!on; return {on: FAR.on, racers: RACE.racers.map(r=>({id: r.c.def.id, built: !!r.c.far, far: !!r.farOn, tris: r.c.far ? r.c.far.geometry.attributes.position.count/3 : 0}))}; },   // far racers (eight racers, 2026-10-12): FAR.on and who flies as a copy
-  solo: ()=>soloStart(), soloAgain: ()=>soloAgain(), soloInfo: ()=>({on: SOLO.on, ms: Math.round(SOLO.ms), n: SOLO.n, course: RACE.course, type: RACE.type, phase: RACE.phase, resUp: !!RACE.resUp, btn: !$('soloBtn').hidden, show: !$('showBtn').hidden, end: !$('rSolo').hidden, loading: !!RACE.loading, ids: MODELS.map(m=>m.id)}),
+  solo: ()=>soloStart(), soloAgain: ()=>soloAgain(), soloInfo: ()=>({on: SOLO.on, ms: Math.round(SOLO.ms), n: SOLO.n, course: RACE.course, type: RACE.type, phase: RACE.phase, resUp: !!RACE.resUp, btn: !$('soloBtn').hidden, show: !$('showBtn').hidden, end: !$('rSolo').hidden, loading: !!RACE.loading, ids: MODELS.map(m=>m.id), key: SOLO.key, pick: SOLO.pick && {ci: SOLO.pick.ci, course: COURSES[SOLO.pick.ci].id, u: SOLO.pick.u, side: SOLO.pick.side, k: SOLO.pick.k, why: SOLO.pick.why}, tries: SOLO.tries.length, placeMs: Math.round(SOLO.placeMs), built: soloBuilt().map(k=>COURSES[k].id)}),
   startRaceWith: (ids, course, type)=>{ RACE.course = course; RACE.type = type || 'classic'; RACE.sel = new Set(ids); RACE.fill = new Set(); startRace(ids); },
   cmSim: o=>cmSim(o), cmRule: ()=>Object.assign({}, CM_RULE, {rate: Object.assign({}, CM_RATE), simRate: RACE.cmRate || null}),
   banter: ()=>{ const B = RACE.on ? btState() : RACE.bt; return {log: B ? B.log.slice() : [], n: B ? B.n : 0, rep: !!(B && B.rep), lastT: B ? B.lastT : null, want: LEARN.want ? LEARN.want.c.def.id : null, pairs: BANTER_PAIRS.length, rule: Object.assign({}, BT_RULE)}; },   // banter (tools/test/banter.mjs)
