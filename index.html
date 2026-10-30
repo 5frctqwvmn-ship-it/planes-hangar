@@ -114,6 +114,7 @@
   .app[data-mode="build"] #next{flex:1.9 1 0;background:var(--ink);color:#fff}
   .app[data-mode="tour"] #back, .app[data-mode="tour"] #designBtn, .app[data-mode="tour"] #raceBtn, .app[data-mode="tour"] #learnBtn{display:none}
   .app[data-mode="tour"] #pickBtn{opacity:.5;pointer-events:none}
+  .dk.tour-x{display:none;flex:0 0 96px} .app[data-mode="tour"] #tourX{display:flex} .dk.tour-x svg.i{width:38px;height:38px} .dk.tour-x{font-size:14px}   /* the tour's way out: back to the parked hangar at once (tourCancel) */
   .app[data-mode="busy"] .controls, .app[data-mode="busy"] .topbar, .app[data-mode="busy"] .info{display:none}
   .app[data-mode="design"] .controls, .app[data-mode="race"] .controls, .app[data-mode="ce"] .controls, .app[data-mode="racing"] .controls{display:none}
   .app[data-mode="ce"] .topbar, .app[data-mode="racing"] .topbar, .app[data-mode="race"] .topbar{display:none}
@@ -616,8 +617,8 @@
   .fl-learn{position:absolute;left:14px;bottom:calc(env(safe-area-inset-bottom) + 14px);pointer-events:auto;display:flex;align-items:center;gap:7px;min-height:48px;padding:0 16px 0 12px;border-radius:24px;border:0;background:var(--glass);box-shadow:0 2px 10px rgba(0,0,0,.14);font:800 15px var(--body);color:var(--ink);cursor:pointer;touch-action:manipulation}
   .fl-learn svg.i{width:26px;height:26px}
   /* Sky City (section "sky city"): a start-screen button (top right: on the start screen the sound and language buttons sit top left); in the city only a close button and a small name label show */
-  .fl-city{position:absolute;right:calc(var(--sr) + 12px);top:calc(var(--st) + 10px);pointer-events:auto;display:flex;align-items:center;gap:7px;min-height:48px;padding:0 16px 0 12px;border-radius:16px;border:0;background:#1b2238;color:#ffe7a8;box-shadow:0 2px 10px rgba(0,0,0,.22);font:800 15px var(--body);cursor:pointer;touch-action:manipulation}
-  .fl-city svg.i{width:26px;height:26px}
+  .fl-race{position:absolute;right:calc(var(--sr) + 12px);top:calc(var(--st) + 10px);pointer-events:auto;display:flex;align-items:center;gap:8px;min-height:54px;padding:0 18px 0 12px;border-radius:18px;border:0;background:var(--mustard);color:#1c2426;box-shadow:0 3px 12px rgba(0,0,0,.24);font:900 18px var(--display);cursor:pointer;touch-action:manipulation}   /* the start screen's Race now! (fieldRaceNow; Sky City stays in the plane list and the course list) */
+  .fl-race svg.i{width:30px;height:30px}
   .app[data-mode="city"] .topbar, .app[data-mode="city"] .controls, .app[data-mode="city"] .info, .app[data-mode="city"] .fieldui, .app[data-mode="city"] #tags, .app[data-mode="city"] .studio, .app[data-mode="city"] .buildsheet, .app[data-mode="city"] #spots, .app[data-mode="city"] .facehint, .app[data-mode="city"] .loading{display:none!important}
   .app[data-mode="city"] .stage{background:#05070d}
   .app[data-mode="city"] canvas#gl{cursor:pointer}
@@ -727,7 +728,7 @@
     <div class="fieldui" id="fieldUI"><div class="overlay" id="fieldTags"></div><div class="fhead" id="fieldHead"></div><div class="fload" id="fieldLoad" hidden></div>
       <button class="iconbtn flist" id="fieldList"><svg class="i" viewBox="0 0 24 24"><path d="M5 6h14M5 12h14M5 18h14"/></svg></button>
       <button class="fl-learn" id="fieldLearn" aria-haspopup="dialog"><svg class="i" viewBox="0 0 24 24"><path d="M12 7C10 5.4 7 4.9 3.5 5.4v12.6c3.5-.5 6.5 0 8.5 1.6 2-1.6 5-2.1 8.5-1.6V5.4C17 4.9 14 5.4 12 7z"/><path d="M12 7v12.6"/><path d="M16.2 8.6l.7 1.5 1.6.2-1.2 1.1.3 1.6-1.4-.8-1.4.8.3-1.6-1.2-1.1 1.6-.2z" stroke-width="1.1"/></svg><span id="fieldLearnTxt"></span></button>
-      <button class="fl-city" id="fieldCity"><svg class="i" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10h4v11M9 21V4h6v17M15 21v-8h4v8"/><path d="M11.5 7.5h1M11.5 11h1M11.5 14.5h1" stroke-width="1.6"/><path d="M17 4.5l2.5-1.5-.6 2.6" stroke-width="1.5"/></svg><span id="fieldCityTxt"></span></button></div>
+      <button class="fl-race" id="fieldRace"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 22V3"/><path d="M5 4h15v10H5"/><path d="M5 4h3.75v3.33H5zM12.5 4h3.75v3.33H12.5zM8.75 7.33h3.75v3.33H8.75zM16.25 7.33H20v3.33h-3.75zM5 10.67h3.75V14H5zM12.5 10.67h3.75V14H12.5z" fill="currentColor" stroke="none"/></svg><span id="fieldRaceTxt"></span></button></div>
     <div class="ffade" id="fieldFade"></div>
     <div class="overlay spots" id="spots" hidden></div>
     <div class="facehint" id="faceHint" hidden></div>
@@ -826,6 +827,7 @@
   </section>
 
   <nav class="controls" id="controls">
+    <button class="dk tour-x" id="tourX"><svg class="i" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 21v-8a8.5 7 0 0 1 10.5-6.8"/><path d="M1.5 21h18M6 21v-6.5h7.5V21M6 17.5h7.5"/><circle cx="18.5" cy="6" r="5.2" fill="#e63946" stroke="none"/><path d="M16.3 3.8l4.4 4.4M20.7 3.8l-4.4 4.4" stroke="#fff" stroke-width="2.2"/></svg><span id="tourXTxt"></span></button>
     <button class="dk" id="back"><span class="ic-b"><svg class="i" viewBox="0 0 24 24"><path d="M14.5 5.5a4.5 4.5 0 0 0-5.8 5.8L3.5 16.5a2 2 0 0 0 2.8 2.8l5.2-5.2a4.5 4.5 0 0 0 5.8-5.8l-2.6 2.6-2.3-.5-.5-2.3z"/></svg></span><span class="ic-f"><svg class="i" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></span><span id="backTxt"></span></button>
     <button class="dk" id="designBtn" aria-expanded="false"><svg class="i" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.8-.9 1.4-1.9-.5-1.1.2-2.3 1.4-2.3H17a4 4 0 0 0 4-4c0-5.1-4-9.8-9-9.8z"/><circle cx="7.5" cy="11" r="1.2"/><circle cx="10.5" cy="7" r="1.2"/><circle cx="15" cy="7.5" r="1.2"/></svg><span id="designTxt"></span></button>
     <button class="dk main" id="next"><span class="ic-b"><svg class="i" viewBox="0 0 24 24"><path d="M2.5 13.5l7-1.5 5.5-7h2.5l-2.5 7 5-1 1.5-2.5H23l-1 5-6.5 1.5L12 21H9.5l2-4.5-7 .5z"/></svg></span><span class="ic-f"><svg class="i" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></span><span id="nextTxt"></span></button>
@@ -1001,6 +1003,7 @@ Object.assign(UI.en, {kidChar:c=>`<b>${c}</b>, built by a kid out of bristle blo
 Object.assign(UI.es, {kidChar:c=>`<b>${c}</b>, hecho por un niño con bloques de cerdas`});
 const charLine = (d, u)=>d.film === 'own' ? u.ownChar(d.character) : d.film === 'kid' ? u.kidChar(d.character) : u.inspired(d.character, d.film === 'fr');
 Object.assign(UI.en, {cityBtn:'Sky City', cityClose:'Leave the city', cityHint:'Watch planes fly through a city of lights.', cityLooks:['Night', 'Dusk', 'Day'], cityLookL:'Time of day', cityQs:['Auto', 'Fast', 'High'], cityQL:'Picture quality', citySndL:'Sound', citySnds:['Off', 'On']});
+Object.assign(UI.en, {raceNow:'Race now!', tourX:'Hangar', tourXL:'Stop and go back to the hangar'}); Object.assign(UI.es, {raceNow:'¡A correr!', tourX:'Hangar', tourXL:'Parar y volver al hangar'});   // the start screen's race button, the tour's way out
 Object.assign(UI.es, {cityBtn:'Ciudad del Cielo', cityClose:'Salir de la ciudad', cityHint:'Mira aviones volar por una ciudad de luces.', cityLooks:['Noche', 'Atardecer', 'Día'], cityLookL:'Hora del día', cityQs:['Auto', 'Rápido', 'Alta'], cityQL:'Calidad de imagen', citySndL:'Sonido', citySnds:['Apagado', 'Encendido']});   // shown, never spoken: the city has no narration
 
 /* ================= saving ================= */
@@ -3736,8 +3739,9 @@ function render(){
   $('backTxt').textContent = s.flight ? u.buildIt : u.back; $('back').disabled = (!s.flight && step===0) || (s.flight && flight.mode !== 'parked');
   $('nextTxt').textContent = !s.flight ? u.next : flight.mode === 'tour' ? (TOUR.landReq ? u.landing : u.land) : (flight.t>0 ? u.again : u.takeoff);
   $('next').disabled = flight.mode === 'tour' && TOUR.landReq;
+  $('tourXTxt').textContent = u.tourX; $('tourX').setAttribute('aria-label', u.tourXL);
   $('replay').setAttribute('aria-label', u.replay); $('buildDone').setAttribute('aria-label', u.done);
-  $('showTxt').textContent = u.showOpen; $('designTxt').textContent = u.design; $('learnTxt').textContent = $('fieldLearnTxt').textContent = u.lrnBtn; $('fieldCityTxt').textContent = $('hsCityT').textContent = u.cityBtn; $('hsCityH').textContent = u.cityHint; $('raceTxt').textContent = u.race;
+  $('showTxt').textContent = u.showOpen; $('designTxt').textContent = u.design; $('learnTxt').textContent = $('fieldLearnTxt').textContent = u.lrnBtn; $('fieldRaceTxt').textContent = u.raceNow; $('hsCityT').textContent = u.cityBtn; $('hsCityH').textContent = u.cityHint; $('raceTxt').textContent = u.race;
   $('tab-paint-t').textContent = u.paint; $('tab-draw-t').textContent = u.drawTab; $('tab-stick-t').textContent = u.stickers; $('tab-face-t').textContent = u.face; $('tab-gfx-t').textContent = u.gfxTab; $('studioDone').setAttribute('aria-label', u.done);
   const sp = $('speak'); sp.hidden = false; sp.setAttribute('aria-label', tts ? u.reading : u.read); sp.setAttribute('aria-pressed', tts);
   $('lang-en').setAttribute('aria-pressed', lang==='en'); $('lang-es').setAttribute('aria-pressed', lang==='es');
@@ -3789,6 +3793,7 @@ function closeTop(){
   if(closeWords()) return;
   if(!$('rsetup').hidden) return closeRaceSetup();
   if(studioTab) return closeStudio();
+  if(flight.mode === 'tour') return tourCancel();
   if(cur && !cur.steps[step].flight) return goTo(cur.steps.length-1);
 }
 window.addEventListener('popstate', ()=>{ if(NAV.ignore){ NAV.ignore--; return; } if(NAV.depth > 0){ NAV.depth--; closeTop(); } });
@@ -3797,9 +3802,14 @@ function openHangar(){ if(flight.mode === 'tour' || RACE.on) return; $('scrim').
 function closeHangar(){ if($('hangarSheet').hidden) return; $('scrim').hidden = true; $('hangarSheet').hidden = true; syncUI(); }
 function openRaceSetup(){ audio(); closeHangar(); closeStudio(); if(flight.mode !== 'parked') return; RACE.type = raceTypeSaved(); if(!RACE.sel){ RACE.sel = new Set(cur ? [cur.def.id] : []); RACE.fill = new Set(); } rsSurpriseRoll(); renderRaceSetup(); $('rsetup').hidden = false; syncUI(); }
 function closeRaceSetup(){ $('rsetup').hidden = true; syncUI(); }
+/* the start screen's Race now! (owner, 2026-10-28: "instead of Sky City, that button should just take you to the race where you pick a race"): home with the plane he has, then the picker, as the Learn sheet's races go (lsGo) */
+function fieldRaceNow(){ audio(); if(!FIELD.on || !cur || RACE.on || RACE.loading) return; NAV.hold = true;
+  try{ leaveField(); goTo(cur.steps.length - 1, true); if(flight.mode !== 'parked') return; say(UI[lang].annGo[0]); openRaceSetup(); }
+  finally { NAV.hold = false; syncUI(); } }
+$('fieldRace').addEventListener('click', fieldRaceNow);
 
 $('back').addEventListener('click', ()=>{ if(cur.steps[step].flight){ resetFlight(); goTo(0); } else goTo(step-1); });
-$('next').addEventListener('click', primary);
+$('next').addEventListener('click', primary); $('tourX').addEventListener('click', tourCancel);
 $('replay').addEventListener('click', ()=> cur.steps[step].flight ? goTo(0) : goTo(step));
 $('buildDone').addEventListener('click', ()=>{ sfx.pop(); goTo(cur.steps.length-1); });
 $('pickBtn').addEventListener('click', ()=>{ audio(); sfx.pop(); openField(); }); $('showBtn').addEventListener('click', ()=>{ sfx.pop(); if(!bbPlay()) showPlay(); }); $('fieldList').addEventListener('click', ()=>{ audio(); openHangar(); }); $('hsClose').addEventListener('click', closeHangar); $('scrim').addEventListener('click', ()=>{ closeHangar(); lsClose(); });
@@ -13618,6 +13628,7 @@ function tourCurves(){
   return TOUR.segs;
 }
 function tourStart(){
+  TOUR.pre = {t: flight.t, prop: propSpeed, tilt: pivot.rotation.z, cam: Object.assign({}, cam), goal: Object.assign({}, camGoal), focus: focus.clone(), zoom: userZoom, driven: userDriven, sock: AP.sock ? AP.sock.rotation.y : 0};   // the parked hangar as it was, for tourCancel
   tourCurves(); Object.assign(TOUR, {seg:'taxi', s:0, v:0, t:0, landReq:false, yaw:0, bank:0, gear:0, tilt:1});
   flight.mode = 'tour'; flight.t = 0; clearSpray(); userDriven = false;
   TOUR.cam.az = .55; TOUR.cam.el = .26; propSpeed = 8; render();
@@ -13685,6 +13696,14 @@ function tourPark(dt){
   setGear(0);
 }
 function tourLand(){ if(flight.mode !== 'tour' || TOUR.landReq) return; TOUR.landReq = true; render(); }
+/* the X in the tour (owner, 2026-10-28: "There should just be a way to cancel it, and it just automatically resets and puts you back into the hangar"):
+   any time from the taxi to the push back, the engine and the voice stop and the plane stands parked as before Take off, the camera where it was.
+   The tour is driven by the frame loop only (no timers or promises of its own), so parked is the whole of it. */
+function tourCancel(){ if(flight.mode !== 'tour') return; const p = TOUR.pre; TOUR.pre = null;
+  voStop(); if(SND.tour){ sndStop(SND.tour); SND.tour = null; } if(!RACE.on) sndBusLevel(0);
+  resetFlight(); propSpeed = p ? p.prop : 0; flight.t = p ? p.t : 0; pivot.rotation.z = p ? p.tilt : tiltGoal; setGear(0);
+  if(p){ Object.assign(cam, p.cam); Object.assign(camGoal, p.goal); focus.copy(p.focus); userZoom = p.zoom; userDriven = p.driven; if(AP.sock) AP.sock.rotation.y = p.sock; }
+  render(); syncUI(); applyView(); }   // applyView(): the view's offset for the info card snaps back with it
 const _cf = V(0,0,0), _cd = V(0,0,0);
 function tourCamera(dt){
   const P = plane.position, size = cur.size, air = P.y > 8, parkish = TOUR.seg === 'pivot' || TOUR.seg === 'push';
@@ -16219,8 +16238,7 @@ function scFrame(dt){
 }
 function scNext(){ SC.cut = true; }   // a tap: the next plane (the camera tour picks it)
 $('cityClose').addEventListener('click', ()=>scClose());
-$('fieldCity').addEventListener('click', ()=>scOpen(null, true));
-$('fieldCityTxt').textContent = $('hsCityT').textContent = UI[lang].cityBtn; $('hsCityH').textContent = UI[lang].cityHint;
+$('fieldRaceTxt').textContent = UI[lang].raceNow; $('hsCityT').textContent = UI[lang].cityBtn; $('hsCityH').textContent = UI[lang].cityHint;
 $('hsCity').addEventListener('click', ()=>scOpen(null, true));   // from the plane list (its own sound, no sfx)
 
 /* ================= sky city race ================= */
@@ -16754,6 +16772,7 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
   voLines: async ()=>{ await flagsLoad(true); return voAllLines(); },
   state: ()=>({ready: AP.ready && !!cur && $('loading').hidden, model: cur && cur.def.id, step, flight: flight.mode, tour: TOUR.seg, race: RACE.phase, raceT: RACE.t, editor: CE.on, mode: app.dataset.mode}),
   setMaxDt: v=>{ window.__dtmax = v; }, raceTime: v=>{ RACE.t = v; },
+  tourInfo: ()=>({seg: TOUR.seg, s: TOUR.s, x: plane.position.x, y: plane.position.y, pos: plane.position.toArray(), snd: !!SND.tour, prop: propSpeed, cam: [cam.az, cam.el, cam.dist], gear: gearNow, flightT: flight.t, pre: !!TOUR.pre, vo: VO.srcs.length, camPos: camera.position.toArray().map(v=>+v.toFixed(2)), focus: focus.toArray().map(v=>+v.toFixed(2)), vof: [+VOF.x.toFixed(1), +VOF.y.toFixed(1)], tilt: +pivot.rotation.z.toFixed(4)}),   // tests: the airport tour and its cancel (tourCancel)
   saveInfo: ()=>({cloud: SV.st, keys: Object.keys(SV.m).length, lastSync: SV.sync}),
   saveSynced: k=>svSynced(k),   // tests: does this saved key reach the cloud copy
   planeRect: ()=>{ if(!cur || !cur.model) return null; const cam = RACE.on ? rCam : camera; if(!cam) return null;
