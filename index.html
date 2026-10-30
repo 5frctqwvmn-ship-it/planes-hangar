@@ -9217,8 +9217,11 @@ function soloSet(r, u){ if(r.D0 === undefined){ r.D0 = r.D; r.Tp0 = r.Tp; } r.D 
 /* the plan its routine would get if it finished there (as the race does it: WM_LEAD s after the line, from its racing line then) */
 function soloTry(r, key, u, side){ soloSet(r, u); const tf = r.Tp + 1.5; r.finished = tf; RACE.finishers = [r]; RACE.t = tf + WM_LEAD;
   r.d = racerDist(r, RACE.t); racerPos(r, r.d, RACE.t, r.P); r.root.position.copy(r.P);
-  wmArm(r, 0, key, side); wmPlan(r); const o = {u, side, k: WM.k, lift: Math.round(WM.lift), why: WM.why, rnd: {A: r.A, w: r.w, ph: r.ph, ph2: r.ph2}};
+  wmArm(r, 0, key, side); wmPlan(r); const o = {u, side, k: WM.k, lift: Math.round(WM.lift), why: WM.why, rnd: {A: r.A, w: r.w, ph: r.ph, ph2: r.ph2, Tp: r.Tp0}};   // (rnd: the racer's random pace and wobbles, which its racing line depends on)
   wmStop(); r.wm = false; r.finished = null; r.d = 0; RACE.finishers = []; RACE.t = 0; return o; }
+/* the routine's start in the show: the race clock and the racer exactly as soloTry had them (the finish and the start land on frames, up to a
+   couple of frames late; on a hillside that was enough to change the plan), a jump of a few feet at most */
+function soloSnap(r){ const tf = r.Tp + 1.5; r.finished = tf; RACE.t = tf + WM_LEAD; r.d = racerDist(r, RACE.t); racerPos(r, r.d, RACE.t, r.P); r.root.position.copy(r.P); }
 /* the first place on these courses where it fits at full size, else the best */
 function soloPlace(key, cs){ const t0 = performance.now(); let best = null; SOLO.tries = [];
   try{ for(const ci of cs){ if(!soloOK(ci)) continue; useCourse(ci); setupRacers(RACE.list); const r = RACE.racers[0];
@@ -9256,7 +9259,7 @@ function soloRun(key, P){
   RACE.on = true; RACE.run = (RACE.run || 0) + 1; RACE.resUp = false; RACE.winEnd = 0; RACE.winSaid = null; RACE.showX = 0; RACE.wmX = 0; RACE.cm = null; RACE.quip = null; RACE.annT0 = RACE.annEnd = RACE.introQ = RACE.helloWait = 0;
   $('rhud').classList.remove('res'); $('rResults').hidden = true; $('rSolo').hidden = true; $('rWin').hidden = true; $('rAnn').hidden = true; $('rTitle').hidden = true; $('rCount').textContent = ''; confetti = [];
   const r = RACE.racers[0]; RACE.lapShown = RACE.laps; RACE.photo = true; r.ringK = RACE.laps*3;   // no lap banner, no photo finish, no rings to fly through (ringsFrame: all of them at once, from so far along)
-  if(P) Object.assign(r, P.rnd); soloSet(r, SOLO.u);   // the racing line its plan was checked on (its wobbles), and its finish there
+  if(P) Object.assign(r, P.rnd); soloSet(r, SOLO.u);   // the racing line its plan was checked on (its pace and wobbles), and its finish there
   RACE.clock = 0; RACE.phase = 'race'; RACE.phaseT = 0; RACE.t = Math.max(0, r.Tp + 1.5 - SOLO.fly); RACE.si = -1; newShot(SOLO.u < 1 ? 'front' : 'finish', r); RACE.nextCut = 1e9;   // (racerDist: the finish at t = Tp + 1.5)
   raceHud(true); SOLO.n++; }
 function soloEnd(){ const u = UI[lang]; RACE.resUp = true; RACE.resT = performance.now(); $('rhud').classList.add('res');   // the title fades, the camera frames its face over the buttons (resBand)
@@ -10870,7 +10873,7 @@ function wmPush(d){ const W = WM; W.at = RACE.clock + d; RACE.wmX = (RACE.wmX ||
 /* each frame (updateRacer, after its pose on the racing line): the routine's offset and angles on top */
 function wmPose(r, dt){
   const W = WM; if(W.r !== r || W.run !== RACE.run || W.done){ r.wm = false; return; }
-  if(!W.on){ if(RACE.clock < W.at) return; if(WL.m || (LEARN.q && !LEARN.q.done)){ wmPush(.25); return; } wmBegin(r); }
+  if(!W.on){ if(RACE.clock < W.at) return; if(WL.m || (LEARN.q && !LEARN.q.done)){ wmPush(.25); return; } if(SOLO.on) soloSnap(r); wmBegin(r); }   // (the win show from the hangar: exactly where its plan was checked, soloSnap)
   W.t += dt; r.twWant = null; r.twLast = RACE.t;   // (Ned & Zed: no trick of their own while it plays)
   if(W.t >= W.len){ wmFinish(r); return; }
   W.A.copy(r.root.position); const o = wmEval(W.t, _wmO), cy = Math.cos(r.yaw), sy = Math.sin(r.yaw); inkOv(o, r);   // (the extra flip a tap gives, on top)
