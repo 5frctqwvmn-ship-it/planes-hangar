@@ -3538,7 +3538,7 @@ function render(){
   $('next').disabled = flight.mode === 'tour' && TOUR.landReq;
   $('tourXTxt').textContent = u.tourX; $('tourX').setAttribute('aria-label', u.tourXL);
   $('replay').setAttribute('aria-label', u.replay); $('buildDone').setAttribute('aria-label', u.done);
-  $('showTxt').textContent = u.showOpen; $('designTxt').textContent = u.design; $('learnTxt').textContent = $('fieldLearnTxt').textContent = u.lrnBtn; $('fieldRaceTxt').textContent = u.raceNow; $('hsCityT').textContent = u.cityBtn; $('hsCityH').textContent = u.cityHint; $('raceTxt').textContent = u.race;
+  $('showTxt').textContent = u.showOpen; $('designTxt').textContent = u.design; $('learnTxt').textContent = $('fieldLearnTxt').textContent = u.lrnBtn; $('fieldRaceTxt').textContent = u.raceNow; $('fieldHead').textContent = u.fieldPick; $('hsCityT').textContent = u.cityBtn; $('hsCityH').textContent = u.cityHint; $('raceTxt').textContent = u.race;
   $('tab-paint-t').textContent = u.paint; $('tab-draw-t').textContent = u.drawTab; $('tab-stick-t').textContent = u.stickers; $('tab-face-t').textContent = u.face; $('tab-gfx-t').textContent = u.gfxTab; $('studioDone').setAttribute('aria-label', u.done);
   const sp = $('speak'); sp.hidden = false; sp.setAttribute('aria-label', tts ? u.reading : u.read); sp.setAttribute('aria-pressed', tts);
   $('lang-en').setAttribute('aria-pressed', lang==='en'); $('lang-es').setAttribute('aria-pressed', lang==='es');
@@ -3600,9 +3600,16 @@ function openRaceSetup(){ audio(); closeHangar(); closeStudio(); if(flight.mode 
 function closeRaceSetup(){ $('rsetup').hidden = true; syncUI(); }
 /* the start screen's Race now! (owner, 2026-10-28: "instead of Sky City, that button should just take you to the race where you pick a race"): home with the plane he has, then the picker, as the Learn sheet's races go (lsGo) */
 function fieldRaceNow(){ audio(); if(!FIELD.on || !cur || RACE.on || RACE.loading) return; NAV.hold = true;
-  try{ leaveField(); goTo(cur.steps.length - 1, true); if(flight.mode !== 'parked') return; say(UI[lang].annGo[0]); openRaceSetup(); }
+  try{ leaveField(); goTo(cur.steps.length - 1, true); if(flight.mode !== 'parked') return; say(UI[lang].annGo[0]);
+    const fills = rnFill(cur.def.id); RACE.sel = new Set([cur.def.id].concat(fills)); RACE.fill = new Set(fills); RACE.rolled = true; openRaceSetup(); }   // his plane and three others already picked: Start is ready (owner via coordinator, 2026-10-30: one tap from racing); he can still change them
   finally { NAV.hold = false; syncUI(); } }
 $('fieldRace').addEventListener('click', fieldRaceNow);
+const RN_SLOW = {p51d: 1, f18: 1};   // the two biggest model downloads (6.4 and 3.3 MB): never a Race now! pick, so the race loads quickly (he can still add them)
+function rnFill(id){   // Race now!'s three other racers, from the racers' shuffle bag: never another of the same plane (Dusty and Fire Dusty: def.base), none of RN_SLOW
+  const key = d=>d.base || d.id, def = x=>MODELS.find(m=>m.id === x), me = def(id), keys = new Set(me ? [key(me)] : []), out = [], all = MODELS.map(m=>m.id);
+  const ok = x=>x !== id && !RN_SLOW[x] && !out.includes(x) && !keys.has(key(def(x)));
+  for(let i = 0; out.length < 3 && i < 60; i++){ const x = bagPick('rnd:plane', all, null, ok); if(x && ok(x)){ out.push(x); keys.add(key(def(x))); } }
+  return out; }
 
 $('back').addEventListener('click', ()=>{ if(cur.steps[step].flight){ resetFlight(); goTo(0); } else goTo(step-1); });
 $('next').addEventListener('click', primary); $('tourX').addEventListener('click', tourCancel);
