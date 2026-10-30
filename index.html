@@ -7307,8 +7307,8 @@ function lifeBuild(K){
   LF.mat = lfMat('std'); LF.matS = lfMat('std', {roughness:.3, metalness:.4}); LF.matE = lfMat('basic'); LF.matG = lfMat('std', {polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3});
   LF.matA = lfMat('basic', {transparent:true, depthWrite:false, blending:T.AdditiveBlending, side:T.DoubleSide, fog:true});
   const X = lfContext(K); LF.X = X;
-  try{ LIFE[K.C.id](X); }catch(e){ window.__lifeErr = e; console.warn('course life ' + K.C.id, e); }
-  K.life = {g, anim:LF.anim, geos:LF.geos, mats:LF.mats, texs:LF.texs, regs:LF.regs, pts:LF.pts, sites:LF.sites, id:K.C.id};
+  const t0 = performance.now(); try{ LIFE[K.C.id](X); }catch(e){ window.__lifeErr = e; console.warn('course life ' + K.C.id, e); }
+  K.life = {g, anim:LF.anim, geos:LF.geos, mats:LF.mats, texs:LF.texs, regs:LF.regs, pts:LF.pts, sites:LF.sites, id:K.C.id, ms:Math.round(performance.now() - t0)};
   if(K.shadeT) K.shadeT.needsUpdate = true;
 }
 function lifeFree(K){ const L = K && K.life; if(!L) return;
@@ -16483,7 +16483,7 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
   blimpLog: ()=>({log: BL.log.slice(), lapT: Object.assign({}, BL.lapT), sB: Math.round(BL.sB), yaw0: +BL.yaw0.toFixed(2), last: BL.rec && BL.rec.last, cur: RACE.shot ? {type: RACE.shot.type, age: +(RACE.clock - RACE.shot.t0).toFixed(2), dur: RACE.shot.dur || null, hold: !!RACE.shot.hold, ahead: RACE.shot.r ? Math.round(BL.sB - ((((RACE.shot.r.d - RACE.shot.r.take) % rL) + rL) % rL)) : null, cam: rCam.position.toArray().map(Math.round), P: BL.P.toArray().map(Math.round), lead: RACE.shot.r ? RACE.shot.r.P.toArray().map(Math.round) : null} : null}),   // her shots, when and why, and how long she was on in each lap
   blimpFit: (x, y, z, yaw)=>SC.race ? crBlimpFit(x, y, z, yaw || 0) : null, blimpPut: (x, y, z, yaw)=>{ BL.ax = x; BL.alt = y; BL.az = z; if(yaw != null) BL.yaw0 = yaw; blimpFrame(0); return true; },   // tuning her station in Sky City
   lifeInfo: ()=>{ const K = rCourse, L = K && K.life; if(!L) return null; let meshes = 0, tris = 0; L.g.traverse(o=>{ if(!(o.isMesh || o.isPoints) || !o.visible) return; meshes++; const gg = o.geometry, n = gg.index ? gg.index.count/3 : gg.attributes.position.count/3; if(!o.isPoints) tris += n*(o.isInstancedMesh ? o.count : 1); });
-    return {id: L.id, meshes, tris: Math.round(tris), anim: L.anim.length, sites: L.sites, err: window.__lifeErr ? String(window.__lifeErr) : null}; },   // section "course life": what the course's scenery adds (tests)
+    return {id: L.id, ms: L.ms, meshes, tris: Math.round(tris), anim: L.anim.length, sites: L.sites, err: window.__lifeErr ? String(window.__lifeErr) : null}; },   // section "course life": what the course's scenery adds (tests)
   lifeRender: ()=>{ try{ renderer.render(rScene, rCam); return null; }catch(e){ return String(e.stack); } },   // (tests: a draw that says what failed)
   lifeProbe: (n, offs)=>{ const K = rCourse, out = []; for(let i = 0; i < n; i++){ const u = i/n, q = K.curve.getPointAt(u), tg = K.curve.getTangentAt(u), nl = Math.hypot(tg.x, tg.z) || 1; out.push([+u.toFixed(3), Math.round(q.x), Math.round(q.y), Math.round(q.z), ...offs.map(o=>Math.round(K.H(q.x - tg.z/nl*o, q.z + tg.x/nl*o)))]); } return out; },   // (tests: the ground beside the racing line)
   lifeMap: (x0, z0, x1, z1, st)=>{ const K = rCourse, rows = []; for(let z = z0; z <= z1; z += st){ let r = ''; for(let x = x0; x <= x1; x += st){ const h = K.H(x, z); r += h < K.wl + 1 ? '~' : h < 40 ? '.' : h < 120 ? 'o' : h < 300 ? 'O' : '#'; } rows.push(r); } return rows.join('\n') + '\nwl ' + K.wl; },   // (tests: a character map of the ground, ~ water)
