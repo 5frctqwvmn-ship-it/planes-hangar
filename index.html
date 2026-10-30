@@ -7980,7 +7980,7 @@ function lfDress(X, o){ const N = o.chunks || 6, H = X.H, L = X.L, step = o.step
   bags.forEach((b, k)=>{ if(b.P.length) b.mesh(o.mat || LF.mat, (o.name || 'dress') + k, o.f || 5200); });
   if(gb.P.length){ out.tris += gb.P.length/9; gb.mesh(LF.matG, 'dressground'); } return out; }
 /* a gate over the line at u: two legs outside the racers' lanes and a bar clear above them. o = {w (half width), clear (bar above the line), legs(bag, x, y, z, top, c), bar(bag, a, b, top, c), deco(bag, c)} */
-function lfGate(X, bag, u, o){ const w = o.w || 135, cl = o.clear || 95, L = X.at(u, w), R = X.at(u, -w), M = X.at(u, 0), top = M.py + cl, ry = -Math.atan2(M.tz, M.tx), c = {L, R, M, top, ry, w, X, u}; LF.keep.push(L.x, L.z, 26, R.x, R.z, 26);
+function lfGate(X, bag, u, o){ const w = o.w || 135, cl = o.clear || 95, L = X.at(u, w), R = X.at(u, -w), M = X.at(u, 0), top = M.py + cl, ry = -Math.atan2(M.tz, M.tx), c = {L, R, M, top, ry, w, X, u}; LF.keep.push(L.x, L.z, 36, R.x, R.z, 36);
   [L, R].forEach((q, k)=>{ const gy = Math.min(X.H(q.x, q.z), q.py) - 6; if(o.legs) o.legs(bag, q.x, gy, q.z, top, c, k); else bag.beam('cyl6', o.col || '#8a6a44', q.x, gy, q.z, q.x, top, q.z, 5, 4); });
   if(o.bar) o.bar(bag, L, R, top, c); else bag.beam('cyl6', o.col || '#8a6a44', L.x, top, L.z, R.x, top, R.z, 4, 4);
   if(o.deco) o.deco(bag, c); return c; }
@@ -8596,7 +8596,7 @@ function shotCamera(dt){
       if(s.face){ faceView(w, Fh, Rt, P, Lr, resBand()); break; }
       _cp.set(W.x + Math.cos(a)*L2*2.6, W.y + L2*.5, W.z + Math.sin(a)*L2*2.6); _lk.copy(W); break; }
   }
-  if(rCourse && rCourse.life && ['side', 'front', 'low', 'pack', 'packFront', 'packSide'].includes(s.type)) lifeCamShot(rCourse, _cp, r && !PACK_SHOTS.includes(s.type) ? P : null);   // the line dressing (course life, second pass): never a camera inside one of its pieces, or one hiding the racer
+  if(rCourse && rCourse.life && ['side', 'front', 'low', 'pack', 'packFront', 'packSide', 'flyby'].includes(s.type)) lifeCamShot(rCourse, _cp, r && !PACK_SHOTS.includes(s.type) ? P : null);   // the line dressing (course life, second pass): never a camera inside one of its pieces, or one hiding the racer
   if(rCourse){ const g = Math.max(rCourse.H(_cp.x, _cp.z), rCourse.wl) + 14; if(_cp.y < g) _cp.y = g; }
   const ride = shotRide(s, r, P, dt);   // what the shot films moved this much since the last frame (null: nothing to ride with)
   if(s.snap){ rCam.position.copy(_cp); _look.copy(_lk); s.snap = false; }
@@ -16756,11 +16756,11 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
   lifeCam: a=>{ LF.dbg = a || null; if(!a){ rCam.fov = 52; rCam.updateProjectionMatrix(); } return !!a; },   // a free camera [x, y, z, lookX, lookY, lookZ, fov] over the race, for pictures of the scenery
   lifeBlock: ()=>{ const K = rCourse, L = K && K.life; if(!L || !RACE.on) return null; const rc = new T.Raycaster(), list = [], o = rCam.position, hits = [], dv = V(0,0,0);
     L.g.traverse(m=>{ if(m.isMesh && m.visible) list.push(m); });
-    const test = (from, to, tag)=>{ dv.subVectors(to, from); const dist = dv.length(); if(dist < 1) return; dv.normalize(); rc.set(from, dv); rc.near = 0; rc.far = dist; const h = rc.intersectObjects(list, false); if(h.length) hits.push({tag, name: h[0].object.name, d: Math.round(h[0].distance)}); };
+    const test = (from, to, tag)=>{ dv.subVectors(to, from); const dist = dv.length(); if(dist < 1) return; dv.normalize(); rc.set(from, dv); rc.near = 0; rc.far = dist; const h = rc.intersectObjects(list, false); if(h.length) hits.push({tag, name: h[0].object.name, d: Math.round(h[0].distance), p: [h[0].point.x, h[0].point.y, h[0].point.z].map(Math.round)}); };
     RACE.racers.forEach(r=>test(o, r.P, 'cam-' + r.c.def.id));
     [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]].forEach(d=>{ const e = V(d[0], d[1], d[2]).multiplyScalar(40).add(o); test(o, e, 'near-cam'); });
     RACE.racers.forEach(r=>{ const u = ((r.d - r.take)/rL % 1 + 1) % 1; for(let k = 0; k < 8; k++){ const a = rCurve.getPointAt((u + k*60/rL) % 1), b = rCurve.getPointAt((u + (k + 1)*60/rL) % 1); test(a, b, 'line'); } });
-    return {n: hits.length, hits: hits.slice(0, 12)}; },
+    return {n: hits.length, hits: hits.slice(0, 12), cam: [o.x, o.y, o.z].map(Math.round), keep: (L.keep || []).length/3}; },
   raceShot: (type, id)=>{ const r = RACE.racers.find(x=>x.c.def.id === id) || RACE.racers[0]; if(!r) return; if(PACK_SHOTS.includes(type)) makeShot(type); else newShot(type, r); RACE.nextCut = RACE.clock + 30; },
   inView: ()=>{ rCam.updateMatrixWorld(); return RACE.racers.map(r=>{ const q = r.P.clone().project(rCam); return {id: r.c.def.id, x: +q.x.toFixed(2), y: +q.y.toFixed(2), on: q.z < 1 && Math.abs(q.x) < 1 && Math.abs(q.y) < 1}; }); },
   fireworks: ()=>{ if(RACE.racers[0]) fireworks(RACE.racers[0]); }, field: ()=>({on: FIELD.on, n: Object.keys(FIELD.planes).length, busy: FIELD.busy, swoop: !!FIELD.swoop, fit: Math.round(FIELD.cam.fit)}), fieldTapId: id=>{ const p = FIELD.planes[id]; if(!p) return false; const c = p.spr.userData.base.clone(); c.y += FIELD.group.position.y; c.project(camera); const r = canvas.getBoundingClientRect(); fieldTap((c.x + 1)/2*r.width + r.left, (1 - c.y)/2*r.height + r.top); return !!FIELD.swoop; }, fieldShootId: async id=>{ const def = MODELS.find(m=>m.id === id); const c = await loadRacer(def); c.model.updateMatrixWorld(true); applyPaint(c); applyDraw(c); if(!c.face) buildFace(c); else applyFaceStyle(c); if(!c.stkApplied){ c.stkApplied = true; applyStickers(c); } return fieldShoot(c); }, err: ()=>({...ERR}), mem: async ()=>{ let px = 0; let vmb = 0, vrate = 0; for(const n of Object.keys(VO.packs)){ const x = await VO.packs[n]; if(x){ vmb += x.mb || 0; vrate = x.sampleRate; } } VO.mb = vmb; VO.rate = vrate; const seen = new Set(); [scene, rScene, SC.scene].forEach(sc=>sc && sc.traverse(o=>{ const ms = o.material ? (Array.isArray(o.material) ? o.material : [o.material]) : []; ms.forEach(m=>['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap'].forEach(t=>{ const x = m[t]; if(x && x.image && !seen.has(x)){ seen.add(x); px += (x.image.width || 0)*(x.image.height || 0); } })); }));
