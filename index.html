@@ -3953,8 +3953,20 @@ function errNote(msg){ ERR.n++; ERR.last = String(msg).slice(0, 160); const el =
 window.addEventListener('error', e=>errNote((e.message || 'error') + (e.lineno ? ' @' + e.lineno : '')));
 window.addEventListener('unhandledrejection', e=>{ const r = e.reason; if(r === 0 || r == null) return; errNote('async: ' + (r.message || r) + ' ' + ((r.stack || '').split('\n')[1] || '').trim().slice(-40)); });
 /* iPhones drop the WebGL context when graphics memory runs out; three.js keeps the scene and draws it again on restore */
-canvas.addEventListener('webglcontextlost', e=>{ e.preventDefault(); ERR.lost++; errNote('graphics reset ' + ERR.lost); }, false);
-canvas.addEventListener('webglcontextrestored', ()=>{ const el = $('errNote'); if(el && ERR.n <= ERR.lost) el.hidden = true; }, false);
+canvas.addEventListener('webglcontextlost', e=>{ e.preventDefault(); ERR.lost++; errNote('graphics reset ' + ERR.lost); ctxCheck(); }, false);
+/* (the stability pass, 2026-10-31) a context that does not come back (Safari need not restore one it dropped for memory) would leave a frozen
+   picture: still lost after 4 s on screen, the page loads again, into the hangar; everything saved stays (saveSet writes it at once) */
+function ctxCheck(){ clearTimeout(ERR.ctxT); ERR.ctxT = setTimeout(()=>{ let lost = false; try{ lost = renderer.getContext().isContextLost(); }catch(e){} if(!lost) return;
+  if(document.hidden) return ctxCheck(); try{ if(SV.timer) svFlush(); }catch(e){} location.reload(); }, 4000); }
+canvas.addEventListener('webglcontextrestored', ()=>{ const el = $('errNote'); if(el && ERR.n <= ERR.lost) el.hidden = true; envRegen(); }, false);
+/* three uploads every texture and buffer again after a restore, but a picture drawn once into a render target comes back empty: the image
+   lights (PMREM) of the hangar, of each built course and of Sky City made everything dark (measured, 2026-10-31). They are made again. */
+function envRegen(){ let pm = null; try{ pm = new T.PMREMGenerator(renderer);
+    scene.environment = pm.fromScene(new T.RoomEnvironment(), 0.04).texture;
+    Object.values(rCourses).forEach(K=>{ if(K.city || !K.envSrc) return; const rt = pm.fromEquirectangular(K.envSrc), old = K.envMap;
+      K.envMap = rt.texture; K.envMap.envRT = rt; if(rScene && rScene.environment === old) rScene.environment = K.envMap; });
+  }catch(e){} try{ if(pm) pm.dispose(); }catch(e){}
+  try{ if(SC.scene){ SC.skyDirty = true; scEnv(); } }catch(e){} }
 /* back from the background (the stability pass, 2026-10-31): iOS suspends a hidden tab, and its audio context comes back 'interrupted' or
    'suspended', so the race came back silent until a tap; it wakes here (not Sky City's muted speaker, which suspends it on purpose). The
    frame clock caps a step at 50 ms, so the time away jumps neither the race nor the camera. */
@@ -7222,7 +7234,7 @@ async function buildCourse0(idx){
     (['hero', 'boulder', 'stack', 'shrub'].includes(o.name) ? o.children : [o]).forEach(p=>{
       const sp = p.userData.sphere ? p.userData.sphere.clone() : cb.setFromObject(p).getBoundingSphere(new T.Sphere());
       cull.push({o:p, c:sp.center, r:sp.radius, f:o.userData.far || 1e9, lod: p.userData.far && p.userData.far.length ? o.userData.lod : 0, fl:false}); }); });
-  const K = {C, group, curve, L, pylons, gate, H, centroid, sky, water:WM, terrainU:TU, cull, envMap, sunDir, sunCol, haze, spin, wl: water, fogColor: displayColor(haze.r, haze.g, haze.b), deck: dk, bowX: CARRIER.bow, wire: ship ? ship.userData.wire : null, shadeDot, shadeT};
+  const K = {C, group, curve, L, pylons, gate, H, centroid, sky, water:WM, terrainU:TU, cull, envMap, envSrc:envT, sunDir, sunCol, haze, spin, wl: water, fogColor: displayColor(haze.r, haze.g, haze.b), deck: dk, bowX: CARRIER.bow, wire: ship ? ship.userData.wire : null, shadeDot, shadeT};
   rCourses[idx] = K;
   return K;
 }
