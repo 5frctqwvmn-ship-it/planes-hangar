@@ -3626,7 +3626,7 @@ function voLine(a, p, st, du){
   VOS.miss++; const t0 = performance.now();
   const v = (async ()=>{ const c = VOS.on ? await voCal(p) : null;
     if(c){ try{ const sr = p.sr, n0 = Math.max(0, Math.floor(st*sr)), n1 = Math.min(p.length, Math.ceil((st + du)*sr) + 2), F = p.offs.length - 2;
-        const f0 = Math.max(0, Math.floor((n0 + c.L/c.k)/VOS.spf) - VOS.pad), f1 = Math.min(F, Math.ceil((n1 + c.L/c.k)/VOS.spf) + VOS.tail);
+        const ex = Math.max(0, Math.ceil(-c.L/c.k/VOS.spf)), f0 = Math.max(0, Math.floor((n0 + c.L/c.k)/VOS.spf) - VOS.pad - ex), f1 = Math.min(F, Math.ceil((n1 + c.L/c.k)/VOS.spf) + VOS.tail + ex);   // (ex: a decoder that drops more at a stream's start than it gains, as one that trims its priming from every stream might, gets as many more frames each side)
         const S = await voDecodeF(p.raw.subarray(p.offs[1 + f0], p.offs[1 + f1])), d = S.getChannelData(0), b0 = Math.round((n0 - f0*VOS.spf)*c.k + c.L), len = Math.max(1, Math.round((n1 - n0)*c.k));
         if(b0 >= 0 && b0 + len <= d.length + 2){ const b = a.createBuffer(1, len, c.sr), o = b.getChannelData(0); o.set(d.subarray(b0, Math.min(d.length, b0 + len)));
           VOS.ms += performance.now() - t0; return [b, Math.max(0, st - n0/sr)]; } }
