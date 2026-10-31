@@ -1620,7 +1620,7 @@ const camera = new T.PerspectiveCamera(35, 1, 0.5, 2000);
 scene.add(new T.HemisphereLight('#ffffff', '#b8bfae', 0.45));
 const rim = new T.DirectionalLight('#dfe8ff', 0.35); rim.position.set(-40, 25, -50); scene.add(rim);
 const sun = new T.DirectionalLight('#fff6e8', 1.6);
-sun.castShadow = true; sun.shadow.mapSize.set(4096,4096); sun.shadow.radius = 3; sun.shadow.bias = -0.0006;
+sun.castShadow = true; sun.shadow.mapSize.set(2048,2048); sun.shadow.radius = 1.5; sun.shadow.bias = -0.0006;   // (2026-10-31, the stability pass: 4096 was about 100 MB of video memory on a phone; radius halved with it, the same soft edge)
 scene.add(sun); scene.add(sun.target);
 
 let ground, field;
@@ -3988,16 +3988,39 @@ function errNote(msg){ ERR.n++; ERR.last = String(msg).slice(0, 160); const el =
 window.addEventListener('error', e=>errNote((e.message || 'error') + (e.lineno ? ' @' + e.lineno : '')));
 window.addEventListener('unhandledrejection', e=>{ const r = e.reason; if(r === 0 || r == null) return; errNote('async: ' + (r.message || r) + ' ' + ((r.stack || '').split('\n')[1] || '').trim().slice(-40)); });
 /* iPhones drop the WebGL context when graphics memory runs out; three.js keeps the scene and draws it again on restore */
-canvas.addEventListener('webglcontextlost', e=>{ e.preventDefault(); ERR.lost++; errNote('graphics reset ' + ERR.lost); }, false);
-canvas.addEventListener('webglcontextrestored', ()=>{ const el = $('errNote'); if(el && ERR.n <= ERR.lost) el.hidden = true; }, false);
+canvas.addEventListener('webglcontextlost', e=>{ e.preventDefault(); ERR.lost++; errNote('graphics reset ' + ERR.lost); ctxCheck(); }, false);
+/* (the stability pass, 2026-10-31) a context that does not come back (Safari need not restore one it dropped for memory) would leave a frozen
+   picture: still lost after 4 s on screen, the page loads again, into the hangar; everything saved stays (saveSet writes it at once) */
+function ctxCheck(){ clearTimeout(ERR.ctxT); ERR.ctxT = setTimeout(()=>{ let lost = false; try{ lost = renderer.getContext().isContextLost(); }catch(e){} if(!lost) return;
+  if(document.hidden) return ctxCheck(); try{ if(SV.timer) svFlush(); }catch(e){} location.reload(); }, 4000); }
+canvas.addEventListener('webglcontextrestored', ()=>{ const el = $('errNote'); if(el && ERR.n <= ERR.lost) el.hidden = true; envRegen(); }, false);
+/* three uploads every texture and buffer again after a restore, but a picture drawn once into a render target comes back empty: the image
+   lights (PMREM) of the hangar, of each built course and of Sky City made everything dark (measured, 2026-10-31). They are made again. */
+function envRegen(){ let pm = null; try{ pm = new T.PMREMGenerator(renderer);
+    scene.environment = pm.fromScene(new T.RoomEnvironment(), 0.04).texture;
+    Object.values(rCourses).forEach(K=>{ if(K.city || !K.envSrc) return; const rt = pm.fromEquirectangular(K.envSrc), old = K.envMap;
+      K.envMap = rt.texture; K.envMap.envRT = rt; if(rScene && rScene.environment === old) rScene.environment = K.envMap; });
+  }catch(e){} try{ if(pm) pm.dispose(); }catch(e){}
+  try{ if(SC.scene){ SC.skyDirty = true; scEnv(); } }catch(e){} }
+/* back from the background (the stability pass, 2026-10-31): iOS suspends a hidden tab, and its audio context comes back 'interrupted' or
+   'suspended', so the race came back silent until a tap; it wakes here (not Sky City's muted speaker, which suspends it on purpose). The
+   frame clock caps a step at 50 ms, so the time away jumps neither the race nor the camera. */
+function wakeUp(){ if(document.hidden) return; last = performance.now(); if(SC.on && !scaSoundOn()) return;
+  try{ if(actx && actx.state !== 'running' && actx.state !== 'closed'){ const p = actx.resume(); if(p && p.catch) p.catch(()=>{}); } }catch(e){} }
+document.addEventListener('visibilitychange', wakeUp); window.addEventListener('pageshow', wakeUp);
 function frame(now){
   requestAnimationFrame(frame);
   try{ frameStep(now); }catch(e){ if(ERR.n < 50) errNote((e && e.message || e) + ' ' + ((e && e.stack || '').split('\n')[1] || '').trim().slice(-40)); }
 }
+/* the world not on screen gives its shadow map back (the stability pass, 2026-10-31: the hangar's and the race's were both held all the time);
+   three makes a light's map again the next time its world is drawn */
+let shadowWorld = -1;
+function shadowFree(L){ if(L && L.shadow && L.shadow.map){ L.shadow.map.dispose(); L.shadow.map = null; } }
 function frameStep(now){
   const gap = frameGap(now);
   if(gap && now - lastDraw < gap - 4) return;
   lastDraw = now;
+  const world = SC.on ? 2 : RACE.on ? 1 : 0; if(world !== shadowWorld){ shadowWorld = world; if(world) shadowFree(sun); if(world !== 1) shadowFree(rSun); }
   const dt = Math.min(window.__dtmax || .05, (now-last)/1000); last = now;
   if(SHOW.c && SHOW.ctx === 'hangar') showGuard();   // (Sky City, a race, the start screen: the hangar's win show shuts at once)
   else if(AP.roofOff && !SHOW.c && (RACE.on || FIELD.on || SC.on || CE.on || studioTab || flight.mode !== 'parked' || app.dataset.mode !== 'home')) apRoofOff(false);   // (just after it ended, before the camera came back under the roof)
@@ -7009,7 +7032,16 @@ function canyonField(chm){
   return {val, base, riverZ, water, macroExt:[X0, Z0, S]};
 }
 /* build one course: flight path, carved terrain, scanned textures, sky, water, forests, flags */
+/* one build at a time per course (two taps on Next built it twice, and the first copy stayed in memory for good); the courses that are not on
+   screen go first (courseTrim), so at most the one on screen and the new one are held while it builds. The win show from the hangar keeps
+   what it built (soloPlace tries each, at most SOLO_MAX). */
+const rBuilding = {};
 async function buildCourse(idx){
+  if(rCourses[idx]) return rCourses[idx]; if(rBuilding[idx]) return rBuilding[idx];
+  if(!SOLO.on) courseTrim(rCourse);
+  const p = rBuilding[idx] = buildCourse0(idx); try{ return await p; } finally { delete rBuilding[idx]; }
+}
+async function buildCourse0(idx){
   if(rCourses[idx]) return rCourses[idx];
   if(COURSES[idx].city) return crCourse(idx);   // Sky City Sprint (section "sky city race")
   ensureRaceScene();
@@ -7158,7 +7190,7 @@ async function buildCourse(idx){
   const wmesh = new T.Mesh(new T.PlaneGeometry(wsz, wsz), WM); wmesh.rotation.x = -Math.PI/2; wmesh.position.set(cx0, water, cz0); wmesh.renderOrder = 2; wmesh.name = 'water'; group.add(wmesh);
   // sky dome and image-based light
   const sky = makeSkyDome(skyT, haze); sky.name = 'sky'; group.add(sky);
-  let envMap = null; try{ envT.mapping = T.EquirectangularReflectionMapping; const pm = new T.PMREMGenerator(renderer); envMap = pm.fromEquirectangular(envT).texture; pm.dispose(); }catch(e){}
+  let envMap = null; try{ envT.mapping = T.EquirectangularReflectionMapping; const pm = new T.PMREMGenerator(renderer), rt = pm.fromEquirectangular(envT); envMap = rt.texture; envMap.envRT = rt; pm.dispose(); }catch(e){}   // (envRT: courseFree gives its render target back; an r128 texture has no userData)
   // forests
   const amb = new T.Color(...C.haze).multiplyScalar(.55).lerp(new T.Color(.25,.26,.22), .4);
   const impMesh = makeImpostors(impT, trees, {aspect:C.impAspect, sunDir, sunCol, amb, tint: C.id==='canyon' ? '#dfe8c8' : '#ffffff', far: C.fog[1] + 300}); if(impMesh){ impMesh.name = 'forest'; group.add(impMesh); }
@@ -7237,10 +7269,30 @@ async function buildCourse(idx){
     (['hero', 'boulder', 'stack', 'shrub'].includes(o.name) ? o.children : [o]).forEach(p=>{
       const sp = p.userData.sphere ? p.userData.sphere.clone() : cb.setFromObject(p).getBoundingSphere(new T.Sphere());
       cull.push({o:p, c:sp.center, r:sp.radius, f:o.userData.far || 1e9, lod: p.userData.far && p.userData.far.length ? o.userData.lod : 0, fl:false}); }); });
-  const K = {C, group, curve, L, pylons, gate, H, centroid, sky, water:WM, terrainU:TU, cull, envMap, sunDir, sunCol, haze, spin, wl: water, fogColor: displayColor(haze.r, haze.g, haze.b), deck: dk, bowX: CARRIER.bow, wire: ship ? ship.userData.wire : null, shadeDot, shadeT};
+  const K = {C, group, curve, L, pylons, gate, H, centroid, sky, water:WM, terrainU:TU, cull, envMap, envSrc:envT, sunDir, sunCol, haze, spin, wl: water, fogColor: displayColor(haze.r, haze.g, haze.b), deck: dk, bowX: CARRIER.bow, wire: ship ? ship.userData.wire : null, shadeDot, shadeT};
   rCourses[idx] = K;
   return K;
 }
+/* only the course on screen stays in memory (the stability pass, 2026-10-31: every course built stayed, each 60 to 130 MB of video memory and
+   its vertex arrays, about 1 GB after all eleven, and an iPhone's tab is killed long before that). courseFree gives back everything in a course's
+   group: geometries, materials, their textures (the course's own pictures, and the shared photo ones, which upload again from the cache in
+   envCache when a course that uses them is drawn), the instanced meshes' matrices and its light probe. Sky City Sprint has its own (crFree). */
+function courseFree(K){
+  if(!K || K.city) return;
+  Object.keys(rCourses).forEach(k=>{ if(rCourses[k] === K) delete rCourses[k]; }); if(rCourse === K) rCourse = null;
+  try{ courseFree0(K); }catch(e){ errNote('courseFree: ' + (e && e.message || e)); }   // (freeing never stops the next course from building)
+}
+function courseFree0(K){
+  lifeFree(K); if(K.group.parent) K.group.parent.remove(K.group);
+  const mats = new Set(), tex = new Set(), addT = v=>[].concat(v || []).forEach(x=>{ if(x && x.isTexture) tex.add(x); });
+  K.group.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.isInstancedMesh && o.dispose) o.dispose(); [].concat(o.material || []).forEach(m=>m && mats.add(m)); });
+  mats.forEach(m=>{ Object.keys(m).forEach(k=>addT(m[k])); if(m.uniforms) Object.keys(m.uniforms).forEach(k=>addT(m.uniforms[k] && m.uniforms[k].value)); m.dispose(); });
+  if(K.terrainU) Object.keys(K.terrainU).forEach(k=>addT(K.terrainU[k].value));
+  if(K.envMap){ tex.add(K.envMap); if(K.envMap.envRT) K.envMap.envRT.dispose(); if(rScene && rScene.environment === K.envMap) rScene.environment = null; }
+  tex.forEach(t=>t.dispose());
+}
+/* the courses not in keep go (courseFree); Sky City Sprint's goes with crFree */
+function courseTrim(keep){ Object.values(rCourses).forEach(K=>{ if(K !== keep && !K.city) courseFree(K); }); }
 /* Carrier Launch: a big carrier from simple shapes. Bow toward +x (the way the race starts), the island on the starboard
    (+z) side, the angled landing deck to port. Meshes that share a material are merged, so the whole ship is about ten
    draw calls. Generic markings, no real ship's name or hull number. */
@@ -8807,6 +8859,69 @@ function shotBuried(r){ const C = rCam.position, dr = C.distanceTo(r.P), foc = 1
   for(const x of RACE.racers){ if(x === r || !x.root.visible) continue; const d = C.distanceTo(x.P), R = x.c.size*.45; if(d < R) return x; if(d > dr || x.c.size < r.c.size*(r.c.pair ? 2.3 : 1.8)) continue;   // (inside any plane; covered by a much bigger one: a plane its size passing in front is the race)
     _bu.copy(x.P).project(rCam); if(_bu.z > 1) continue; const rad = R*foc/d, dx = (_bu.x - tx)*rCam.aspect, dy = _bu.y - ty; if(dx*dx + dy*dy < rad*rad) return x; }
   return null; }
+/* ================= line of sight ================= */
+/* (the stability pass, 2026-10-31, owner: "Sometimes it gets lost behind terrain"): a shot kept its camera above the ground where the camera
+   stood, but not above the ground between it and what it films, so a ridge or a canyon wall could stand in between (measured: Lookout
+   Ridge's pack shots from ahead looked into a rock face for seconds, the win show behind Snowcap's and Lookout's slopes, a Snowcap pylon
+   shot, a canyon flyby). camSight samples the ground along each line from the camera's place to the filmed plane (H(), as flySeen does;
+   for the pack shots, to every plane still racing) and moves that place before it is eased to: up, by as much as clears the ground with
+   a margin; for one plane, when that would take more than a modest lift, first in along the line toward it, to just short of the first
+   ground in the way. Both ease in fast and out slowly (s.lift, s.pull), so the camera rises over a ridge in a smooth move and settles
+   back after it, never a jump. camSightHold makes the same check where the eased camera really is and lifts it the rest of the way
+   (what the easing has not caught up yet, a few feet). A shot of the usual rotation that still cannot see its plane cuts to the next
+   one early. Only the ground: the course's own scenery keeps its own checks (lifeCamShot, flySeen). */
+const SIGHT = ['chase', 'low', 'side', 'front', 'pylon', 'launch', 'wl', 'finish', 'winMove', 'roSolo', 'roAhead', 'roApproach', 'roForm', 'roFormL', 'roFormHi', 'roJoin'], SIGHT_N = 24;
+function sightNeed(C, P, R){   // [how far C must rise so the line from P to it clears the ground, the share of the way from P where the ground first comes over it]
+  const K = rCourse, dx = C.x - P.x, dy = C.y - P.y, dz = C.z - P.z, L = Math.hypot(dx, dy, dz); let need = 0, first = 1;
+  if(L < 1) return [0, 1];
+  for(let i = 1; i <= SIGHT_N; i++){ const f = i/SIGHT_N; if(L*f < R) continue;
+    const g = Math.max(K.H(P.x + dx*f, P.z + dz*f), K.wl) + 9 - (P.y + dy*f); if(g > 0){ if(g/f > need) need = g/f; if(f < first) first = f; } }
+  return [need, first]; }
+const sightSubject = (s, r)=>r;   // (the talk and results shots frame a face up close, tilted into the open band: no ground in between in any test, and a lift there fought the tilt)
+const SIGHT_PACK = ['pack', 'packFront', 'packSide', 'flyby'];   // pack shots: every plane still racing
+function sightOf(s, r){
+  if(SIGHT_PACK.includes(s.type)){ const live = RACE.racers.filter(x=>x.finished === null), arr = live.length >= 2 ? live : RACE.racers; return arr.map(x=>[x.P, x.c.size*.6]); }
+  const w = r && SIGHT.includes(s.type) ? sightSubject(s, r) : null; return w ? [[w.P, w.c.size*.6]] : null; }
+function sightAll(C, list){ let need = 0, first = 1; list.forEach(([P, R])=>{ const q = sightNeed(C, P, R); if(q[0] > need) need = q[0]; if(q[1] < first) first = q[1]; }); return [need, first]; }
+function camSight(s, r, P, Lr, dt){
+  const K = rCourse, o = K && K.H && !K.city ? sightOf(s, r) : null; if(!o || !o.length){ s.lift = s.pull = 0; return; }
+  const pack = o.length > 1 || SIGHT_PACK.includes(s.type), W = o[0][0], R = o[0][1], L = _cp.distanceTo(pack ? _pc : W), cap = pack ? Math.max(120, L*.35) : Math.max(40, Lr*1.5);   // (the pack: up, never in: a view more from above keeps them all)
+  let [need, first] = sightAll(_cp, o), pull = 0, lift = Math.min(need, pack ? cap : 1e9);
+  if(need > cap && !pack){ const fMin = Math.min(1, Math.max(R*2.2, Lr*1.2)/Math.max(1, L)); pull = 1 - Math.max(fMin, first*.8);   // in along the line, to just short of the ground in the way (never nearer than about a plane and a half)
+    _sv.copy(_cp).sub(W).multiplyScalar(1 - pull).add(W); lift = Math.min(sightNeed(_sv, W, R)[0], cap*2); }
+  const ease = (v, to, up, dn)=>v + (to - v)*Math.min(1, dt*(to > v ? up : dn));
+  s.lift = ease(s.lift || 0, lift, 9, 1.2); s.pull = ease(s.pull || 0, pull, 9, 1.2);
+  if(s.snap){ s.lift = lift; s.pull = pull; }   // (a new shot starts where it can see)
+  if(s.pull > .001) _cp.sub(W).multiplyScalar(1 - s.pull).add(W);
+  _cp.y += s.lift;
+  s.blind = need > cap && (pack || lift >= cap*2) ? (s.blind || 0) + dt : 0;   // even so it cannot see the plane (or the pack)
+  if(s.blind > .2 && s.auto && RACE.phase === 'race' && ['side', 'front', 'low', 'pylon', 'pack', 'packFront', 'packSide', 'flyby'].includes(s.type) && RACE.clock - s.t0 > .2) RACE.nextCut = Math.min(RACE.nextCut, RACE.clock);   // (raceFrame cuts on its next frame)
+}
+const _sv = V(0,0,0);
+function camSightHold(s, r){
+  const K = rCourse, o = K && K.H && !K.city ? sightOf(s, r) : null; if(!o || !o.length) return;
+  const need = sightAll(rCam.position, o)[0]; if(need > 0) rCam.position.y += Math.min(need, Math.max(40, o[0][1]*2.5));   // (a few feet as a rule; capped, so an odd frame never throws the camera up)
+}
+/* scenery in the way (the stability pass, 2026-10-31: a Red Rock Canyon pylon shot stood inside the course's dressing, the whole picture a wall;
+   with the biggest planes, arches and gates crossed the line): a shot of the usual rotation that films one plane checks the line to it
+   against the course's own meshes (not the ground, camSight's; not the sky, water, clouds or forest) every 0.4 s (a check is about 1 to 5 ms,
+   up to 24 on Red Rock Canyon's dressing, measured), and when the line is blocked as the shot starts or at two checks in a row, it cuts
+   to the next one. Never more than two early cuts in a
+   row, so a stretch thick with scenery cannot make the shots flicker. It moves no camera: where scenery stands is the course's to say. */
+const MESH_CUT = ['side', 'front', 'low', 'pylon'], MESH_SKIP = ['terrain', 'sky', 'water', 'clouds', 'forest'], _mr = new T.Raycaster(), _md = V(0,0,0);
+function meshVisible(o){ for(; o; o = o.parent) if(!o.visible) return false; return true; }
+function camMeshCut(s, r){
+  const K = rCourse; if(!K || K.city || !r || !s.auto || RACE.phase !== 'race' || !MESH_CUT.includes(s.type) || RACE.clock < (s.mchk || 0)) return;
+  s.mchk = RACE.clock + .4;
+  const C = rCam.position, d = C.distanceTo(r.P), far = d - r.c.size*.6; if(far < 5) return;
+  _mr.set(C, _md.copy(r.P).sub(C).normalize()); _mr.near = .5; _mr.far = far; _mr.camera = rCam;
+  let hit = false;
+  try{ for(const o of K.group.children){ if(!o.visible || MESH_SKIP.includes(o.name)) continue;
+    if(_mr.intersectObject(o, true).some(h=>meshVisible(h.object) && !(h.object.material && h.object.material.transparent && h.object.material.opacity < .3))){ hit = true; break; } } }catch(e){}
+  const age = RACE.clock - s.t0; s.mblk = hit ? (s.mblk || 0) + 1 : 0;
+  if(!hit){ if(age > 1) RACE.mCuts = 0; return; }
+  if((age < .3 || s.mblk >= 2) && (RACE.mCuts || 0) < 2){ RACE.mCuts = (RACE.mCuts || 0) + 1; RACE.nextCut = Math.min(RACE.nextCut, RACE.clock); }
+}
 function shotCamera(dt){
   const s = RACE.shot, r = s.r, Lr = r ? Math.max(28, r.c.size*(r.c.pair ? 1.3 : 1)) : 40;   // (Ned & Zed: the pair is wider than one plane)
   const Fh = r ? V(Math.cos(r.yaw), 0, -Math.sin(r.yaw)) : V(1,0,0), Rt = V(-Fh.z, 0, Fh.x);
@@ -8867,11 +8982,14 @@ function shotCamera(dt){
   }
   if(rCourse && rCourse.life && ['side', 'front', 'low', 'pack', 'packFront', 'packSide', 'flyby'].includes(s.type)) lifeCamShot(rCourse, _cp, r && !PACK_SHOTS.includes(s.type) ? P : null);   // the line dressing (course life, second pass): never a camera inside one of its pieces, or one hiding the racer
   if(rCourse){ const g = Math.max(rCourse.H(_cp.x, _cp.z), rCourse.wl) + 14; if(_cp.y < g) _cp.y = g; }
+  camSight(s, r, P, Lr, dt);   // the ground never between the camera and the plane it films (section "line of sight")
   const ride = shotRide(s, r, P, dt);   // what the shot films moved this much since the last frame (null: nothing to ride with)
   if(s.snap){ rCam.position.copy(_cp); _look.copy(_lk); s.snap = false; }
   else { if(ride){ if(ride.cam) rCam.position.add(ride.d); _look.add(ride.d); }
     const k = ['pylon','finish','launch','flyby','blimp','blimpView','blimpHello','blimpWin','blimpGrid','blimpPass','roCheer','roFly','winMove'].includes(s.type) ? 1 : Math.min(1, dt*(PACK_SHOTS.includes(s.type) ? 3 : 7)); rCam.position.lerp(_cp, k); _look.lerp(_lk, s.type === 'winMove' ? 1 : Math.min(1, dt*9)); }   // (the routine's camera rides with it: an eased one trails a plane at race speed by tens of feet)
   if(rCourse){ const g = Math.max(rCourse.H(rCam.position.x, rCam.position.z), rCourse.wl) + 12; if(rCam.position.y < g) rCam.position.y = g; }
+  camSightHold(s, r);   // (and where the eased camera really is)
+  camMeshCut(s, r);   // (scenery in the way: an early cut)
   if(rCourse && rCourse.city) crCamShot(s, r, front, back, dt);   // Sky City Sprint: never inside a tower (pulled back toward what it films)
   rCam.lookAt(_look);
   if(s.type === 'winMove') wmTilt();   // the routine in the middle of the open band under the winner's title
@@ -9382,7 +9500,7 @@ function showResults(){
 }
 function startRaceRun(){
   if(RACE.type === 'radio') return roStart();   // Radio Out: its own start (the carrier course, the mission's path)
-  useCourse(RACE.course); saveSet('hangar-course', RACE.course); ringsBuild();
+  useCourse(RACE.course); if(!SOLO.on) courseTrim(rCourse); saveSet('hangar-course', RACE.course); ringsBuild();   // (courseTrim: the course raced before goes)
   raceSoundStop(); setupRacers(RACE.list); learnStart();
   if(rCourse && rCourse.city) crStart();   // Sky City Sprint: the racers in the city's haze and light, its synthwave
   RACE.cm = null; voPack(lang + '-ann'); if(annOn()){ voPack(lang + '-bl'); RACE.list.forEach(c=>voPack(lang + '-' + blPack(c.def.id))); }   // the blimp: her lines and each racer's (asked for in startRaceLoad already; Race again and Next come here)
@@ -9443,9 +9561,12 @@ function loadRacer(def, tag){   // tag: a second copy of the same plane (Radio O
   });
 }
 async function startRace(ids, keep){   // keep: racers' copies to use again (raceSwap: Race again with new planes)
+  if(RACE.loading) return;   // (a second Race now while the first loads)
   audio();
   $('rsetup').hidden = true; RACE.loading = true; syncUI();
-  try{ await startRaceLoad(ids, keep); } finally { RACE.loading = false; syncUI(); }
+  try{ await startRaceLoad(ids, keep); }
+  catch(e){ errNote('race: ' + (e && e.message || e)); showLoading(false); if(!RACE.on && !keep){ renderer.setPixelRatio(HANGAR_PR); resize(); loadModel(mi); } }   // (the stability pass, 2026-10-31: a load that failed half way left its card up over a hangar without its plane)
+  finally { RACE.loading = false; syncUI(); }
 }
 async function startRaceLoad(ids, keep){
   const u = UI[lang], list = [];
@@ -9617,7 +9738,13 @@ function rsSurpriseRoll(){ if(!rsSurprise()) return; RACE.sel = new Set(rsRoll(R
 function rsSpin(id){ const b = $(id); if(!b || matchMedia('(prefers-reduced-motion: reduce)').matches) return; b.classList.remove('roll'); void b.offsetWidth; b.classList.add('roll'); }
 /* Race again and Next (the results card). New planes (Surprise me, a rolled field) load like a race from the setup, keeping the copies
    of the planes that race again; a new course alone is built as Next always did; otherwise Race again restarts at once, as before. */
+/* one at a time (the stability pass, 2026-10-31: two quick taps on Next course built two courses and skipped one, and a build that failed left
+   its loading card up with no way out) */
 async function raceAgain(next){
+  if(RACE.againBusy || RACE.loading) return; RACE.againBusy = true;
+  try{ return await raceAgain0(next); } finally { RACE.againBusy = false; }
+}
+async function raceAgain0(next){
   if(RO.on) return roAgain();   // Radio Out: a new mission with the same planes (new steps from the bags)
   audio(); const was = RACE.list.map(c=>c.def.id), picks = rsPicks(was), fill = rsSurprise() && rsFillSet().size && was.some(id=>RACE.fill.has(id));   // Surprise me: his picks stay, the random ones roll again
   const fills = fill && picks.length ? rsFill(picks, [...RACE.fill]) : null, ids = !fill ? null : fills ? picks.concat(fills) : rsRoll(was);
@@ -9625,9 +9752,10 @@ async function raceAgain(next){
   if(ids){ RACE.course = k; RACE.sel = new Set(ids); RACE.fill = new Set(fills || ids); return raceSwap(ids); }
   if(k === RACE.course) return startRaceRun();
   if(COURSES[k].city || COURSES[RACE.course].city) musicPrep(COURSES[k].id);   // into Sky City Sprint the rock loop stops (the city's synthwave is its music); out of it the new course's loop is made
-  RACE.course = k; $('rResults').hidden = true; showLoading(true, UI[lang].buildingCourse(COURSES[k][lang]), 1); await new Promise(r=>setTimeout(r, 60)); await buildCourse(k);
-  if(!rCourses[k]){ RACE.course = 0; musicPrep(COURSES[0].id); await buildCourse(0); }   // (Sky City could not load: the farm instead)
-  startRaceRun(); showLoading(false);
+  RACE.course = k; $('rResults').hidden = true; showLoading(true, UI[lang].buildingCourse(COURSES[k][lang]), 1);
+  try{ await new Promise(r=>setTimeout(r, 60)); try{ await buildCourse(k); }catch(e){ errNote('course: ' + (e && e.message || e)); }
+    if(!rCourses[k]){ RACE.course = 0; musicPrep(COURSES[0].id); await buildCourse(0); }   // (Sky City could not load: the farm instead)
+    startRaceRun(); } finally { showLoading(false); }
 }
 async function raceSwap(ids){
   const keep = RACE.list.filter(c=>ids.includes(c.def.id)); $('rResults').hidden = true;
@@ -13610,7 +13738,7 @@ function roRacer(c, who, col){
     finished: null, name: c.def.short, P: V(0,0,0), yaw: 0, pitch: 0, boost: 0, boostT: 0, glowT: 0, rollT: -1, rollA: 0, rollNext: 1e9, smk, noSmk: true, wlLift: 0, gear: 1, slot: null, vel: V(0,0,0)}; }
 /* ---- start, again, stop ---- */
 function roStart(){
-  roClear(); const C = roCourse(); useCourse(C); RO.path = roPathBuild(rCourse);
+  roClear(); const C = roCourse(); useCourse(C); courseTrim(rCourse); RO.path = roPathBuild(rCourse);
   raceSoundStop(); wlEnd(true); WL.on = false; LEARN.on = false; LEARN.q = null;
   RACE.racers.forEach(r=>{ racerDetailRestore(r); rScene.remove(r.root); });
   const [cm, ce, cb] = RACE.list; RACE.racers = [roRacer(cm), roRacer(ce, 'echo', RO_COL.echo), roRacer(cb, 'bravo', RO_COL.bravo)]; RACE.racers.forEach(racerDetail);
