@@ -12310,7 +12310,7 @@ function lnAnswer(v, bt){
   (LEARN.redo = LEARN.redo || []).push({q: Object.assign({}, q, {done:false}), due: (LEARN.qn || 0) + 2 + (Math.random() < .5 ? 1 : 0)});
   LEARN.help.forEach(clearTimeout); LEARN.help = []; [...$('rqAns').children].forEach(b=>{ b.disabled = true; });
   const t = q.type, pics = [...$('rqPics').querySelectorAll('svg,.rq-e')], soon = bagPick('nsoon:' + lang, u.lnSoon), end = [u.thatsN(q.n), soon];
-  const why = t === 'cmp' ? [u.thatsN(v), q.big ? u.lnBigger : u.lnSmaller] : t === 'skip' ? [u.thatsN(v)] : [u.thatsN(v), v > q.n ? u.fewerN : u.moreN];
+  const why = t === 'cmp' ? [u.thatsN(v), q.big ? u.lnBigger : u.lnSmaller] : t === 'skip' ? [] : [u.thatsN(v), v > q.n ? u.fewerN : u.moreN];
   let m;
   if(t === 'cmp'){ say([why, end], herV(null, {qpref: /-nums-q$/})); LEARN.help.push(setTimeout(()=>lnShow(q), 1400)); m = {t: 6}; }
   else if(t === 'skip'){ const tiles = [...$('rqPics').querySelectorAll('.rq-tile')]; m = lnCountAlong(q, [], why, tiles, [...q.seq, q.n].map(String), end); LEARN.help.push(setTimeout(()=>{ const qt = $('rqPics').querySelector('.rq-tile.q'); if(qt && LEARN.q === q) qt.textContent = q.n; }, m.t*1000)); }
