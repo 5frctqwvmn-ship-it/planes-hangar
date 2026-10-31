@@ -8824,6 +8824,49 @@ function shotBuried(r){ const C = rCam.position, dr = C.distanceTo(r.P), foc = 1
   for(const x of RACE.racers){ if(x === r || !x.root.visible) continue; const d = C.distanceTo(x.P), R = x.c.size*.45; if(d < R) return x; if(d > dr || x.c.size < r.c.size*(r.c.pair ? 2.3 : 1.8)) continue;   // (inside any plane; covered by a much bigger one: a plane its size passing in front is the race)
     _bu.copy(x.P).project(rCam); if(_bu.z > 1) continue; const rad = R*foc/d, dx = (_bu.x - tx)*rCam.aspect, dy = _bu.y - ty; if(dx*dx + dy*dy < rad*rad) return x; }
   return null; }
+/* ================= line of sight ================= */
+/* (the stability pass, 2026-10-31, owner: "Sometimes it gets lost behind terrain"): a shot kept its camera above the ground where the camera
+   stood, but not above the ground between it and what it films, so a ridge or a canyon wall could stand in between (measured: Lookout
+   Ridge's pack shots from ahead looked into a rock face for seconds, the win show behind Snowcap's and Lookout's slopes, a Snowcap pylon
+   shot, a canyon flyby). camSight samples the ground along each line from the camera's place to the filmed plane (H(), as flySeen does;
+   for the pack shots, to every plane still racing) and moves that place before it is eased to: up, by as much as clears the ground with
+   a margin; for one plane, when that would take more than a modest lift, first in along the line toward it, to just short of the first
+   ground in the way. Both ease in fast and out slowly (s.lift, s.pull), so the camera rises over a ridge in a smooth move and settles
+   back after it, never a jump. camSightHold makes the same check where the eased camera really is and lifts it the rest of the way
+   (what the easing has not caught up yet, a few feet). A shot of the usual rotation that still cannot see its plane cuts to the next
+   one early. Only the ground: the course's own scenery keeps its own checks (lifeCamShot, flySeen). */
+const SIGHT = ['chase', 'low', 'side', 'front', 'pylon', 'launch', 'wl', 'finish', 'winMove', 'roSolo', 'roAhead', 'roApproach', 'roForm', 'roFormL', 'roFormHi', 'roJoin'], SIGHT_N = 24;
+function sightNeed(C, P, R){   // [how far C must rise so the line from P to it clears the ground, the share of the way from P where the ground first comes over it]
+  const K = rCourse, dx = C.x - P.x, dy = C.y - P.y, dz = C.z - P.z, L = Math.hypot(dx, dy, dz); let need = 0, first = 1;
+  if(L < 1) return [0, 1];
+  for(let i = 1; i <= SIGHT_N; i++){ const f = i/SIGHT_N; if(L*f < R) continue;
+    const g = Math.max(K.H(P.x + dx*f, P.z + dz*f), K.wl) + 9 - (P.y + dy*f); if(g > 0){ if(g/f > need) need = g/f; if(f < first) first = f; } }
+  return [need, first]; }
+const sightSubject = (s, r)=>r;   // (the talk and results shots frame a face up close, tilted into the open band: no ground in between in any test, and a lift there fought the tilt)
+const SIGHT_PACK = ['pack', 'packFront', 'packSide', 'flyby'];   // pack shots: every plane still racing
+function sightOf(s, r){
+  if(SIGHT_PACK.includes(s.type)){ const live = RACE.racers.filter(x=>x.finished === null), arr = live.length >= 2 ? live : RACE.racers; return arr.map(x=>[x.P, x.c.size*.6]); }
+  const w = r && SIGHT.includes(s.type) ? sightSubject(s, r) : null; return w ? [[w.P, w.c.size*.6]] : null; }
+function sightAll(C, list){ let need = 0, first = 1; list.forEach(([P, R])=>{ const q = sightNeed(C, P, R); if(q[0] > need) need = q[0]; if(q[1] < first) first = q[1]; }); return [need, first]; }
+function camSight(s, r, P, Lr, dt){
+  const K = rCourse, o = K && K.H && !K.city ? sightOf(s, r) : null; if(!o || !o.length){ s.lift = s.pull = 0; return; }
+  const pack = o.length > 1 || SIGHT_PACK.includes(s.type), W = o[0][0], R = o[0][1], L = _cp.distanceTo(pack ? _pc : W), cap = pack ? Math.max(120, L*.35) : Math.max(40, Lr*1.5);   // (the pack: up, never in: a view more from above keeps them all)
+  let [need, first] = sightAll(_cp, o), pull = 0, lift = Math.min(need, pack ? cap : 1e9);
+  if(need > cap && !pack){ const fMin = Math.min(1, Math.max(R*2.2, Lr*1.2)/Math.max(1, L)); pull = 1 - Math.max(fMin, first*.8);   // in along the line, to just short of the ground in the way (never nearer than about a plane and a half)
+    _sv.copy(_cp).sub(W).multiplyScalar(1 - pull).add(W); lift = Math.min(sightNeed(_sv, W, R)[0], cap*2); }
+  const ease = (v, to, up, dn)=>v + (to - v)*Math.min(1, dt*(to > v ? up : dn));
+  s.lift = ease(s.lift || 0, lift, 9, 1.2); s.pull = ease(s.pull || 0, pull, 9, 1.2);
+  if(s.snap){ s.lift = lift; s.pull = pull; }   // (a new shot starts where it can see)
+  if(s.pull > .001) _cp.sub(W).multiplyScalar(1 - s.pull).add(W);
+  _cp.y += s.lift;
+  s.blind = need > cap && (pack || lift >= cap*2) ? (s.blind || 0) + dt : 0;   // even so it cannot see the plane (or the pack)
+  if(s.blind > .2 && s.auto && RACE.phase === 'race' && ['side', 'front', 'low', 'pylon', 'pack', 'packFront', 'packSide', 'flyby'].includes(s.type) && RACE.clock - s.t0 > .2) RACE.nextCut = Math.min(RACE.nextCut, RACE.clock);   // (raceFrame cuts on its next frame)
+}
+const _sv = V(0,0,0);
+function camSightHold(s, r){
+  const K = rCourse, o = K && K.H && !K.city ? sightOf(s, r) : null; if(!o || !o.length) return;
+  const need = sightAll(rCam.position, o)[0]; if(need > 0) rCam.position.y += Math.min(need, Math.max(40, o[0][1]*2.5));   // (a few feet as a rule; capped, so an odd frame never throws the camera up)
+}
 function shotCamera(dt){
   const s = RACE.shot, r = s.r, Lr = r ? Math.max(28, r.c.size*(r.c.pair ? 1.3 : 1)) : 40;   // (Ned & Zed: the pair is wider than one plane)
   const Fh = r ? V(Math.cos(r.yaw), 0, -Math.sin(r.yaw)) : V(1,0,0), Rt = V(-Fh.z, 0, Fh.x);
@@ -8884,11 +8927,13 @@ function shotCamera(dt){
   }
   if(rCourse && rCourse.life && ['side', 'front', 'low', 'pack', 'packFront', 'packSide', 'flyby'].includes(s.type)) lifeCamShot(rCourse, _cp, r && !PACK_SHOTS.includes(s.type) ? P : null);   // the line dressing (course life, second pass): never a camera inside one of its pieces, or one hiding the racer
   if(rCourse){ const g = Math.max(rCourse.H(_cp.x, _cp.z), rCourse.wl) + 14; if(_cp.y < g) _cp.y = g; }
+  camSight(s, r, P, Lr, dt);   // the ground never between the camera and the plane it films (section "line of sight")
   const ride = shotRide(s, r, P, dt);   // what the shot films moved this much since the last frame (null: nothing to ride with)
   if(s.snap){ rCam.position.copy(_cp); _look.copy(_lk); s.snap = false; }
   else { if(ride){ if(ride.cam) rCam.position.add(ride.d); _look.add(ride.d); }
     const k = ['pylon','finish','launch','flyby','blimp','blimpView','blimpHello','blimpWin','blimpGrid','blimpPass','roCheer','roFly','winMove'].includes(s.type) ? 1 : Math.min(1, dt*(PACK_SHOTS.includes(s.type) ? 3 : 7)); rCam.position.lerp(_cp, k); _look.lerp(_lk, s.type === 'winMove' ? 1 : Math.min(1, dt*9)); }   // (the routine's camera rides with it: an eased one trails a plane at race speed by tens of feet)
   if(rCourse){ const g = Math.max(rCourse.H(rCam.position.x, rCam.position.z), rCourse.wl) + 12; if(rCam.position.y < g) rCam.position.y = g; }
+  camSightHold(s, r);   // (and where the eased camera really is)
   if(rCourse && rCourse.city) crCamShot(s, r, front, back, dt);   // Sky City Sprint: never inside a tower (pulled back toward what it films)
   rCam.lookAt(_look);
   if(s.type === 'winMove') wmTilt();   // the routine in the middle of the open band under the winner's title
