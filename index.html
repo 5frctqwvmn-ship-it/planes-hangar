@@ -1336,6 +1336,7 @@ G({id:'f18', retract:{main:'back',nose:'fwd'}, glb:'models/f18.json', name:'McDo
   ]});
 
 G({id:'aerocar', glb:'models/aerocar.json', name:'Taylor Aerocar', short:'Aerocar', character:'Franz', pusher:true, loose:'^(wing|aileron|tail$|carbody\\.?002$)',
+  tailProp:{x:-4.3, y:-.05, r:.95, p:1.45},   // his pusher propeller, made in code (buildTailProp): the tail cone's tip, the blade radius, the pitch (the model's metres)
   credit:'Aerocar by Gijs de Rooy',
   note:{en:'A real flying car. Franz is the flying car of the movie. This model wears the red and black of Aerocar N103D.',
         es:'Un auto volador de verdad. Franz es el auto volador de la película. Este modelo lleva el rojo y negro del Aerocar N103D.'},
@@ -1347,7 +1348,8 @@ G({id:'aerocar', glb:'models/aerocar.json', name:'Taylor Aerocar', short:'Aeroca
     S('cab',P('Doors + windows','Puertas y ventanas','canopy'),'^(door|front_window)',{en:['Add the doors and windows','A wide windshield for driving and flying.'],es:['Pon puertas y ventanas','Un parabrisas ancho para manejar y volar.']}),
     S('boom',P('Tail boom','Botalón de cola','body'),'^(tail$|supportbeams|Cylinder)',{en:['Attach the tail boom','On the road, the wings and tail are towed behind like a trailer.'],es:['Pon el botalón de cola','En la calle, las alas y la cola se remolcan atrás como un tráiler.']}),
     S('tail',P('Tail','Cola','tail'),'^(hstab|vstab)',TX.tail),
-    S('wing',P('Folding wings','Alas plegables','wing'),'^(wing|aileron)',{en:['Unfold the wings','The wings fold for the road. One person can switch it to flying mode in about five minutes.'],es:['Despliega las alas','Las alas se pliegan para la calle. Una persona lo cambia a modo avión en unos cinco minutos.']})
+    S('wing',P('Folding wings','Alas plegables','wing'),'^(wing|aileron)',{en:['Unfold the wings','The wings fold for the road. One person can switch it to flying mode in about five minutes.'],es:['Despliega las alas','Las alas se pliegan para la calle. Una persona lo cambia a modo avión en unos cinco minutos.']}),
+    S('prop',P('Pusher propeller','Hélice impulsora','prop'),'^aeroprop',{en:['Last part: the pusher prop','The engine is in the car, and a long shaft turns the propeller at the very back, so it pushes the Aerocar through the air.'],es:['Última pieza: la hélice de empuje','El motor va en el auto, y un eje largo hace girar la hélice al final de la cola, así que empuja al Aerocar por el aire.']})
   ]});
 
 G({id:'bonanza', fem:true, superV:true, twin:true, retract:{main:'in',nose:'back'}, hide:'^(propeller|nosecone|intakebg|intakeplug)$', glb:'models/bonanza.json', name:'Bay Super V', short:'Super V', character:'Rochelle',
@@ -1807,7 +1809,7 @@ const focus = V(0,0,0);
 
 const CAMS = {body:[.7,.42,1], engine:[1.05,.3,.9], cowl:[1.05,.3,.9], wing:[.55,.6,1.15], gull:[1.35,.12,1.05], struts:[.5,.35,1.1],
   tail:[-.9,.38,.95], tail2:[-.9,.38,.95], vtail:[-.9,.45,.95], canard:[1,.45,.95], gear:[.9,.12,1], wheels:[.9,.15,1], canopy:[.9,.45,.8],
-  prop:[1.0,.3,1], contra:[1.0,.28,1], nacelles:[.9,.35,1], hopper:[.6,.45,.9], boom:[.35,.2,1.1], intake:[.9,.25,.95], nozzle:[-2.4,.25,.9], decal:[-.2,.25,.9]};
+  prop:[1.0,.3,1], pusher:[-1.0,.3,1], contra:[1.0,.28,1], nacelles:[.9,.35,1], hopper:[.6,.45,.9], boom:[.35,.2,1.1], intake:[.9,.25,.95], nozzle:[-2.4,.25,.9], decal:[-.2,.25,.9]};
 
 const FT = 3.28084;
 const cache = {};
@@ -2044,6 +2046,38 @@ function buildSuperV(groups, hidden){
       const pm = new T.Mesh(g2, mm); pm.castShadow = true; groups.prop.add(pm); groups.prop.userData.mats.push(mm);
     }
   });
+}
+/* Franz's pusher propeller (owner, 2026-10-31: "We need to add a propeller on the back of Franz. Currently he doesn't have any way of
+   propulsion"; facing back like Ishani's). The model has none, so it is made here, as on the real Aerocar: a two-blade metal prop 6 ft 4 in
+   across (Hartzell) at the very tip of the tail cone, behind the Y tail, its ventral fin a little lower than the blade tips so it guards
+   them; the engine in the car turns it through a long shaft. o (the model's metres, x ahead): x the tail cone's tip, y its middle line,
+   r the blade radius, p the blades' pitch (m a turn). The blades are twisted (steep at the root, flat at the tip), tapered from a round
+   shank to a wide middle and a rounded tip with a yellow warning band; built for the way a pusher turns (anticlockwise seen from behind:
+   a pusher's spin dir, prepareGLB), leading edges ahead. A hub on the cone's tip and a red spinner (it takes the paint) behind them. */
+function buildTailProp(groups, o){
+  const g = groups.prop, x0 = o.x, y0 = o.y, R = o.r, xb = x0 - .11, sv = -1, N = 24, M = 16;
+  const shank = .028, sm = (a, b, x)=>{ const t = Math.min(1, Math.max(0, (x - a)/(b - a))); return t*t*(3 - 2*t); };
+  const yt = u=>5*(.2969*Math.sqrt(u) - .126*u - .3516*u*u + .2843*u*u*u - .1036*u*u*u*u);   // a 4-digit section's half thickness (closed trailing edge)
+  // one blade along +y, its hub at the origin: a ring of M points at each radius, lofted
+  const ring = (r, out)=>{ const n = r/R, cb = .07 + .085*Math.pow(Math.sin(Math.PI*Math.min(1, Math.max(0, (n - .1)/.95))), .8);
+    const c = n > .86 ? cb*Math.sqrt(Math.max(0, 1 - Math.pow((n - .86)/.14, 2))) : cb, t = c*(.07 + .5*(1 - sm(.15, .7, n))), w = 1 - sm(.1, .22, n);   // w: the round shank
+    const be = Math.atan(o.p/(2*Math.PI*Math.max(r, .05))), sb = Math.sin(be), cbe = Math.cos(be), aLE = -.3*cb + .5*(cb - c);
+    for(let j = 0; j < M; j++){ const th = j/M*Math.PI*2, u = (1 - Math.cos(th))/2, up = Math.sin(th) >= 0, y = yt(u);
+      let a = aLE + u*c, b = up ? 1.9*t*y : -.1*t*y; a += (-shank*Math.cos(th) - a)*w; b += (shank*Math.sin(th) - b)*w;
+      out.push(-a*sb + b*cbe, r, -a*sv*cbe + b*-sv*sb); } };   // along the chord toward its leading edge (sin, 0, sv cos), across it toward its front face (cos, 0, -sv sin)
+  const loft = (rs, blades)=>{ const P = [], I = []; for(let k = 0; k < blades; k++){ const o0 = P.length/3;
+      rs.forEach(r=>ring(r, P)); for(let i = o0; i < P.length/3; i++) if(k){ P[i*3 + 1] *= -1; P[i*3 + 2] *= -1; }   // the second blade: the first turned half a turn
+      for(let s = 0; s < rs.length - 1; s++) for(let j = 0; j < M; j++){ const a = o0 + s*M + j, b = o0 + s*M + (j + 1) % M, c = a + M, d = b + M; I.push(a, c, b, b, c, d); } }
+    const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.Float32BufferAttribute(P, 3)); geo.setIndex(I); geo.translate(xb, y0, 0); geo.computeVertexNormals(); return geo; };
+  const rs = [], rt = []; for(let i = 0; i < N; i++){ const r = .06 + (R*.9 - .06)*Math.sin(i/(N - 1)*Math.PI/2); rs.push(r); }
+  for(let i = 0; i <= 8; i++) rt.push(R*.9 + R*.1*Math.sin(i/8*Math.PI/2));
+  const blades = addCustom(g, loft(rs, 2), '#cfd5da', {metalness:.6, roughness:.3}), tips = addCustom(g, loft(rt, 2), '#f2c21b', {roughness:.45});
+  blades.material.userData.paintUni = null; tips.material.userData.paintUni = null; blades.name = 'aeroprop-blades'; tips.name = 'aeroprop-tips';   // (the metal and the warning band keep their colours)
+  const hub = new T.CylinderGeometry(.068, .075, .1, 24); hub.rotateZ(Math.PI/2); hub.translate(x0 - .04, y0, 0);
+  const hm = addCustom(g, hub, '#5f676c', {metalness:.6, roughness:.35}); hm.material.userData.paintUni = null; hm.name = 'aeroprop-hub';
+  const prof = []; for(let i = 0; i <= 14; i++){ const u = i/14; prof.push(new T.Vector2(.105*Math.pow(1 - Math.pow(u, 1.8), .6), -.3*u)); }   // an ogive, its base on the hub, its tip back
+  prof.unshift(new T.Vector2(0, 0)); const sp = new T.LatheGeometry(prof.reverse(), 32); sp.rotateZ(-Math.PI/2); sp.translate(x0 - .07, y0, 0);   // (rising order: its normals face out)
+  addCustom(g, sp, '#c0282d').name = 'aeroprop-spinner';
 }
 
 /* fewer draw calls: inside each build-step group, parts that share a material and never move on their own become one mesh */
@@ -2859,6 +2893,7 @@ function prepareGLB(def, gltf){
   wrap.updateMatrixWorld(true);
 
   if(def.superV) buildSuperV(groups, hidden);
+  if(def.tailProp && groups.prop) buildTailProp(groups, def.tailProp);   // Franz's pusher propeller
   const FL = def.floats && groups.floats ? buildFloats(groups) : null;
 
   // propellers: gather into spinning hubs (one per side for twins)
@@ -2874,7 +2909,7 @@ function prepareGLB(def, gltf){
       let sy = 0, sz = 0, cnt = 0; ms.forEach(m=>{ const p = m.geometry.attributes.position; for(let i=0;i<p.count;i++){ sy += p.getY(i); sz += p.getZ(i); cnt++; } }); if(cnt){ c.y = sy/cnt; c.z = sz/cnt; }
       const hub = new T.Group(); hub.position.copy(c); groups.prop.add(hub);
       ms.forEach(m=>{ hub.add(m); m.position.sub(c); });
-      spin.push({hub, dir: +key >= 0 ? 1 : -1});
+      spin.push({hub, dir: (+key >= 0 ? 1 : -1)*(def.pusher ? -1 : 1)});   // a pusher turns the other way: anticlockwise seen from behind, as its blades are made (an engine turned round, as on the Long-EZ and the Aerocar)
     });
     if(def.contra){ spin.slice().forEach(sp=>{ const h2 = sp.hub.clone(true); h2.position.x += def.contra; h2.rotation.x = Math.PI/4; groups.prop.add(h2); spin.push({hub:h2, dir:-sp.dir});
       sp.hub.traverse(o=>{ if(o.isMesh && /spinner/i.test(o.name + ' ' + (o.parent && o.parent.name))) o.visible = false; }); }); }   /* contra-rotating: one spinner (the front one) over two rows of blades, not two whole propellers stacked (owner, 2026-10-05) */
@@ -3087,7 +3122,7 @@ function goTo(n, instant){
   tiltGoal = cur.gearStep >= 0 && step >= cur.gearStep ? cur.tilt : 0;
   tiltDelay = step === cur.gearStep ? now + 1100 : 0;
   if(instant) pivot.rotation.z = tiltGoal;
-  const cv = s.flight ? [.8,.2,1.0] : CAMS[s.parts[ids[0]].type] || CAMS.body;
+  const ty = s.flight ? null : s.parts[ids[0]].type, cv = s.flight ? [.8,.2,1.0] : CAMS[ty === 'prop' && cur.def.pusher ? 'pusher' : ty] || CAMS.body;   // (a pusher's propeller: seen from behind)
   camGoal.pref = cv[0]; camGoal.el = cv[1]; camGoal.k = Math.max(.9, Math.min(1.1, cv[2])); camGoal.az = bestView(cv[0], cv[1], camGoal.k);
   if(instant){ cam.az = camGoal.az; cam.el = camGoal.el; cam.dist = fitDist(cam.az, cam.el)*camGoal.k; }
   userDriven = false; propSpeed = 0;
@@ -3988,7 +4023,7 @@ function frameStep(now){
     const e = pid && G[pid].userData.enter;
     if(e && now-e.t0 > 1000) propSpeed = Math.min(6, propSpeed+dt*6);
   }
-  cur.B.spin.forEach(({hub,dir,ax,k})=>hub.rotation[ax || 'x'] += propSpeed*dt*dir*(k || 1));
+  cur.B.spin.forEach(({hub,dir,ax,k})=>hub.rotation[ax || 'x'] += propSpeed*dt*dir*(k == null ? 1 : k));
   if(cur.pair) twinPose(cur, dt, {tilt: pivot.rotation.z, air: flight.mode === 'tour' && plane.position.y > 8});   // Ned & Zed: side by side, bobbing a little in the air
   updateSpray(dt);
   showGuard(); if(SHOW.ctx === 'hangar') showFrame(dt); bbHangarFrame(dt); showBtnSync(); soloBtnSync();   // the win show in the hangar: shut by anything else, its clock and pose, the Open up! button (section "win show")
@@ -8827,7 +8862,7 @@ function updateRacer(r, dt){
   setGearFor(r.c, moving ? smooth(.72, 1, ft) : 0);
   if(r.c.pair) twinRace(r, moving, ft, dt);   // Ned & Zed: the formation, bobbing, tricks
   const spd = RACE.phase==='intro' ? 9 : RACE.phase==='count' ? 20 : 40;
-  r.c.B.spin.forEach(({hub,dir,ax,k})=>hub.rotation[ax || 'x'] += spd*dt*dir*(k || 1));
+  r.c.B.spin.forEach(({hub,dir,ax,k})=>hub.rotation[ax || 'x'] += spd*dt*dir*(k == null ? 1 : k));
   r.c.B.glows.forEach(g=>{ g.visible = moving && ft > .02; g.scale.set(1, (.9 + Math.random()*.5)*(1 + Math.max(0, r.glowT)*1.2), 1); });
   // eyes redraw two 256 px canvases and re-upload them: only for a racer close to the camera and on screen, ~7 times a second
   r.faceT = (r.faceT || 0) + dt;
@@ -11111,7 +11146,7 @@ WP_KIND.beam = {make: r=>Object.assign({boost: 0}, inkBeamMake(r.c)),
    mergeStatic) so each wing folds on its own hinge; everything is put back exactly at the end (fzEnd). The road and the hubcaps are made at the show's
    start (one slab, one disc, two small canvases) and freed at its end. Sky City: a shorter drop and road, checked against its towers (fzPlan). */
 const FZ = {f0: .15, f1: 1.25, u0: 5.55, u1: 6.55, l0: .15, l1: .9, l2: 5.6, l3: 6.4, d0: 1.1, d1: 1.42, d2: 5.3, d3: 5.95, r0: .65, r1: 1.15, r2: 5.75, r3: 6.2,
-  w0: 2.05, w1: 2.45, w2: 4.3, w3: 4.62, A: .82, stack: .55, drop: .32, dropCity: .16, road: [5, .56, .05], roadCity: 3.2, len: 7};   // seconds: fold, unfold, level, drop, lift, road out and in, wheelie; A: the wheelie (rad); stack: the folded wings over the boom (m, clear of the tailplane); drop, road (length, width, thickness): in sizes of the plane
+  w0: 2.05, w1: 2.45, w2: 4.3, w3: 4.62, A: .82, stack: .55, drop: .32, dropCity: .16, road: [5, .56, .05], roadCity: 3.2, len: 7, p0: .75, p1: .7};   // seconds: fold, unfold, level, drop, lift, road out and in, wheelie; A: the wheelie (rad); stack: the folded wings over the boom (m, clear of the tailplane); drop, road (length, width, thickness): in sizes of the plane; p0: his propeller wound down (s), p1: its last turn to a stop (s)
 const fzS = (t, a, b)=>shEz((t - a)/(b - a));
 const _fzA = V(0,0,0), _fzB = V(0,0,0), _fzC = V(0,0,0), _fzQ = new T.Quaternion(), _fzQ2 = new T.Quaternion(), _fzX = V(1,0,0), _fzY = V(0,1,0), _fzZ = V(0,0,1);
 function fzMake(r){
@@ -11129,10 +11164,11 @@ function fzMake(r){
   P.wheel = W4.map((b, i)=>({c: b.getCenter(V(0,0,0)), r: Math.max(.1, (b.max.y - b.min.y)/2), z: i & 1 ? b.max.z : b.min.z, front: i >= 2}));
   P.rear = V((W4[0].min.x + W4[0].max.x + W4[1].min.x + W4[1].max.x)/4, gb.min.y, 0);   // the back wheels' contact, the model's metres
   P.Pb = V(gb.min.x - .2, yh - .25, 0);   // the tail boom's hinge: the back of the cabin, under the wing's root
-  /* what swings with the boom: the tail group (fin, stabilisers), the wing group (its wings fold inside it), the boom and the spinner at its end */
-  ['tail', 'wing'].forEach(id=>{ const g = G[id]; if(g) P.gr.push({g, p: g.position.clone(), q: g.quaternion.clone()}); });
+  /* what swings with the boom: the tail group (fin, stabilisers), the wing group (its wings fold inside it), the propeller, the boom and the spinner at its end */
+  ['tail', 'wing', 'prop'].forEach(id=>{ const g = G[id]; if(g) P.gr.push({g, p: g.position.clone(), q: g.quaternion.clone()}); });
   Object.values(G).forEach(g=>g.children.forEach(m=>{ if(m.isMesh && !m.userData.decal && g !== G.tail && g !== G.wing && /^(tail|carbody\.?002)$/i.test(m.name)) P.moved.push({m, p: m.position.clone(), q: m.quaternion.clone()}); }));
   if(G.boom) G.boom.children.forEach(m=>{ if(m.isMesh && /^supportbeams/i.test(m.name)) P.strut = {m, s: m.scale.z}; });
+  P.sp = G.prop ? (c.B.spin || []).filter(s=>s.hub.parent === G.prop).map(s=>({s, k: s.k})) : []; P.ps = 0; P.pt = 0;   // his propeller's spins (fzProp)
   ['wing', 'tail', 'boom'].forEach(id=>{ const g = G[id]; if(g) g.children.forEach(m=>{ if(m.userData.decal) P.dec.push({m, v: m.visible}); }); });   // its stickers on the parts that move hide while it is a car
   /* the hubcaps: a spoked disc on each wheel's outside */
   const tx = inkCv(64, 64, (x, w, h)=>{ x.fillStyle = '#2b2f36'; x.beginPath(); x.arc(32, 32, 31, 0, 7); x.fill(); x.fillStyle = '#d9dee4'; x.beginPath(); x.arc(32, 32, 24, 0, 7); x.fill();
@@ -11168,7 +11204,14 @@ function fzFold(P, f, b){
   P.gr.forEach(e=>{ e.g.quaternion.copy(_fzQ); e.g.position.copy(_fzC); }); P.moved.forEach(e=>{ e.m.quaternion.copy(_fzQ); e.m.position.copy(_fzC); });
   if(P.strut) P.strut.m.scale.z = P.strut.s*(1 - .7*f);
   const hide = f > .02; P.dec.forEach(e=>{ e.m.visible = hide ? false : e.v; }); }
-function fzEnd(P){ if(!P.ok) return; P.wings.forEach(w=>{ w.m.position.copy(w.p); w.m.quaternion.copy(w.q); w.m.scale.copy(w.s); }); P.gr.forEach(e=>{ e.g.position.copy(e.p); e.g.quaternion.copy(e.q); });
+/* his propeller (B.spin's k, the race's spin times it): it winds down as his wings start to fold, then eases to a stop with its blades level (across,
+   clear of the road in the wheelie and under the wings stacked over the boom), held while he is a car; it winds up again as the wings unfold */
+function fzProp(P, t, dt){ if(!P.sp.length) return; const run = 1 - fzS(t, FZ.f0, FZ.p0) + fzS(t, FZ.u0, FZ.u1);   // 1 flying, 0 a car
+  if(!P.ps && run < .15){ P.ps = 1; P.pt = 0; P.sp.forEach(e=>{ const h = e.s.hub, a = h.rotation.x, H = Math.PI/2, d = e.s.dir;   // the next level angle at least .9 rad on, in the way it turns
+    e.a0 = a; e.a1 = d > 0 ? Math.ceil((a + .9 - H)/Math.PI)*Math.PI + H : Math.floor((a - .9 - H)/Math.PI)*Math.PI + H; }); }
+  if(P.ps === 1){ P.pt = Math.min(1, P.pt + dt/FZ.p1); const e = 1 - (1 - P.pt)*(1 - P.pt); P.sp.forEach(q=>{ q.s.k = 0; q.s.hub.rotation.x = q.a0 + (q.a1 - q.a0)*e; }); if(t >= FZ.u0) P.ps = 2; return; }
+  P.sp.forEach(q=>{ q.s.k = Math.max(0, Math.min(1, run)); }); }
+function fzEnd(P){ if(!P.ok) return; P.sp.forEach(q=>{ q.s.k = q.k; }); P.wings.forEach(w=>{ w.m.position.copy(w.p); w.m.quaternion.copy(w.q); w.m.scale.copy(w.s); }); P.gr.forEach(e=>{ e.g.position.copy(e.p); e.g.quaternion.copy(e.q); });
   P.moved.forEach(e=>{ e.m.position.copy(e.p); e.m.quaternion.copy(e.q); }); if(P.strut) P.strut.m.scale.z = P.strut.s; P.dec.forEach(e=>{ e.m.visible = e.v; }); P.ok = false; }
 function fzClunk(k){ if(WL.m) return; tone(150 + k*30, .07, 'square', .06, 90); noiseHit(2200, 800, .05, .07, 1.6); }
 function fzThump(){ if(WL.m) return; tone(72, .2, 'sine', .15, 42); noiseHit(420, 180, .16, .12, .8); }
@@ -11184,7 +11227,7 @@ function fzPose(P, r, dt, t){
   R.rotation.x *= 1 - k; R.rotation.z *= 1 - k; R.updateMatrix(); const ra = P.ra || (P.ra = V(0,0,0)); ra.copy(P.rc).applyMatrix4(R.matrix); const roadTop = ra.y - P.drop;   // (ra: the contact, level, before the drop)
   R.position.y += -P.drop*dk + bounce + bounce2; if(wh > 1e-4){ R.updateMatrix(); _fzB.copy(P.rc).applyMatrix4(R.matrix); R.rotation.z += wh; R.updateMatrix(); _fzC.copy(P.rc).applyMatrix4(R.matrix); R.position.add(_fzB).sub(_fzC); }
   r.P.copy(R.position);
-  fzFold(P, f, -wh*1.02);
+  fzFold(P, f, -wh*1.02); fzProp(P, t, dt);
   /* the road: rolled out under him along his way, its dashes running back as he drives */
   const rs = fzS(t, FZ.r0, FZ.r1)*(1 - fzS(t, FZ.r2, FZ.r3)), rd = P.road; rd.visible = rs > .01;
   if(rd.visible){ const fx = Math.cos(r.yaw), fz = -Math.sin(r.yaw), ah = P.Lr*.12; rd.scale.set(Math.max(.01, rs), 1, Math.max(.05, Math.min(1, rs*2)));
@@ -13862,7 +13905,7 @@ function roPose(r, pos, dt, snap, tan){
   if(r.wlShake > 0){ r.wlShake -= dt; const q = Math.min(1, r.wlShake*1.6); r.root.rotation.x += Math.sin(RACE.clock*38)*.22*q; r.root.rotation.z += Math.sin(RACE.clock*29 + 1)*.08*q; r.root.position.y += Math.sin(RACE.clock*33)*1.2*q; }
   r.piv.rotation.z = r.c.tilt*(r.tiltK || 0); setGearFor(r.c, r.gear);
   if(r.c.pair) twinPose(r.c, dt, {tilt: r.piv.rotation.z, air: !r.onDeck});   // Ned & Zed: their formation (no race tricks: those read the race's path)
-  const spd = r.onDeck ? 14 : 40; r.c.B.spin.forEach(({hub,dir,ax,k})=>hub.rotation[ax || 'x'] += spd*dt*dir*(k || 1));
+  const spd = r.onDeck ? 14 : 40; r.c.B.spin.forEach(({hub,dir,ax,k})=>hub.rotation[ax || 'x'] += spd*dt*dir*(k == null ? 1 : k));
   if(r.glowT > 0) r.glowT -= dt; r.c.B.glows.forEach(g=>{ g.visible = !r.onDeck; g.scale.set(1, (.9 + Math.random()*.5)*(1 + Math.max(0, r.glowT)*1.2), 1); });
   r.faceT = (r.faceT || 0) + dt;
   if(r.faceT > .15 && rCam.position.distanceToSquared(r.P) < 220*220 && _fv.copy(r.P).project(rCam).z < 1 && Math.abs(_fv.x) < 1.2 && Math.abs(_fv.y) < 1.2){ updateFace(r.c, r.faceT, Math.sin(RACE.clock*.8 + r.ph)*.3, 0); r.faceT = 0; }
@@ -16627,7 +16670,7 @@ function scHeroSaves(per){
 /* place a hero's full model at its slot's pose, spin its propellers, hide parts smaller than a pixel, blink its eyes */
 function scHeroShow(h, dt){
   const c = h.c, r = h.root; r.visible = true; r.position.copy(h.P); r.quaternion.copy(h.q); if(c.pair) twinPose(c, dt || 0, {air: true});   // Ned & Zed fly side by side
-  (c.B.spin || []).forEach(({hub, dir, ax, k})=>hub.rotation[ax || 'x'] += 40*(dt || 0)*dir*(k || 1));
+  (c.B.spin || []).forEach(({hub, dir, ax, k})=>hub.rotation[ax || 'x'] += 40*(dt || 0)*dir*(k == null ? 1 : k));
   c.B.glows.forEach(g=>{ g.visible = true; g.scale.set(1, .9 + Math.random()*.5, 1); });
   const glow = SC.U.uHeroN.value; c.model.traverse(o=>{ if(!o.isMesh) return; const m = o.material; if(m && m.userData && m.userData.scGlow !== undefined) m.emissiveIntensity = m.userData.scGlow*glow; });
   const d = h.det, dist = Math.sqrt(h.d2); if(d){ const thr = DET.px*.5*Math.max(1, dist)/DET.focal; let n = 0; while(n < d.length && d[n].rad < thr) n++;
@@ -18272,6 +18315,11 @@ if(window.__hangar) Object.assign(window.__hangar, {
       m++; t += (o.geometry.index ? o.geometry.index.count : o.geometry.attributes.position.count)/3; }); out.groups[id] = {meshes: m, tris: t}; out.meshes += m; out.tris += t; }); return out; },
   paintGroups: ()=>{ const out = {}; Object.entries(cur.groups).forEach(([id, g])=>{ const ms = g.userData.mats.filter(m=>m.userData.paintUni && !m.userData.decal); out[id] = {n: ms.length, on: ms.some(m=>m.userData.paintUni.paintMix.value > .5)}; }); return out; },
   propAngles: ()=>(cur ? cur.B.spin : []).map(s=>+s.hub.rotation[s.ax || 'x'].toFixed(3)),
+  propBoxes: (w, ids)=>{ const c = w && w !== 'cur' ? (RACE.racers.find(x=>x.c.def.id === w) || {}).c : cur; if(!c) return null; c.model.updateMatrixWorld(true); const inv = new T.Matrix4().copy(c.model.matrixWorld).invert(), out = {};   // tests: parts' boxes in the model's metres (Franz's propeller: its clearances)
+    (ids || Object.keys(c.groups)).forEach(id=>{ const g = c.groups[id]; if(!g) return; const b = new T.Box3(), v = V(0,0,0); g.traverse(o=>{ if(!o.isMesh || !o.visible) return; const p = o.geometry.attributes.position; for(let i = 0; i < p.count; i++) b.expandByPoint(v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv)); });
+      if(!b.isEmpty()) out[id] = [b.min.toArray().map(x=>+x.toFixed(3)), b.max.toArray().map(x=>+x.toFixed(3))]; });
+    return {boxes: out, spin: c.B.spin.map(s=>({dir: s.dir, k: s.k, a: +s.hub.rotation[s.ax || 'x'].toFixed(3)}))}; },
+  hangarCam: (az, el, k, at)=>{ userDriven = true; cam.az = camGoal.az = az; cam.el = camGoal.el = el; camGoal.k = k || 1; cam.dist = at ? k : fitDist(az, el)*(k || 1); if(at){ cur.model.updateMatrixWorld(true); focus.copy(cur.model.localToWorld(V(...at))); } render(); return [cam.az, cam.el, cam.dist]; },   // tests: a hangar view (at: a point in the model's metres to look at, from k ft; hold it with setMaxDt)   // tests: a hangar view
   talkKinds: (id, L)=>{ const t = PLANE_TALK[id] && PLANE_TALK[id][L]; const o = {}; if(t) Object.entries(t).forEach(([k, a])=>{ o[k] = a.length; }); return o; },
   apartOf: w=>w === 'keep' ? window.__bbKeep : w === 'cur' || !w ? cur : (RACE.racers.find(x=>x.c.def.id === w) || {}).c,   // (Bristles' win trick: a copy by name)
   apartInfo: w=>{ const c = window.__hangar.apartOf(w || (WM.r ? WM.r.c.def.id : 'cur')), P = c && c.bbA; if(!P) return {made: false, hangar: !!BBH.c};
