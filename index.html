@@ -12904,7 +12904,7 @@ function ltRender(q){
   const caps = !q.small && ltCaps(), big = q.small ? q.ch.toLowerCase() : q.ch;   // capitals only: the card shows the capital alone and the words are written in capitals (speech does not change); small letters: the small letter alone, words in small letters
   ltFlyClear(); pics.innerHTML = `<b class="lt-big${caps || q.small ? ' caps' : ''}${q.small ? ' small' : ''}${k !== 'first' ? ' k-' + k : ''}"><span class="lt-cap">${big}</span>${caps || q.small ? '' : `<i>${q.ch.toLowerCase()}</i>`}</b>`;
   ans.innerHTML = ''; ans.className = 'rq-ans pair lt' + (q.opts.length > 2 ? ' three' : '') + (caps ? ' caps' : '') + (q.live ? '' : ' wait');
-  q.opts.forEach((o, i)=>{ const bt = document.createElement('button'), w = o.w[0], shown = caps ? w.toUpperCase() : w, [a, b] = ltMark(k, w);
+  q.opts.forEach((o, i)=>{ const bt = document.createElement('button'), w = o.w[0], shown = caps ? w.toUpperCase() : w, [a, b] = ltMark(k === 'dig' && !LT_DIG.includes(o.d) ? 'first' : k, w);   // (on a two-letter card only the pairs' words mark two letters)
     bt.innerHTML = `${ltPic(o.w[1])}<span class="pr-w${w.length > 9 ? ' longer' : w.length > 6 ? ' long' : ''}">${escHTML(shown.slice(0, a))}<b class="fl">${escHTML(shown.slice(a, b))}</b>${escHTML(shown.slice(b))}</span>`;
     bt.setAttribute('aria-label', w); bt.addEventListener('click', ()=>ltTap(q, i, bt)); ans.appendChild(bt); });
   $('rqSay').setAttribute('aria-label', u.sayAgain); $('rqSay').querySelector('.rq-sayt').textContent = u.sayAgain; lnTrail();
