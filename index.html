@@ -1543,7 +1543,7 @@ G({id:'superhornet', build:'superhornet', jet:true, glowEach:true, faceEyes:'shi
   note:{en:`${ANGEL.name} is a Super Hornet, a big, fast Navy jet. He flies with the Blue Angels, the Navy's flight demonstration team. The Blue Angels fly in a diamond, so close together that their wings almost touch, to show everyone how a Super Hornet can fly. ${ANGEL.name} is number 1, the leader! He is dark blue with bright yellow stripes. Look for his square air intakes and the little notch in each wing.`,
         es:`${ANGEL.name} es un Super Hornet, un jet grande y rápido de la Marina. Vuela con los Blue Angels, el equipo de exhibición aérea de la Marina. Los Blue Angels vuelan en forma de diamante, tan juntitos que sus alas casi se tocan, para mostrarle a todos cómo vuela un Super Hornet. ¡${ANGEL.name} es el número 1, el líder! Es azul oscuro con rayas amarillas brillantes. Busca sus tomas de aire cuadradas y la muesquita en cada ala.`},
   spec:{span:['44 ft 9 in','13.6 m'],len:['60 ft 1 in','18.3 m'],first:['Nov 29, 1995','29 de noviembre de 1995']},
-  paint:{a:'#14316e',b:'#f6c11c'},
+  paint:{a:'#0f285c',b:'#f6c11c'},
   steps:[
     S('body',P('Fuselage','Fuselaje','body'),null,{en:['Set the fuselage on the bench','A long, pointy Navy jet. The pilot sits up front, under a clear bubble.'],es:['Pon el fuselaje en el banco','Un jet de la Marina largo y puntiagudo. El piloto va adelante, bajo una burbuja transparente.']}),
     S('intake',P('Square intakes','Tomas de aire cuadradas','intake'),'^intake',{en:['Add the square intakes','Super Hornets have square air intakes. They gulp in air for the engines.'],es:['Pon las tomas de aire cuadradas','Los Super Hornet tienen tomas de aire cuadradas. Se tragan el aire para los motores.']}),
@@ -2741,10 +2741,10 @@ function buildConcorde(T){
    nose to the windscreen, the canopy rails, two stripes along the top of the fuselage to the fins, the LEX edges; U.S. NAVY and the lead's 1
    in yellow are drawn in the paint (gfxAngel, section "graphics"); no squadron crest or insignia. Feet, x aft from the nose (X turns it
    around), the ground at y = 0, the origin 30 ft back. lod: hvKit's (0 the full model, 1 and 2 the city copies: shSky, no files). */
-const SH = {C: 30, cant: 20*Math.PI/180, navy: 0x14316e, yel: 0xf6c11c};
+const SH = {C: 30, cant: 20*Math.PI/180, navy: 0x0f285c, yel: 0xf6c11c};
 function buildSuperHornet(T, lod){
   const C = SH.C, X = x=>C - x, root = new T.Group(); root.name = 'superhornet'; const K = bkKit(T, X), H = hvKit(T, K, X, lod), n = H.n, D = H.D, L = H.L, sm = bkSm, PI = Math.PI;
-  const navy = H.skin(SH.navy, .42), yel = H.skin(SH.yel, .45), seam = H.skin(0x0b1f4c, .5);
+  const navy = H.skin(SH.navy, .56), yel = H.skin(SH.yel, .5), seam = H.skin(0x081a40, .6);
   navy.normalScale && navy.normalScale.set(.35, .35); yel.normalScale && yel.normalScale.set(.3, .3);
   const dark = H.keep(H.M(0x16191d, .7, .1)), duct = H.keep(H.M(0x2b3036, .6, .2)), metal = H.keep(H.M(0x8d949a, .35, .65)), burnt = H.keep(H.M(0x5d564e, .45, .55));
   const chrome = H.keep(H.M(0xd9dee2, .22, .8)), tire = H.keep(H.M(0x1c1c1c, .85, 0)), white = H.keep(H.M(0xe9ecef, .5, .1)), cabin = H.keep(H.M(0x2a2e33, .85, 0)), seatM = H.keep(H.M(0x3b3f2f, .8, 0));
@@ -3664,7 +3664,7 @@ function voDecode(b){ const a = audio(), OC = window.OfflineAudioContext || wind
 /* a plane added after the test build reached its file cap (Bristles, 2026-10-16): its learning lines ride in its own voice's shared pack
    (pv-<voice>: a voice nobody else has) instead of pv-<voice>-<id>, and the blimp's calls with its name in her shared pack (bl) instead
    of bl-<id>; its race pack (pv-<voice>-<id>-r) stays its own, so a classic race still loads only its race lines (NARRATION.md) */
-const VO_FOLD = {bristles: 1, concorde: 1}, blPack = id=>VO_FOLD[id] ? 'bl' : 'bl-' + id;
+const VO_FOLD = {bristles: 1, concorde: 1, superhornet: 1}, blPack = id=>VO_FOLD[id] ? 'bl' : 'bl-' + id;
 const VO_BUILD = {concorde: 'ui', superhornet: 'ui'}, buildPack = id=>VO_BUILD[id] || id;   // 2026-10-23 (the Concorde, at the test build's file cap of 511): its build narration rides in the narrator's ui pack, no <lang>-concorde pack of its own
 /* a plane whose voice has no pack of its own (Angel, 2026-10-31: the published site at its file cap, every file it has spoken for): its lines ride in
    two existing packs per language (VO_HOST: [the learning races' pack, the race pack], the Hornet family's, Echo & Bravo's), keyed
@@ -18181,6 +18181,7 @@ if(window.__hangar) Object.assign(window.__hangar, {
   csInfo: ()=>{ const S = CS, K = rCourse; return {uK: S.U ? S.U.uK.value : 0, dome: !!S.dome && S.dome.visible, inScene: !!S.dome && !!S.dome.parent, groupHidden: !!K && !K.group.visible, fogBase: S.fog && {n: Math.round(S.fog.n), f: Math.round(S.fog.f)}, fog: rScene && rScene.fog ? {n: Math.round(rScene.fog.near), f: Math.round(rScene.fog.far), c: rScene.fog.color.getHexString()} : null, cone: !!S.cone && S.cone.visible, rings: S.rings.filter(m=>m.visible).length, peak: +(S.peak || 0).toFixed(2), hidN: S.hidN || 0, coneN: S.coneN || 0, ringN: S.ringN || 0, turn: saveGet('hangar-wmturn'), city: !!(K && K.city)}; },
   winMoveRec: on=>{ WM.recOn = !!on; WM.rec = on ? wmRecNew() : null; return WM.recOn; },
   winMoveAt: t=>{ if(!WM.on) return null; WM.t = t; WM.ei = 0; while(WM.ei < WM.ev.length && WM.ev[WM.ei][0] < t) WM.ei++; return WM.t; },   // tests: jump the routine's clock (its events before t are skipped)
+  shEval: src=>eval(src),   // tests (Angel, 2026-10-31): the game's own state by name, for the checks of a new plane (its build steps, gear, show, copies)
   winMoveEval: f=>f({WM, WM_CAM, WM_FIT, WIN_MOVE, RACE, rCourse, rCam, rPylons, FT, FL, FLR, SMOKE, DD, DDR, DD_HATCH, crSolid, ddGround, CARRIER, renderer, rScene, T}),   // probes and tuning
   flareInfo: ()=>{ const F = FL, M = F.mesh; let on = 0, inS = 0; const hn = M ? M.geometry.instanceCount : 0, city = !!(rCourse && rCourse.city); if(rCam) rCam.updateMatrixWorld();   // Echo & Bravo's flares now: how many, on screen, in a building
     for(let i = 0; i < hn; i++){ _flP.fromArray(F.hp, i*3); if(city && crSolid(_flP.x/FT, _flP.y/FT, _flP.z/FT) && F.ha[i*2 + 1] > .3) inS++; if(rCam){ _flP.project(rCam); if(_flP.z < 1 && Math.abs(_flP.x) <= 1 && Math.abs(_flP.y) <= 1) on++; } }
