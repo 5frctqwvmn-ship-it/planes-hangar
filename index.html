@@ -441,6 +441,7 @@
   .wd-log th,.wd-log td{text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:top}
   .rw-word{display:flex;align-items:center;justify-content:center;gap:14px;min-height:84px}
   .rw-word .wd-e{font-size:68px}
+  .rw-ppic{font-size:52px;line-height:1;text-align:center;margin:-2px 0 -4px}
   .rw-word .wd-l{width:68px;height:68px;font-size:38px}
   .rw-word b{font:900 40px/1.05 var(--display);color:var(--ink);overflow-wrap:normal;word-break:normal;hyphens:none;min-width:0;flex:0 1 auto}   /* never broken inside a word: wdFit shrinks it to fit */
   .rw-btns{display:grid;grid-template-columns:1.4fr 1fr;gap:10px;position:relative}
@@ -489,6 +490,7 @@
   .wl{position:absolute;inset:0;pointer-events:none}
 .wl-fx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
   .wl-strip{position:absolute;left:calc(var(--sl) + 10px);right:calc(var(--sr) + 136px);bottom:calc(var(--sb) + 12px);min-height:58px;box-sizing:border-box;background:rgba(255,255,255,.95);border-radius:18px;padding:5px 10px 7px;display:flex;flex-direction:column;justify-content:center;gap:3px;box-shadow:0 6px 20px rgba(0,0,0,.25);color:var(--ink)}
+  .wl-strip.pic{display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-content:center}.wl-strip.pic .wl-pic{display:block;grid-row:1 / span 2;align-self:center;font-size:44px;line-height:1}.wl-pic{display:none}   /* the word's picture, left of the parts (2026-10-31) */
   .wl-say{display:flex;align-items:center;gap:6px;min-height:17px;font:800 14px/1.15 var(--display);color:#4a5552}
   .wl-row{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
   .wl-pos{margin-left:auto;background:var(--mustard);color:#1c2426;border-radius:6px;padding:1px 6px;font:800 13px var(--mono)}
@@ -552,6 +554,7 @@
   @media (prefers-reduced-motion:reduce){.lt-fly span,.rq-ans.lt .pr-w .fl.hl{animation:none!important}}
   .rq-ans.lt.three .pr-w.long{font-size:17px}.rq-ans.lt.three .pr-w.longer{font-size:15px}   /* three pictures on a phone: about 100 px a button ("newspaper", "watermelon") */
   .ls-card.c-letters{background:#fff1c9}
+  .rsw-lv.nine{grid-template-columns:repeat(9,1fr);gap:4px}.rsw-lv.nine button{font-size:14px;padding:0}
   .rsw-lv.lt-lv{grid-template-columns:repeat(4,1fr)}.rsw-lv.lt-lv button{min-height:48px}
   /* one try a question (2026-10-31): the answers sleep until the question has been said (.wait) and fade in; a tap too soon only wiggles
      (.nudge); after a miss the right answer lights up (.show); the first-try stars on the card (#rqTrail); the levels 7 to 12 of the number
@@ -798,6 +801,7 @@
         <div class="rq-head"><b id="rwPrompt"></b><button class="iconbtn rq-say big" id="rwSay"><svg class="i" viewBox="0 0 24 24"><path d="M4 9.5h4l5-4v13l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span class="rq-sayt"></span></button></div>
         <div class="rw-cue" id="rwCue" hidden></div>
         <div class="rw-word"><span class="rw-pic" id="rwPic"></span><b id="rwText"></b></div>
+        <div class="rw-ppic" id="rwPPic" hidden aria-hidden="true"></div>
         <div class="rw-chips" id="rwChips" hidden></div>
         <div class="rw-btns"><button class="rw-try" id="rwTry"></button><button class="rw-clear" id="rwClear"></button><div class="rw-meter" id="rwMeter" hidden></div></div>
       </div>
@@ -811,7 +815,7 @@
       <div class="rt-coach" id="rtCoach" hidden><p id="rtCoachT"></p><button id="rtCoachOk"></button></div>
       <div class="wl" id="wl" hidden><canvas class="wl-fx" id="wlFx" hidden></canvas>
         <button class="wl-tap" id="wlTap" hidden></button>
-        <div class="wl-strip" id="wlStrip"><div class="wl-say"><i class="wl-mic" id="wlMic"></i><span id="wlSay"></span><b class="wl-pos" id="wlPos"></b></div><div class="wl-row" id="wlParts"></div></div>
+        <div class="wl-strip" id="wlStrip"><span class="wl-pic" id="wlPic" aria-hidden="true"></span><div class="wl-say"><i class="wl-mic" id="wlMic"></i><span id="wlSay"></span><b class="wl-pos" id="wlPos"></b></div><div class="wl-row" id="wlParts"></div></div>
         <button class="wl-again" id="wlAgain" hidden></button>
         <button class="wl-rep" id="wlRep" hidden><svg class="i" viewBox="0 0 24 24"><path d="M4 9.5h4l5-4v13l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span id="wlRepT"></span></button>
         <button class="wl-said" id="wlSaid"></button>
@@ -985,7 +989,7 @@ const UI = {
       praiseTry:['Good try!','Nice talking!','Way to go!'],praiseClear:['So clear!','Super talking!','Wow, great job!'],saidWords:n=>n===1?'You said 1 word!':`You said ${n} words!`,triesN:n=>n===1?'1 try':`${n} tries`,
       practiceWords:'Practice words',wordsHint:'For grown-ups: type the words your child is practicing, or tap picture words. Tap Good try for any try (a small boost, and the word comes back once more); tap Clear! when a word comes out clear (a star burst, a big boost and a step toward the next level).',typeWord:'Type a word',add:'Add',
       pictureWords:'Picture words',practiceLog:'Practice log',day:'Day',tries:'Tries',clearCol:'Clear',mostWords:'Most practiced',noWords:'No words yet',noLog:'No practice yet',editWords:'Edit words',
-      todayTries:(t,c)=>`Today: ${t} tries, ${c} clear`,fSounds:'F sounds',myWords:'My words',wLevel:'Level',wLevels:['Short words','Longer words','F-L and F-R','Big words','Two words','Sentences'],levelUp:'Level up!',maxWords:'24 words is the most.',flags:'Flags',findFlag:'Find a country',moreFlags:'More flags',ceEyes:'Eyes',ceSmile:'Smile',ceHint:'Drag the sticker to slide it. Drag around it to look. Pinch or use the sliders to resize and turn.',ceHintFace:'Drag to move it. Drag around it to look. Pinch or use the sliders to resize and turn.',ceTurn:'Turn',ceSize:'Size',ceZoom:'Zoom',closeUp:'Up close',closeEyes:'Adjust eyes',closeSmile:'Adjust smile'},
+      todayTries:(t,c)=>`Today: ${t} tries, ${c} clear`,fSounds:'F sounds',myWords:'My words',wLevel:'Level',wLevels:['Short words','Longer words','F-L and F-R','Big words','Two words','Sentences','F in the middle','F at the end','F everywhere'],levelUp:'Level up!',maxWords:'24 words is the most.',flags:'Flags',findFlag:'Find a country',moreFlags:'More flags',ceEyes:'Eyes',ceSmile:'Smile',ceHint:'Drag the sticker to slide it. Drag around it to look. Pinch or use the sliders to resize and turn.',ceHintFace:'Drag to move it. Drag around it to look. Pinch or use the sliders to resize and turn.',ceTurn:'Turn',ceSize:'Size',ceZoom:'Zoom',closeUp:'Up close',closeEyes:'Adjust eyes',closeSmile:'Adjust smile'},
   es:{pickPlane:'Elige un avión',fieldPick:'¡Toca un avión!',fieldLoading:(n,t)=>`Llegan los aviones: ${n} de ${t}`,laps:'Vueltas',lapN:n=>`¡Vuelta ${n}!`,finalLap:'¡Última vuelta!',photoFinish:'¡Final de foto!',eyeStyle:'Estilo de ojos',eyesSep:'Separados',eyesJoin:'Juntos',glassOff:'Ventanas: transparentes',glassOn:'Ventanas: pintadas',planes:'Aviones',about:'Sobre este avión',close:'Cerrar',design:'Diseñar',scheme:'Esquema de pintura',color1:'Color 1',color2:'Color 2',noFace:'Este avión no tiene lugar para cara.',eyesOn:'Ojos en',smileOn:'Sonrisa en',spotShield:'Parabrisas',spotNose:'Nariz',spotSides:'Lados',spotWings:'Alas',tapPlace:'Tocar para poner',spotChin:'Debajo de la nariz',spotFront:'Frente',noSmile:'Sin sonrisa',faceSize:'Tamaño de cara',winner:'¡GANADOR!',nextCourse:n=>`Sigue: ${n}`,twoLaps:'2 vueltas',buildingCourse:n=>`Construyendo ${n}`,course:'Pista',moveEyes:'Mover ojos',moveSmile:'Mover sonrisa',eyesBigger:'Cara más grande',eyesSmaller:'Cara más chica',faceReset:'Cara original',tapEyes:'Toca el avión donde quieres los ojos.',tapSmile:'Toca el avión donde quieres la sonrisa.',stickers:'Calcomanías',stickerBox:'Caja de calcomanías',trayHint:'Elige una calcomanía y toca un punto brillante o cualquier parte del avión. Toca una calcomanía en el avión para acercarte y ajustarla.',trayHint2:'Ahora toca un punto brillante del avión.',bigger:'Más grande',smaller:'Más chica',turn:'Girar',remove:'Quitar',addOwn:'Agregar tu imagen',nextNum:'Siguiente número',yourImage:'Tu imagen',face:'Cara',faceNames:['Sin cara','Amigable','Corredor','Chistosa'],race:'Carrera',finished:'¡Terminó!',lap:'Vuelta',go:'¡YA!',wins:(n,c)=>`¡Gana ${n}!`,results:'Resultados',raceAgain:'Otra carrera',backHangar:'Volver al hangar',raceTitle:'La Copa del Cielo',lapsSay:n=>['Una vuelta.','Dos vueltas.','Tres vueltas.','Cuatro vueltas.','Cinco vueltas.'][(n || 2) - 1],annGo:['¡A correr!','¡Aquí vamos!','¡Listos para volar!'],raceIntro:(c,ns,nl)=>[`¡Bienvenidos a ${c}!`, 'Los corredores de hoy:', ns.map((n,i)=>n + (i < ns.length-1 ? ',' : '.')), ['Una vuelta.','Dos vueltas.','Tres vueltas.','Cuatro vueltas.','Cinco vueltas.'][(nl || 2) - 1]],lapsN:n=>n === 1 ? '1 vuelta' : `${n} vueltas`,loadingRacers:(i,n)=>`Cargando corredor ${i} de ${n}`,pickRacers:'Elige tus corredores',pickHint:'Elige una pista y de 2 a 8 aviones. El ganador cambia cada vez.',cancel:'Cancelar',startRace:n=>n<2?'Elige al menos 2':`Empezar la carrera (${n})`,maxRacers:'Ocho corredores es lo máximo.',paint:'Pintar',paintTitle:'Taller de pintura',regions:{body:'Cuerpo',wings:'Alas',tail:'Cola'},original:'Original',paintReset:'Volver a la pintura original en todo',done:'Listo',loading:n=>`Cargando a ${n}`,credit:c=>`Modelo 3D: ${c}, del simulador de vuelo libre FlightGear (GPL).`,handmade:'Modelo simple hecho a mano.',read:'Leer en voz alta',reading:'Leyendo',back:'Atrás',next:'Siguiente',takeoff:'Despegar',land:'Aterrizar',again:'Volar otra vez',replay:'Repetir paso',restart:'Empezar de nuevo',
       partsHdr:'Piezas de este paso · toca una para encontrarla',none:'No quedan piezas. A volar.',
       step:'Paso',of:'de',eyebrow:(i,n)=>`Hangar de Aviones · avión ${i} de ${n}`,
@@ -1002,7 +1006,7 @@ const UI = {
       praiseTry:['¡Buen intento!','¡Qué bien hablas!','¡Así se hace!'],praiseClear:['¡Muy claro!','¡Súper bien dicho!','¡Guau, excelente!'],saidWords:n=>n===1?'¡Dijiste una palabra!':`¡Dijiste ${n} palabras!`,triesN:n=>n===1?'1 intento':`${n} intentos`,
       practiceWords:'Palabras para practicar',wordsHint:'Para adultos: escribe las palabras que practica tu niño o toca palabras con dibujo. Toca ¡Buen intento! con cada intento (un impulso pequeño, y la palabra vuelve una vez más); toca ¡Claro! cuando la palabra salga clara (lluvia de estrellas, un impulso grande y un paso al siguiente nivel).',typeWord:'Escribe una palabra',add:'Agregar',
       pictureWords:'Palabras con dibujo',practiceLog:'Registro de práctica',day:'Día',tries:'Intentos',clearCol:'Claras',mostWords:'Más practicadas',noWords:'Todavía no hay palabras',noLog:'Todavía no hay práctica',editWords:'Editar palabras',
-      todayTries:(t,c)=>`Hoy: ${t} intentos, ${c} claras`,fSounds:'Sonido F',myWords:'Mis palabras',wLevel:'Nivel',wLevels:['Palabras cortas','Palabras largas','F-L y F-R','Palabras grandes','Dos palabras','Frases'],levelUp:'¡Subiste de nivel!',maxWords:'24 palabras es lo máximo.',flags:'Banderas',findFlag:'Busca un país',moreFlags:'Más banderas',ceEyes:'Ojos',ceSmile:'Sonrisa',ceHint:'Arrastra la calcomanía para moverla. Arrastra alrededor para mirar. Pellizca o usa las barras para cambiar tamaño y girar.',ceHintFace:'Arrastra para moverla. Arrastra alrededor para mirar. Pellizca o usa las barras para cambiar tamaño y girar.',ceTurn:'Girar',ceSize:'Tamaño',ceZoom:'Zoom',closeUp:'De cerca',closeEyes:'Ajustar ojos',closeSmile:'Ajustar sonrisa'}
+      todayTries:(t,c)=>`Hoy: ${t} intentos, ${c} claras`,fSounds:'Sonido F',myWords:'Mis palabras',wLevel:'Nivel',wLevels:['Palabras cortas','Palabras largas','F-L y F-R','Palabras grandes','Dos palabras','Frases','F en medio','Dos palabras con F en medio','Frases con F en medio'],levelUp:'¡Subiste de nivel!',maxWords:'24 palabras es lo máximo.',flags:'Banderas',findFlag:'Busca un país',moreFlags:'Más banderas',ceEyes:'Ojos',ceSmile:'Sonrisa',ceHint:'Arrastra la calcomanía para moverla. Arrastra alrededor para mirar. Pellizca o usa las barras para cambiar tamaño y girar.',ceHintFace:'Arrastra para moverla. Arrastra alrededor para mirar. Pellizca o usa las barras para cambiar tamaño y girar.',ceTurn:'Girar',ceSize:'Tamaño',ceZoom:'Zoom',closeUp:'De cerca',closeEyes:'Ajustar ojos',closeSmile:'Ajustar sonrisa'}
 };
 const TX = { // shared step texts
   tail:{en:['Fit the tail','The tall fin steers left and right. The flat stabilizer keeps the nose steady.'],
@@ -3626,7 +3630,7 @@ function herLines(L, P, add){ const u = UI[L], cp = (from, to)=>(P[from] || []).
   cp('nums', 'nums-q'); add('nums-q', [...LC.lead.count[L], ...LC.lead.add[L], u.countTogether]); lnHerMore(L, add); for(let n = 1; n <= 10; n++){ add('nums-q', String(n)); add('nums-q', u.thatsN(n)); } add('nums-q', [u.moreN, u.fewerN]);   // (and the reasons for a wrong tap: "That's 4. There are more.")
   cp('words', 'words-q'); cp('phr', 'words-q'); add('words-q', word);
   if(L === 'en') Object.values(LRN_DATA.pairs).forEach(a=>a.forEach(p=>add('words-q', [u.thatsW(p[0]), u.thatsW(p[2])])));   // the listening pairs: what he picked, when it was wrong (2026-10-20)
-  for(let n = 1; n <= 6; n++){ cp('wf' + n, 'wf' + n + '-q'); add('wf' + n + '-q', word); }
+  for(let n = 1; n <= 6; n++){ cp('wf' + n, 'wf' + n + '-q'); add('wf' + n + '-q', word); }   // (levels 7 to 9 ride in wf6: wfPk)
   if(L === 'en'){ wlLines(L, (p, x)=>{ if(p === 'wl' || p === 'wlw') add(p + '-q', x); }); const w = UI.en; add('wl-q', [w.beatHint, w.yourTurn, w.wlTapIt, w.wlLaunchIt, w.wlKeep, w.wlLouder, w.wlOops, w.wlYes]); }
   STORIES.stories.forEach(s=>s.pages.forEach(p=>{ if(!p.q) return; add('story-q', p.q.ask[L]); add('story-q', p.q.right.label[L]); p.q.wrong.forEach(o=>add('story-q', o.why[L])); }));   // (2026-10-20: the question, the right label for the praise, and why each wrong pick is wrong; the page line and the wrong labels are no longer said)
   add('story-q', [u.stRetell, ...u.stParts, ...u.praise]); }
@@ -3658,7 +3662,7 @@ function voAllLines(){
     add('learn', [u.wordRace, u.wordHint, u.yourTurn, u.maxWords]); u.praiseTry.concat(u.praiseClear).forEach(x=>add('learn', x));
     for(let n=0;n<=60;n++) add('learn', u.saidWords(n));
     (WD_LIB[L] || []).forEach(x=>add('words', x[0]));
-    (LC.words[L] || []).forEach(x=>add('wf' + x[2], x[0])); LC.wl.ptry[L].concat(LC.wl.pclear[L]).forEach(x=>add('learn', x)); add('learn', u.levelUp);
+    (LC.words[L] || []).forEach(x=>add(wfPk(x[2]), x[0])); LC.wl.ptry[L].concat(LC.wl.pclear[L]).forEach(x=>add('learn', x)); add('learn', u.levelUp);
     add('ui', [u.fSounds, u.myWords, ...u.wLevels]);
     twLines(L, add);   // Control Tower: the narrator's lines (the planes' own go in talk below)
     hdLines(L, add);   // Hide and Seek: the asks, where-lines, echoes, size finds, tell sentences, and the Learn sheet names (packs hide, ui)
@@ -12320,7 +12324,7 @@ function learnStart(){
   LEARN.me = null; LEARN.spk = LEARN.lastSpk = LEARN.next = LEARN.force = LEARN.want = LEARN.pick = null; LEARN.lvl = lnLevel(); RACE.racers.forEach(r=>{ r.helped = 0; });
   Object.assign(LEARN, {stars:0, tries:0, scale:1, streak:0, miss:0, nextT:LEARN.mode === 'words' ? 5.5 : 6, last:null, again:null, firstN:0, redo:[], qn:0}); WD.bag = null;   // first question once everyone is off the ground
   const qv = n=>voPack(n + '-q');   // her question packs (she asks: herV)
-  if(LEARN.on){ voPack(lang + '-learn'); if(LEARN.mode === 'numbers') qv(lang + '-nums'); /* (the Letter Race's letter packs load with each question: ltPacks) */ if(LEARN.mode === 'words'){ if(wdMode() === 'f') qv(lang + '-wf' + wdLevel()); else if(wdMode() === 'list') [...new Set(wdWords().map(w=>w.l))].forEach(L=>{ qv(L + '-words'); voPack(L + '-learn'); }); else qv(lang + '-words'); } }   // (her phrases are in words-q)
+  if(LEARN.on){ voPack(lang + '-learn'); if(LEARN.mode === 'numbers') qv(lang + '-nums'); /* (the Letter Race's letter packs load with each question: ltPacks) */ if(LEARN.mode === 'words'){ if(wdMode() === 'f') qv(lang + '-' + wfPk(wdLevel())); else if(wdMode() === 'list') [...new Set(wdWords().map(w=>w.l))].forEach(L=>{ qv(L + '-words'); voPack(L + '-learn'); }); else qv(lang + '-words'); } }   // (her phrases are in words-q)
   twStart();   // the Control Tower race keeps its own state (section "control tower")
   wlStart();   // and so does Word Launch (section "word launch")
 }
@@ -12355,6 +12359,23 @@ LC.kinds.push(...[["owls","🦉","owl","owls","búho","búhos","m"],["penguins",
 LC.lead.count.en.push(...["Count with me, buddy!","Can you count them?","Let's count together!","Point and count!","Look at all of these!","Ready? Let's count!","I see a bunch over there!","Count them one by one!","Ooh, look at that!","Up ahead, look!","Over on the left!","Over on the right!","Look out the side!","What a great spot!","Wow, look at them all!","Peek out the cockpit!","I spy something!","Count them as we fly!","Way down below!","Right by our wingtip!"]); LC.lead.count.es.push(...["¡Cuenta conmigo, amigo!","¿Puedes contarlos?","¡Contemos juntos!","¡Señala y cuenta!","¡Mira todo esto!","¿Listo? ¡A contar!","¡Veo un montón por allá!","¡Cuéntalos uno por uno!","¡Uy, mira eso!","¡Mira, más adelante!","¡Ahí a la izquierda!","¡Ahí a la derecha!","¡Mira por un lado!","¡Qué buen lugar!","¡Guau, míralos a todos!","¡Asómate por la cabina!","¡Veo, veo algo!","¡Cuéntalos mientras volamos!","¡Allá abajo!","¡Junto a la punta del ala!"]);
 LC.lead.add.en.push(...["And here come some more!","A few more flew in!","More are landing now!","Look, extra ones!","Some more just showed up!","More friends are here!","Here comes a second group!","Two groups now!","They brought their friends!","More coming in for a landing!"]); LC.lead.add.es.push(...["¡Y aquí vienen más!","¡Llegaron unos cuantos más!","¡Ya aterrizan más!","¡Mira, hay más!","¡Aparecieron unos más!","¡Llegaron más amigos!","¡Más amigos en camino!","¡Ahora hay dos grupos!","¡Trajeron a sus amigos!","¡Vienen más a aterrizar!"]);
 LC.words.en.push(...[["fun","🎉",1],["fuel","⛽",1],["phew","😮‍💨",1],["foal","🐎",1],["firetruck","🚒",2],["fishing","🎣",2],["fancy","🎩",2],["famous","⭐",2],["fiddle","🎻",2],["foggy","🌫️",2],["furry","🐻",2],["father","👨",2],["fajita","🌮",2],["falafel","🧆",2],["fifteen","1️⃣5️⃣",2],["forty","4️⃣0️⃣",2]]);
+/* F sounds, levels 7 to 9 (2026-10-31, the owner: higher levels, he maxes out): the F sound inside a word, at its end, then sentences
+   with F in every place (Spanish: inside the word, in two words, in sentences; Spanish words seldom end in F) */
+LC.words.en.push(...[["coffee","☕",7],["waffle","🧇",7],["dolphin","🐬",7],["elephant","🐘",7],["telephone","☎️",7],["sofa","🛋️",7],["butterfly","🦋",7],["buffalo","🦬",7],["alphabet","🔤",7],["breakfast","🍳",7],["sunflower","🌻",7],["snowflake","❄️",7],["jellyfish","🪼",7],["headphones","🎧",7],["saxophone","🎷",7],["microphone","🎤",7],["trophy","🏆",7],
+  ["leaf","🍃",8],["scarf","🧣",8],["wolf","🐺",8],["chef","🧑‍🍳",8],["beef","🥩",8],["laugh","😂",8],["giraffe","🦒",8],["surf","🏄",8],["elf","🧝",8],["loaf","🍞",8],["reef","🪸",8],["golf","⛳",8],["roof","🏠",8],
+  ["The elephant has a big leaf.","🐘",9],["A dolphin can surf the waves.","🐬",9],["The chef made waffles for breakfast.","🧇",9],["The wolf wears a red scarf.","🐺",9],["Five butterflies fly off.","🦋",9],["The giraffe has a funny laugh.","🦒",9],["Coffee for the chef, please!","☕",9],["The elf found a golden leaf.","🧝",9],["My friend has a fluffy scarf.","🧣",9],["The buffalo eats a leaf.","🦬",9],["Phone the firefighter fast!","🚒",9],["The fish swims by the reef.","🐟",9],["A sunflower is full of seeds.","🌻",9],["The chef flips a waffle.","🧇",9],["Four frogs sit on a leaf.","🐸",9],["The trophy is for the fastest plane!","🏆",9],["Dolphins flip and laugh.","🐬",9],["The elf plays golf.","⛳",9]]);
+LC.words.es.push(...[["jirafa","🦒",7],["elefante","🐘",7],["teléfono","☎️",7],["sofá","🛋️",7],["búfalo","🦬",7],["delfín","🐬",7],["gafas","👓",7],["bufanda","🧣",7],["trofeo","🏆",7],["micrófono","🎤",7],["saxofón","🎷",7],["café","☕",7],
+  ["café caliente","☕",8],["jirafa alta","🦒",8],["elefante grande","🐘",8],["delfín feliz","🐬",8],["bufanda roja","🧣",8],["trofeo de oro","🏆",8],["gafas de sol","🕶️",8],["sofá suave","🛋️",8],["teléfono nuevo","☎️",8],["búfalo fuerte","🦬",8],
+  ["La jirafa toma café.","🦒",9],["El elefante tiene una bufanda.","🐘",9],["El delfín salta feliz.","🐬",9],["El chef hace flan.","🍮",9],["El teléfono suena fuerte.","☎️",9],["El búfalo come flores.","🦬",9],["El trofeo es para el avión más rápido.","🏆",9],["La familia toma fotos.","📷",9],["El sofá es muy suave.","🛋️",9],["Las gafas de la foca son azules.","🦭",9]]);
+/* More words for the other speech sets (2026-10-31): Takeoff L, Formation and Landing, and more phrases */
+LRN_DATA.l.en.push(...[["laptop","💻"],["llama","🦙"],["lobster","🦞"],["leopard","🐆"],["lantern","🏮"],["koala","🐨"],["gorilla","🦍"],["jellyfish","🪼"],["helicopter","🚁"],["volcano","🌋"],["umbrella","☂️"],["pencil","✏️"],["girl","👧"]]);
+LRN_DATA.l.es.push(...[["llama","🦙"],["lagarto","🦎"],["langosta","🦞"],["linterna","🔦"],["koala","🐨"],["gorila","🦍"],["volcán","🌋"],["paleta","🍭"]]);
+LRN_DATA.cl.en.push(...[["clip","📎"],["clipboard","📋"],["flashlight","🔦"],["snowman","⛄"],["sneaker","👟"],["snorkel","🤿"],["clover","🍀"],["blowfish","🐡"],["flying saucer","🛸"]]);
+LRN_DATA.cl.es.push(...[["flamingo","🦩"],["clavel","🌺"],["globito","🎈"],["plumas","🪶"]]);
+LRN_DATA.fin.en.push(...[["drum","🥁"],["frog","🐸"],["crab","🦀"],["robot","🤖"],["rocket","🚀"],["carrot","🥕"],["ant","🐜"],["bread","🍞"],["bird","🐦"],["nut","🌰"],["bat","🦇"],["hook","🪝"],["worm","🪱"],["magnet","🧲"],["peanut","🥜"]]);
+LRN_DATA.fin.es.push(...[["tambor","🥁"],["camión","🚚"],["corazón","❤️"],["limón","🍋"],["melón","🍈"],["jamón","🍖"]]);
+LRN_DATA.phr.en.push(...["Fly to the moon!","Turn left!","Turn right!","Big jet!","Nice landing!","Buckle up!","Wheels down!","I see the runway!","Follow me!","Over the clouds!","Watch me zoom!","Faster, faster!","Thank you, plane!","Time to land!","Fuel up!","Under the bridge!","Hello, tower!","Ready for takeoff!"]);
+LRN_DATA.phr.es.push(...["¡Vuela a la luna!","¡Gira a la izquierda!","¡Gira a la derecha!","¡Abróchate!","¡Ruedas abajo!","¡Sígueme!","¡Más rápido!","¡Gracias, avión!","¡Hora de aterrizar!","¡Hola, torre!"]);
 /* More (2026-10-31, the owner: he knows them all from memory): 27 more things to count, 20 more counting and 10 more adding lead-ins per
    language, and the take-away lead-ins (level 8) */
 LC.kinds.push(...[["kangaroos","🦘","kangaroo","kangaroos","canguro","canguros","m"],["koalas","🐨","koala","koalas","koala","koalas","m"],["flamingos","🦩","flamingo","flamingos","flamenco","flamencos","m"],["parrots","🦜","parrot","parrots","loro","loros","m"],["swans","🦢","swan","swans","cisne","cisnes","m"],["seals","🦭","seal","seals","foca","focas","f"],["otters","🦦","otter","otters","nutria","nutrias","f"],["sloths","🦥","sloth","sloths","perezoso","perezosos","m"],["hedgehogs","🦔","hedgehog","hedgehogs","erizo","erizos","m"],["turkeys","🦃","turkey","turkeys","pavo","pavos","m"],["roosters","🐓","rooster","roosters","gallo","gallos","m"],["squirrels","🐿️","squirrel","squirrels","ardilla","ardillas","f"],["ants","🐜","ant","ants","hormiga","hormigas","f"],["pineapples","🍍","pineapple","pineapples","piña","piñas","f"],["avocados","🥑","avocado","avocados","aguacate","aguacates","m"],["coconuts","🥥","coconut","coconuts","coco","cocos","m"],["tacos","🌮","taco","tacos","taco","tacos","m"],["peaches","🍑","peach","peaches","durazno","duraznos","m"],["kiwis","🥝","kiwi","kiwis","kiwi","kiwis","m"],["ambulances","🚑","ambulance","ambulances","ambulancia","ambulancias","f"],["taxis","🚕","taxi","taxis","taxi","taxis","m"],["canoes","🛶","canoe","canoes","canoa","canoas","f"],["anchors","⚓","anchor","anchors","ancla","anclas","f"],["compasses","🧭","compass","compasses","brújula","brújulas","f"],["volcanoes","🌋","volcano","volcanoes","volcán","volcanes","m"],["mountains","⛰️","mountain","mountains","montaña","montañas","f"],["shootingstars","🌠","shooting star","shooting stars","estrella fugaz","estrellas fugaces","f"]]);
@@ -12393,13 +12414,32 @@ function wdCount(w, clear, jolts){ const log = wdLog(), day = wdDay(), k = w.w +
   const days = Object.keys(log).sort(); while(days.length > 90) delete log[days.shift()];
   saveSet('hangar-wordlog', JSON.stringify(log)); }
 function wdToday(){ const d = wdLog()[wdDay()] || {}; let t = 0, c = 0; Object.values(d).forEach(v=>{ t += v[0]; c += v[1]; }); return {tries: t, clear: c}; }
-function wdPicHTML(w){ return w.e ? `<span class="wd-e${[...w.e].length > 3 ? ' many' : ''}">${w.e}</span>` : `<span class="wd-l">${escHTML(w.w.charAt(0).toUpperCase())}</span>`; }
+/* One picture for a word (2026-10-31, the owner: "if the word is lion there's a symbol of a lion next to it ... without being too
+   cluttered"): the first picture of the word's own emoji (a row like 🦊🐟🐟🐟🐟 shows only the fox), else one from SAY_PIC (every picture
+   word the game knows: typed words in My words find theirs there), else none. A word no emoji shows plainly (fed, fill, fit) has none:
+   SAY_NOPIC. Phrases: PHR_PIC, only where one picture says it. Native emoji: on an iPhone Apple's color emoji, no files. */
+const SAY_NOPIC = new Set(['fed', 'fill', 'fit', 'fold', 'foil', 'fizz', 'fuzz', 'full', 'fur', 'foam', 'fast', 'feed', 'fair', 'fix', 'flavor', 'film', 'field', 'favorite', 'phew', 'famous', 'fancy', 'fabric', 'footwear', 'front', 'flight', 'fresh', 'frown', 'floor', 'fryer', 'fleet', 'flock', 'go', 'out', 'me', 'no', 'eat', 'más', 'feliz', 'ready', 'last', 'first', 'speed', 'not in my way', 'my turn please']);
+const PHR_PIC = {en: {'Go fast!':'💨', "Let's fly!":'✈️', "Let's fly up high!":'✈️', "That's my plane!":'✈️', 'Land the plane!':'🛬', 'Stop the plane!':'🛑', 'Fly up!':'🛫', 'Slow down!':'🐢', 'Blast off!':'🚀', 'Land it!':'🛬', 'I can fly!':'✈️', 'I like planes!':'✈️', 'Look at that plane!':'✈️', 'Fly with me!':'✈️', 'That plane is fast!':'💨', 'I see a cloud!':'☁️', 'Up in the sky!':'☁️', 'Clap, clap, clap!':'👏', 'Hello, plane!':'👋', 'What a big plane!':'✈️', 'Hold my hand!':'🤝', 'Fly like a bird!':'🐦', 'Spin around!':'🌀', 'Fly to the moon!':'🌙', 'Turn left!':'⬅️', 'Turn right!':'➡️', 'Big jet!':'🛩️', 'Nice landing!':'🛬', 'Wheels down!':'🛞', 'I see the runway!':'🛬', 'Over the clouds!':'☁️', 'Watch me zoom!':'💨', 'Thank you, plane!':'✈️', 'Time to land!':'🛬', 'Fuel up!':'⛽', 'Under the bridge!':'🌉', 'Ready for takeoff!':'🛫', 'Ready, set, go!':'🏁', "Let's go race!":'🏁', 'Good job!':'👍', 'I did it!':'🏆'},
+  es: {'¡Vamos a volar!':'✈️', '¡Ese es mi avión!':'✈️', '¡Aterriza el avión!':'🛬', '¡Para el avión!':'🛑', '¡Vuela alto!':'🛫', '¡Más despacio!':'🐢', '¡Despega!':'🛫', '¡Yo puedo volar!':'✈️', '¡Me gustan los aviones!':'✈️', '¡Mira ese avión!':'✈️', '¡Vuela a la luna!':'🌙', '¡Gira a la izquierda!':'⬅️', '¡Gira a la derecha!':'➡️', '¡Ruedas abajo!':'🛞', '¡Hora de aterrizar!':'🛬', '¡Gracias, avión!':'✈️', '¡Listos, fuera!':'🏁', '¡Vamos a correr!':'🏁', '¡Lo hice!':'🏆'}};
+const picFirst = e=>{ if(!e) return ''; try{ if(window.Intl && Intl.Segmenter){ const it = new Intl.Segmenter(undefined, {granularity: 'grapheme'}).segment(e)[Symbol.iterator]().next(); return it.done ? '' : it.value.segment; } }catch(x){} const m = /^(\p{Regional_Indicator}{2}|\p{Extended_Pictographic}(\uFE0F|\u20E3|\p{Emoji_Modifier}|\u200D\p{Extended_Pictographic}\uFE0F?)*|[0-9#*]\uFE0F?\u20E3)/u.exec(e); return m ? m[0] : e; };
+let SAY_PIC = null;
+function sayPicMap(){ if(SAY_PIC) return SAY_PIC; const M = SAY_PIC = {}, put = (w, e)=>{ const k = String(w).toLowerCase(); if(e && !/^svg:/.test(e) && !M[k]) M[k] = picFirst(e); };
+  ['en', 'es'].forEach(L=>{ (WD_LIB[L] || []).forEach(x=>put(x[0], x[1])); ['l', 'cl', 'fin'].forEach(m=>(LRN_DATA[m][L] || []).forEach(x=>put(x[0], x[1]))); (LC.words[L] || []).forEach(x=>{ if(!/\s/.test(x[0])) put(x[0], x[1]); }); });
+  Object.values(LRN_DATA.pairs).forEach(a=>a.forEach(p=>{ put(p[0], p[1]); put(p[2], p[3]); }));
+  LT_DATA.forEach(d=>d[5].forEach(w=>{ if(!w[3]) put(w[0], w[1]); }));
+  WL_ITEMS.forEach(it=>{ if(it.kind !== 'phrase') put(it.w, it.e); });
+  return M; }
+function sayPic(w){ const k = String(w.w || '').trim().toLowerCase(); if(SAY_NOPIC.has(k)) return ''; if(w.e) return picFirst(w.e);
+  const ph = PHR_PIC[w.l || lang]; if(ph && ph[w.w]) return ph[w.w]; return sayPicMap()[k] || ''; }
+function wdPicHTML(w){ const e = sayPic(w); return e ? `<span class="wd-e">${e}</span>` : `<span class="wd-l">${escHTML(String(w.w).charAt(0).toUpperCase())}</span>`; }
 function escHTML(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 /* F sounds (the default): practice for the F sound. Six levels from short words to sentences
    (LC.words); a fifth of the cards review easier levels; a word comes back only after every word of its level has been
    used (its bag in hangar-bags, synced: bagPick). Three "Clear!" taps move up a level (hangar-wordclr, hangar-wordlvl). */
 const wdMode = ()=>{ const m = saveGet('hangar-wordmode'); return m === 'list' || LRN_SETS.includes(m) ? m : 'f'; };   // f, l, cl, fin, phr, list (old saves hold f or list)
-const wdLevel = ()=>Math.min(6, Math.max(1, +saveGet('hangar-wordlvl') || 1));
+const WD_TOP = 9;   // F-sound levels 1 to 9 (7 to 9 since 2026-10-31: F in the middle, F at the end, F everywhere)
+const wdLevel = ()=>Math.min(WD_TOP, Math.max(1, +saveGet('hangar-wordlvl') || 1));
+const wfPk = lv=>'wf' + Math.min(6, lv);   // the F words' pack for a level: levels 7 to 9 ride in wf6 (the published site is at its file cap: no new packs)
 function wdPickF(){
   const L = lang, lv = wdLevel(), all = (LC.words[L] || []), review = lv > 1 && Math.random() < .2;
   const rl = review ? 1 + Math.floor(Math.random()*(lv - 1)) : lv, pool = all.filter(x=>x[2] === rl); if(!pool.length) return null;   // a review card: one of the easier levels, from that level's own bag
@@ -12450,7 +12490,7 @@ function wdAnswer(clear){
   q.done = true; wdCount(q.w, clear); LEARN.tries++; if(clear) LEARN.stars++;
   (clear ? $('rwClear') : $('rwTry')).classList.add('yes'); sfx.chime();
   let up = false, n = 0; if(clear && q.w.lv){ n = (+saveGet('hangar-wordclr') || 0) + 1; const lv = wdLevel();   // three clear F sounds: the next level
-    if(n >= 3 && lv < 6){ saveSet('hangar-wordlvl', String(lv + 1)); saveSet('hangar-wordclr', '0'); up = true; } else saveSet('hangar-wordclr', String(n)); }
+    if(n >= 3 && lv < WD_TOP){ saveSet('hangar-wordlvl', String(lv + 1)); saveSet('hangar-wordclr', '0'); up = true; } else saveSet('hangar-wordclr', String(n)); }
   const pr = q.w.lv ? wdLine(clear ? 'pclear' : 'ptry', q.w.l) : cmPick(clear ? u.praiseClear : u.praiseTry);
   lnBoost(clear ? .1 : .035); say([pr, up ? u.levelUp : [], talkLine(LEARN.spk, 'thanks')], lnVoice());   // 2026-10-20: "Clear!" gives about three times the boost of "Good try"
   const z = $('rZoom'); z.textContent = u.zoom; z.classList.remove('pop'); void z.offsetWidth; z.classList.add('pop');
@@ -12474,7 +12514,7 @@ function renderWordsSetup(){
   const u = UI[lang], box = $('rsWords'), on = RACE.type === 'words'; box.hidden = !on; if(!on) return;
   const list = wdWords(), td = wdToday(), m = wdMode(), lv = wdLevel();
   const head = `<div class="rsw-mode">${['f', 'l', 'cl', 'fin', 'phr', 'list'].map(k=>`<button data-m="${k}" aria-pressed="${k === m}">${lrnModeName(k)}</button>`).join('')}</div>`;   // F sounds, Takeoff L, Formation, Landing, Phrases, My words
-  if(m === 'f'){ box.innerHTML = head + `<div class="rsw-lv">${[1,2,3,4,5,6].map(n=>`<button data-lv="${n}" aria-pressed="${n === lv}">${n}</button>`).join('')}</div>
+  if(m === 'f'){ box.innerHTML = head + `<div class="rsw-lv${WD_TOP > 6 ? ' nine' : ''}">${Array.from({length: WD_TOP}, (x, i)=>i + 1).map(n=>`<button data-lv="${n}" aria-pressed="${n === lv}">${n}</button>`).join('')}</div>
     <div class="rsw-row"><span class="rsw-lvname">${u.wLevel} ${lv}: ${u.wLevels[lv - 1]}</span><span class="rsw-today">${u.todayTries(td.tries, td.clear)}</span></div>`;
     [...box.querySelectorAll('[data-lv]')].forEach(b=>b.addEventListener('click', ()=>{ saveSet('hangar-wordlvl', b.dataset.lv); saveSet('hangar-wordclr', '0'); sfx.pop(); say(u.wLevels[+b.dataset.lv - 1]); renderWordsSetup(); })); }
   else if(m === 'list') box.innerHTML = head + `<div class="rsw-chips">${list.map(w=>`<span class="wd-chip">${wdPicHTML(w)}${escHTML(w.w)}</span>`).join('') || `<em>${u.noWords}</em>`}</div>
@@ -12628,16 +12668,17 @@ function phrMake(p){ const L = lang, words = lrnWords(p), units = words.map(lrnS
 const lrnShow = q=>{ const p = q.type === 'pair'; $('rQ').hidden = !p; $('rW').hidden = p; };
 function lrnPairRender(q){
   const u = UI.en, ans = $('rqAns'); q.bubble = u.whichOne; $('rqText').textContent = u.whichOne; $('rqPics').hidden = false; $('rqPics').classList.remove('many'); $('rqPics').innerHTML = `<b class="pr-q">${u.whichOne}</b>`;
-  ans.innerHTML = ''; ans.classList.add('pair');
+  ans.innerHTML = ''; ans.classList.add('pair'); ans.classList.toggle('wait', !q.live);
   q.sides.forEach(s=>{ const bt = document.createElement('button'); bt.innerHTML = `<span class="pr-e">${s.e}</span><span class="pr-w">${escHTML(s.w)}</span>`; bt.addEventListener('click', ()=>lrnPairTap(q, s, bt)); ans.appendChild(bt); });
   $('rqSay').setAttribute('aria-label', u.sayAgain); $('rqSay').querySelector('.rq-sayt').textContent = u.sayAgain;
 }
 function lrnDress(q){   // what a word card has beyond the picture and the word: the cue badge and marked letters, the phrase chips
   const cue = $('rwCue'), chips = $('rwChips'), row = $('rwText').parentNode, u = UI[q.w.l] || UI[lang], t = q.type;
-  cue.hidden = chips.hidden = true; row.hidden = false; row.classList.remove('cued');
+  cue.hidden = chips.hidden = true; row.hidden = false; row.classList.remove('cued'); $('rwPPic').hidden = true;
   if(t === 'phrase'){
     $('rwPrompt').textContent = q.bubble = u.sayWithMe; row.hidden = true; chips.hidden = false; chips.className = 'rw-chips' + (q.chips.length > 4 ? ' s' : '');
     chips.innerHTML = q.chips.map((w, i)=>`<span class="rw-chip">${planeIcon(LN_COLS[(i*3 + 1) % LN_COLS.length])}<b>${escHTML(w)}</b></span>`).join('');
+    const pp = sayPic(q.w); $('rwPPic').textContent = pp; $('rwPPic').hidden = !pp;   // the phrase's one picture, over its chips (2026-10-31)
   } else if(q.cue){
     const cl = u[LRN_CUE[q.cue]]; $('rwPrompt').textContent = q.bubble = cl; $('rwText').innerHTML = lrnTextHTML(q.cue, q.w.w, lrnHL(q.cue, q.w.w)); wdFit();
     cue.innerHTML = lrnCueIcon(q.cue) + `<span>${escHTML(cl)}</span>`; cue.hidden = false; row.classList.add('cued');
@@ -12660,7 +12701,7 @@ async function lrnSayAt(groups, opt, marks, q){
 function lrnSpeak(q, first){
   const u = UI[q.w.l] || UI[lang], ask = first === true ? talkLine(LEARN.spk, 'ask') : [], v = wdVoice(q, ask), t = q.type;
   if(q.again) return say([ask, wdSpeech(q, first)].flat(), v);   // the second try of a word: "One more try!", the word, "Your turn!" (also a phrase, said whole)
-  if(t === 'pair') return lrnSayAt([ask, u.whichOne, q.w.w], v, {}, q);
+  if(t === 'pair'){ const p = lrnSayAt([ask, u.whichOne, q.w.w], v, {}, q); lnLiveAfter(q, p); return p; }   // (one try: the pictures wake once it has been said)
   if(t === 'phrase'){ const m = {}, n = q.units.length; q.units.forEach((x, i)=>m[2 + i] = ()=>lrnChip(q, i)); m[2 + n] = ()=>lrnChip(q, -2); m[3 + n] = ()=>lrnChip(q, -1);
     return lrnSayAt([ask, u.sayWithMe, ...q.units, q.w.w, u.yourTurn], v, m, q); }
   return say([ask, wdSpeech(q, first)].flat(), v);
@@ -12668,7 +12709,7 @@ function lrnSpeak(q, first){
 function lrnChip(q, i){ const c = $('rwChips'); if(LEARN.q !== q) return; [...c.children].forEach((x, j)=>x.classList.toggle('lit', j === i)); c.classList.toggle('all', i === -2); }
 /* ---- the pair card: which one did I say? ---- */
 function lrnPairTap(q, s, bt){
-  if(LEARN.q !== q || q.done || q.heard || bt.disabled) return; audio(); const u = UI.en, v = wdVoice(q), ans = $('rqAns');
+  if(LEARN.q !== q || q.done || q.heard || bt.disabled) return; if(!q.live) return lnNotYet(bt); audio(); const u = UI.en, v = wdVoice(q), ans = $('rqAns');
   if(s.w === q.w.w){   // right: chime, "You heard it!", then the card turns into the normal word card for the target
     q.heard = true; bt.classList.add('yes'); sfx.chime(); [...ans.children].forEach(b=>b.classList.remove('hint')); wdCount({w:q.label, l:'en'}, false);   // the practice log keeps the listening card too
     const q2 = lrnCard({w:q.w.w, l:'en', e:q.w.e}, q.set, q.cueOn), swap = ()=>{ if(q.swapped) return; q.swapped = true; LEARN.q = q2; q2.t0 = RACE.clock; wdRender(q2); lrnShow(q2); };
@@ -12676,9 +12717,13 @@ function lrnPairTap(q, s, bt){
     lrnSayAt([u.heardIt, wdSpeech(q2, true)], v, {1: swap}, q);
     return;
   }
-  bt.classList.add('no'); bt.disabled = true; q.tries++; q.pT = 0; tone(240, .22, 'sine', .14, 190);   // wrong: it greys out and she says what it was ("That's bow."), then the word again (2026-10-20); only two choices, so the one left glows
-  const right = [...ans.children].filter(b=>!b.disabled); if(right.length === 1) right[0].classList.add('hint');
-  say([u.thatsW(s.w), u.listenAgain, q.w.w], v);
+  /* wrong (one try, 2026-10-31): it greys out, she says what it was ("That's bow."), the right one lights up as she says the word again,
+     and the card turns into the word card for it, as after a right pick but without the chime */
+  bt.classList.add('no'); q.heard = true; q.tries++; q.pT = 0; tone(240, .22, 'sine', .14, 190); [...ans.children].forEach(b=>{ b.disabled = true; });
+  const right = [...ans.children].find(b=>b !== bt); wdCount({w:q.label, l:'en'}, false);
+  const q2 = lrnCard({w:q.w.w, l:'en', e:q.w.e}, q.set, q.cueOn), swap = ()=>{ if(q.swapped) return; q.swapped = true; LEARN.q = q2; q2.t0 = RACE.clock; wdRender(q2); lrnShow(q2); };
+  LEARN.help.forEach(clearTimeout); LEARN.help = [setTimeout(swap, 9000)];
+  lrnSayAt([[u.thatsW(s.w)], [u.listenAgain], [q.w.w], wdSpeech(q2, true)], v, {2: ()=>{ if(right) right.classList.add('show'); }, 3: swap}, q);
 }
 
 /* ================= letter race: pick the picture that starts with the letter's sound ================= */
@@ -13004,14 +13049,14 @@ const ltTalk = L=>L === 'en' ? UI.en.ltPraise : [];
      grown-up judges the whole word. The grown-up's "Said it!" is on screen during every moment.
    - The microphone is opened when the child's turn starts and released when the moment ends (and before the recognizer).
    Settings (this device only, not synced): hangar-wlmic, hangar-wlcheck ('0' = off), hangar-wlsens (0 to 100).
-   Level hangar-beatlvl (1 to 5, synced), clean launches in a row hangar-beatclr. */
+   Level hangar-beatlvl (1 to 8, synced; 6 to 8 since 2026-10-31), clean launches in a row hangar-beatclr. */
 Object.assign(UI.en, {beatRace:'Word Launch', beatHint:'Say each part to fly through the rings, then launch the whole word!',
   wlLaunchIt:'Now launch it!', wlLaunched:['Launched!', 'Off it goes!', 'Look at it go!'], wlKeep:"Let's keep going!", wlLouder:'Say it louder!',
   wlOops:'Whoops! Try again!', wlYes:'Yes! Now say it all!', wlTapIt:'Say it, then tap!', wlSaid:'Said it!', wlAgainB:'Try again',
   wlLaunchedN:n=>n === 1 ? 'You launched 1 word!' : `You launched ${n} words!`,
   wlMic:'Use the microphone', wlCheck:"Check words (uses Apple's speech service)", wlNote:'The game never saves his voice.',
   wlNoMicNote:'No microphone here: he taps the rings.', wlSens:'Sensitivity', wlTest:'Test', wlTesting:'Talk now',
-  wlLevels:['Two parts', 'Three parts', 'Long words', 'Words and phrases', 'Sentences']});
+  wlLevels:['Two parts', 'Three parts', 'Long words', 'Words and phrases', 'Sentences', 'Tricky starts', 'Giant words', 'Long sentences']});
 Object.assign(UI.en, {sayAgain:'Say it again'}); Object.assign(UI.es, {sayAgain:'Otra vez'});   // the big repeat button on the cards and in Word Launch (2026-10-10)
 Object.assign(UI.es, {beatRace:'Lanza la palabra', beatHint:'¡Di cada parte para volar por los aros y luego lanza la palabra entera!'});   // shown only when Spanish gets Word Launch (later)
 /* The words (spec section 2): [kind, parts, emoji, then]. Parts are split by a middle dot; "shown=spoken" when the narrator
@@ -13045,6 +13090,18 @@ const WL_DATA = [
    word), many more at every level: level 1 102 more, level 2 35, level 3 11, level 4 44 (r words, two-word phrases, words that build
    to a phrase), level 5 40. Spoken spellings checked with Kokoro's phonemizer ("ih" reads "eye", so a weak i is "uh"). */
 WL_DATA.push(...[["lclus","p=puh·lay","🤹","play with me"],["lclus","p=puh·late","🍽️"],["lclus","p=puh·lant","🪴"],["lclus","p=puh·lug","🔌"],["lclus","p=puh·lus","➕"],["lclus","p=puh·lease","🙏","yes please"],["lclus","b=buh·low","🌬️"],["lclus","b=buh·link","😉"],["lclus","b=buh·lack","⚫"],["lclus","c=kuh·lap","👏","clap your hands"],["lclus","c=kuh·lown=/lˈaʊn/","🤡","funny clown"],["lclus","c=kuh·lean","🧽"],["lclus","c=kuh·law","🦞"],["lclus","f=/fːː/·loat","🛟","float on the lake"],["lclus","f=/fːː/·lute","🪈"],["lclus","f=/fːː/·lame","🔥"],["lclus","g=guh·lass","🥛"],["lclus","g=guh·love","🧤"],["lclus","g=guh·low","✨","glow in the dark"],["lclus","g=guh·lue","🧴"],["lclus","s=/sːː/·led","🛷"],["lclus","s=/sːː/·leep","😴","go to sleep"],["lclus","s=/sːː/·loth","🦥"],["lclus","s=/sːː/·lime","🟢"],["lclus","g=guh·lobe","🌍"],["sclus","s=/sːː/·nail","🐌","slow snail"],["sclus","s=/sːː/·nake","🐍"],["sclus","s=/sːː/·mile","😊","big smile"],["sclus","s=/sːː/·kate","⛸️"],["sclus","s=/sːː/·tep","👣"],["sclus","s=/sːː/·tick","🪵"],["sclus","s=/sːː/·tone","🪨"],["sclus","s=/sːː/·wim","🏊"],["sclus","s=/sːː/·weet","🍬"],["sclus","s=/sːː/·wan=wahn","🦢"],["sclus","s=/sːː/·niff","👃"],["sclus","s=/sːː/·mall","🐜"],["sclus","s=/sːː/·mell","🌷"],["sclus","s=/sːː/·kunk","🦨"],["sclus","s=/sːː/·pace","🌌"],["sclus","s=/sːː/·tew","🍲"],["sclus","s=/sːː/·pot","🐞"],["sclus","s=/sːː/·kip","🦘"],["l","l=/lːː/·eaf","🍃"],["l","l=/lːː/·og","🪵"],["l","l=/lːː/·id=/ˈɪd/","🥫"],["l","l=/lːː/·ip=/ˈɪp/","👄"],["l","l=/lːː/·ock","🔒"],["l","l=/lːː/·ook","👀"],["l","l=/lːː/·unch","🍱"],["l","l=/lːː/·oop","➰","loop the loop"],["l","hel=/hə/·lo=low","👋","hello plane"],["l","pil=pill·low","🛏️"],["l","jel=jell·ly=lee","🍓"],["l","sil=sill·ly=lee","🤪","silly clown"],["l","bub·ble=bul","🫧","blow a bubble"],["l","pud=pudd·dle=dul","💧"],["l","noo·dle=dul","🍜"],["l","can·dle=dul","🕯️"],["l","pick·le=kul","🥒"],["l","ea=ee·gle=gul","🦅"],["l","ap·ple=pul","🍎"],["l","be=/bˈɛ/·ll=/lːː/","🔔"],["l","ow=/ˈaʊ/·l=/lːː/","🦉"],["l","ta=tay·ble=bul","🪑"],["l","pi=pie·lot=lut","🧑‍✈️","I am the pilot"],["l","dol=doll·phin=fin","🐬"],["l","cam·el=ull","🐫"],["l","ca=kuh·noe=noo","🛶"],["l","yo·yo","🪀"],["final","han·d=duh","✋","hold my hand"],["final","san·d=duh","🏖️"],["final","pon·d=duh","🦆"],["final","gol=goal·d=duh","🪙"],["final","col=coal·d=duh","🥶"],["final","hel·p=puh","🆘"],["final","jum·p=puh","🦘","jump up high"],["final","lam·p=puh","🪔"],["final","des·k=kuh","🖥️"],["final","mas·k=kuh","🎭"],["final","mil·k=kuh","🥛"],["final","bel·t=tuh","🥋"],["final","gif·t=tuh","🎁","a gift for you"],["final","toas=/tˈoʊs/·t=tuh","🍞"],["final","ghos=gose·t=tuh","👻"],["final","boat·s=/sːː/","⛵"],["final","cup·s=/sːː/","🥤"],["final","duck·s=/sːː/","🦆"],["final","book·s=/sːː/","📚"],["final","hat·s=/sːː/","🎩"],["final","bike·s=/sːː/","🚲"],["final","kite·s=/sːː/","🪁"],["final","bee·s=/zːː/","🐝"],["final","shoe·s=/zːː/","👟"],["long","ka=kuh·zoo","🎶"],["long","la=luh·goon","🏝️"],["long","po=puh·lice=lease","🚓"],["long","ho=hoe·tel","🏨"],["long","be=bih·low","⬇️"],["long","a=uh·sleep","💤"],["long","sa=suh·lute","🎖️"],["long","a=uh·lone","🧍"],["long","el·e=uh·phant=funt","🐘","big elephant"],["long","lol·li=lee·pop","🍭","yummy lollipop"],["long","an·i=uh·mal=mul","🐾"],["long","buf=buh·fa=fuh·lo=low","🦬"],["long","oc=ock·to=tuh·pus","🐙"],["long","pine·ap·ple=pul","🍍"],["long","dom·i=uh·no","🎲"],["long","pi=pee·an·o=oh","🎹"],["long","pa=puh·ja=jah·mas=muz","🛌"],["long","vol·ca=kay·no","🌋","hot volcano"],["long","mos=muh·qui=skee·to=toe","🦟"],["long","gal·ax·y=ee","🌌"],["long","fla=fluh·min·go","🦩"],["long","lem·on=uh·ade=nade","🧃"],["long","lul·la=luh·by=bye","🌙"],["long","hol·i=uh·day","🎉"],["long","jel=jell·ly=lee·fish","🐠"],["long","pel·i=uh·can=kun","🐦"],["long","pop·si=sih·cle=kul","🍧"],["long","bi=bye·cy=sih·cle=kul","🚲"],["long","al·pha=fuh·bet","🔤"],["long","tel·e=uh·phone=fone","☎️"],["long","coc=coke·o=uh·nut","🥥"],["long","sat·el=uh·lite=light","🛰️","satellite in space"],["long","la=lay·dy=dee·bug","🐞"],["long","hel·i=uh·pad","🚁"],["long","gon·do=duh·la=luh","🚡"],["long","pol=pole·ka=kuh·dot","🔵"],["long","cam·ou=uh·flage=flahzh","🦎"],["long","gi=jye·gan·tic=tick","🦕"],["lclus","b=buh·lan·ket","🛏️"],["lclus","s=/sːː/·leep·y=ee","😪"],["lclus","s=/sːː/·low·ly=lee","🐢"],["sclus","s=/sːː/·now·y=ee","❄️"],["sclus","s=/sːː/·mel·ly=lee","🧦"],["long","av·o=uh·ca=kah·do=doe","🥑","green avocado"],["long","an·a=uh·con=kon·da=duh","🐍"],["long","gua=gwah·ca=kuh·mo=moe·le=lee","🌮"],["long","tel·e=uh·vi=vih·sion=zhun","📺","watch television"],["long","dan·de=dee·li=lie·on=un","🌼"],["long","cal·cu=cue·la=lay·tor=ter","🧮"],["long","sal·a=uh·man·der=/dɚ/","🦎"],["long","u=yoo·ku=kuh·le=lay·le=lee","🎸"],["long","a=/ˈeɪ/·vi=vee·a=/ˈeɪ/·tor=ter","🧑‍✈️"],["long","es=ess·ca=kuh·la=lay·tor=ter","🪜"],["long","au=aw·to=toe·mo=moe·bile=beel","🚗"],["r","r=/ɹːː/·ope","🪢"],["r","r=/ɹːː/·ing","💍"],["r","r=/ɹːː/·oad","🛣️"],["r","r=/ɹːː/·oof","🏠"],["r","r=/ɹːː/·ose=/ˈoʊz/","🌹"],["r","rab·bit","🐇"],["r","rain·bow","🌈"],["r","ro=roe·bot","🤖"],["r","rac=rack·coon=koon","🦝"],["r","r=/ɹːː/·un","🏃"],["r","r=/ɹːː/·ide","🎢"],["r","t=tuh·rain","🚂"],["r","c=kuh·rab","🦀"],["r","d=duh·rum","🥁"],["r","f=/fːː/·rog","🐸"],["r","b=buh·read=/ɹˈɛd/","🍞"],["r","b=buh·rush","🪥"],["r","t=tuh·ree=/ɹˈiː/","🌳"],["r","p=puh·rize=/ɹˈaɪz/","🏆"],["phrase","big jet","🛩️"],["phrase","fly up","⬆️"],["phrase","slow down","🐢"],["phrase","look out","👀"],["phrase","let's go","🚦"],["phrase","fast plane","💨"],["phrase","go fast","⚡"],["phrase","blue sky","🌤️"],["phrase","lift off","🚀"],["phrase","snack time","🍪"],["phrase","my plane","✈️"],["phrase","land it","🛬"],["phrase","little cloud","☁️"],["phrase","glide down","🪂"],["phrase","black cloud","🌩️"],["phrase","yellow plane","💛"],["phrase","sleepy sloth","🦥"],["phrase","silly snake","🐍"],["phrase","spin around","🌀"],["phrase","swim fast","🏊"],["phrase","small star","⭐"],["phrase","cold snow","❄️"],["phrase","help please","🙏"],["phrase","flip over","🤸"],["phrase","hello friend","👋"],["phrase","fly over the lake","🏞️"],["phrase","look at my plane","✈️"],["phrase","the plane is blue","🔵"],["phrase","I like to fly","🛩️"],["phrase","help me land","🛬"],["phrase","let's fly to the moon","🌙"],["phrase","the sun is so hot","☀️"],["phrase","my turn to fly","🙋"],["phrase","I can see the lake","🏞️"],["phrase","the slow plane is last","🐢"],["phrase","a big yellow balloon","🎈"],["phrase","please pass the snack","🍪"],["phrase","the lion is sleeping","🦁"],["phrase","let's play outside","🌳"],["phrase","I love my plane","❤️"],["phrase","look at the stars","✨"],["phrase","the plane goes zoom","💨"],["phrase","we flew so high","☁️"],["phrase","slide down the slide","🛝"],["phrase","the flag is blue","🚩"],["phrase","swim in the lake","🏊"],["phrase","blow out the candles","🎂"],["phrase","I spot a plane","🔭"],["phrase","spin and fly","🌀"],["phrase","stop the plane please","🛑"],["phrase","fly past the cloud","☁️"],["phrase","the jet is fast","🛩️"],["phrase","the little plane can fly","🛩️"],["phrase","I want a snack","🍪"],["phrase","it's time to land","🛬"],["phrase","the snail is slow","🐌"],["phrase","my blue plane is the best","🏅"],["phrase","look out below","⬇️"],["phrase","let's fly the loop","➰"],["phrase","smile for the photo","📷"],["phrase","the clock goes tick tock","🕐"],["phrase","we land at the airport","🛫"],["phrase","I fly with my friends","👫"],["phrase","what a big splash","💦"],["phrase","hold on tight","✊"]]);
+/* More (2026-10-31, the owner: "he's gone through all of them and recognizes them from memory"): new two- and three-part words, r words,
+   two-word phrases and sentences at levels 1 to 5, and the new levels' items: tri (three-letter clusters), dig (sh, ch, th), big (giant
+   words), and sentences of seven words or more */
+WL_DATA.push(...[["long","mon=mun·key=kee","🐒","funny monkey"],["long","pan·da=duh","🐼"],["long","ti=tie·ger=gur","🐯","fast tiger"],["long","ze=zee·bra=bruh","🦓"],["long","tur·tle=tul","🐢"],["long","pen·guin=gwin","🐧","happy penguin"],["long","tur·key=kee","🦃"],["long","cook·ie=ee","🍪"],["long","piz=peet·za=suh","🍕","hot pizza"],["long","ta=tah·co=koe","🌮"],["long","sand·wich","🥪"],["long","pump·kin","🎃","big pumpkin"],["long","can·dy=dee","🍬"],["long","cup·cake","🧁"],["long","pop·corn","🍿"],["long","pea=pee·nut","🥜"],["long","car·rot=rut","🥕"],["long","cher=chair·ry=ee","🍒"],["long","drag·on=un","🐉","friendly dragon"],["long","jack·et=it","🧥"],["long","cas=kass·tle=sul","🏰"],["long","bas·ket=kit","🧺"],["long","buck·et=it","🪣"],["long","mag·net=nit","🧲"],["long","puz=puzz·zle=zul","🧩"],["long","tro=troe·phy=fee","🏆","gold trophy"],["long","med=med·al=ul","🏅"],["long","pen·cil=sul","✏️"],["long","sun·set","🌅"],["long","sail·boat","⛵"],["long","air·plane","✈️","big airplane"],
+  ["long","am·bu=byoo·lance=lunce","🚑"],["long","cu=kyoo·cum=kum·ber","🥒"],["long","broc=brock·co=kuh·li=lee","🥦"],["long","or·ches=kiss·tra=truh","🎻"],["long","gym=jim·nas·tics","🤸"],["long","u=you·ni=nuh·corn","🦄","magic unicorn"],["long","ko=koe·a=ah·la=luh","🐨"],["long","mi=my·cro=kroe·scope","🔬"],["long","ham·burg=burg·er","🍔"],["long","tor·na=nay·do=doe","🌪️"],["long","mo=moe·tor=ter·boat","🚤"],["long","fire·fight=fite·er","🧑‍🚒"],["long","cal=kal·en=un·dar=der","📅"],["long","ac=ack·ro=ruh·bat","🤸"],
+  ["r","r=/ɹːː/·ock","🪨"],["r","r=/ɹːː/·ice","🍚"],["r","b=buh·rick","🧱"],["r","g=guh·rapes","🍇"],["r","c=kuh·rown","👑"],["r","b=buh·room","🧹"],["r","f=/fːː/·ries=rize","🍟"],["r","p=puh·resent=rezzent","🎁"],
+  ["phrase","red kite","🪁"],["phrase","big truck","🚚"],["phrase","green frog","🐸"],["phrase","brave pilot","🧑‍✈️"],["phrase","bright star","⭐"],["phrase","jump high","🦘"],["phrase","wave hello","👋"],["phrase","fast car","🏎️"],["phrase","happy dragon","🐉"],["phrase","good night","🌙"],["phrase","thank you","🙏"],["phrase","more please","🙋"],
+  ["phrase","the propeller spins so fast","🌀"],["phrase","my kite flies high","🪁"],["phrase","the frog can jump","🐸"],["phrase","wave hello to the pilot","👋"],["phrase","the train goes choo choo","🚂"],["phrase","I see a big ship","🚢"],["phrase","the duck swims in the pond","🦆"],["phrase","we race to the finish line","🏁"],["phrase","the panda eats lunch","🐼"],["phrase","a rainbow in the sky","🌈"],["phrase","the tiger is so fast","🐯"],["phrase","my plane has two wings","✈️"],["phrase","turn left at the tower","⬅️"],["phrase","the drum goes boom boom","🥁"],
+  ["tri","s=/sːː/·traw","🥤","drink with a straw"],["tri","s=/sːː/·treet","🛣️"],["tri","s=/sːː/·plash","💦","big splash"],["tri","s=/sːː/·crew","🔩"],["tri","s=/sːː/·quid","🦑"],["tri","th=/θːː/·ree","3️⃣","three planes"],["tri","s=/sːː/·cream","😱"],["tri","s=/sːː/·trong","💪","strong plane"],["tri","s=/sːː/·traw·ber·ry=ee","🍓"],["tri","s=/sːː/·plat=platt","💥"],
+  ["dig","sh=/ʃːː/·ip","🚢","big ship"],["dig","sh=/ʃːː/·ell","🐚"],["dig","sh=/ʃːː/·ark","🦈","shark fin"],["dig","sh=/ʃːː/·eep","🐑"],["dig","sh=/ʃːː/·oe=oo","👟"],["dig","ch=chuh·eese=eez","🧀"],["dig","ch=chuh·air","🪑"],["dig","ch=chuh·ick","🐥","little chick"],["dig","ch=chuh·erry=airy","🍒"],["dig","th=/θːː/·umb=um","👍","thumbs up"],["dig","sh=/ʃːː/·ower","🚿"],["dig","ch=chuh·ocolate=ocklit","🍫"],
+  ["big","ty=tie·ran·no=nuh·saur=sore·us","🦖"],["big","con·stel=stell·la=lay·tion=shun","🌌"],["big","cel=sell·e=uh·bra=bray·tion=shun","🎉"],["big","su=soo·per·mar·ket=kit","🛒"],["big","ther=thur·mom·e=uh·ter","🌡️"],["big","rhi=rye·noc=nock·er·os=us","🦏"],["big","tri=try·cer=sair·a=uh·tops","🦕"],["big","ac=uh·cor=core·di=dee·on=un","🪗"],["big","ta=tuh·ran·tu=chuh·la=luh","🕷️"],["big","un·der·wa=wah·ter","🌊"],["big","a=uh·quar=kwair·i=ee·um","🐠"],["big","ob=ub·ser=zer·va=vuh·to=tor·ry=ee","🔭"],["big","in·vi=vih·ta=tay·tion=shun","💌"],
+  ["phrase","the little plane flies over the big lake","✈️"],["phrase","my red plane can fly up to the clouds","☁️"],["phrase","we zoom past the tower and land fast","🛬"],["phrase","the blue jet does a loop in the sky","🛩️"],["phrase","I see the runway lights down below","🛬"],["phrase","please buckle up because we are taking off","🛫"],["phrase","the helicopter lands on the top of the hill","🚁"],["phrase","five fast planes race around the big mountain","⛰️"],["phrase","the rocket flies all the way to the moon","🚀"],["phrase","my friend and I fly kites at the park","🪁"],["phrase","the pilot waves hello from the cockpit window","👋"],["phrase","look at the rainbow over the airport","🌈"],["phrase","the plane lands softly on the long runway","🛬"],["phrase","we fly high above the fluffy white clouds","☁️"],["phrase","the fire plane drops water on the fire","🔥"],["phrase","the hot air balloon goes up and up","🎈"],["phrase","the big plane carries lots of happy people","✈️"],["phrase","the sun goes down and the stars come out","⭐"]]);
 const wlSpk = w=>/^I$/.test(w) ? w : w.toLowerCase();   // a phrase word as recorded (pack wl): lower case, "I" stays
 function wlItem(kind, d, e, then){ const ph = kind === 'phrase';
   const parts = (ph ? d.split(' ') : d.split('·')).map(x=>{ const i = x.indexOf('='), t = i < 0 ? x : x.slice(0, i); return {t, s: i < 0 ? (ph ? wlSpk(t) : t) : x.slice(i + 1)}; });
@@ -13075,14 +13132,21 @@ function wlMatch(text, x){
 const WL = {on:false, r:null, m:null, scale:1, nextT:0, stars:0, launched:0, tries:0, timers:[], seq:0, noRec:false, noMic:false, noMicT:false, noMicPrime:false, mock:false, fake:null,
   log:[], jrow:0, first:true, shakeT:0, rushT:0, mesh:null, labels:[], tapSaid:false};
 const WL_CONF = .5;   // a final transcript at least this sure (or with no score at all) counts as heard; below it is "not heard"
-const wlLvl = ()=>Math.min(5, Math.max(1, +saveGet('hangar-beatlvl') || 1));
-/* levels: 1 two-part items, 2 three parts, 3 four or more, 4 words that build to a phrase, r words and two-word phrases, 5 phrases of 3 to 6 words */
-function wlPool(lv){ const n = it=>it.parts.length, word = it=>it.kind !== 'phrase' && it.kind !== 'r';
+const WL_TOP = 8;
+const wlLvl = ()=>Math.min(WL_TOP, Math.max(1, +saveGet('hangar-beatlvl') || 1));
+/* levels: 1 two-part items, 2 three parts, 3 four or more, 4 words that build to a phrase, r words and two-word phrases, 5 phrases of 3 to 6
+   words; since 2026-10-31 (the owner: he maxes out): 6 tricky starts (three-letter clusters, sh, ch and th), 7 giant words (four parts and
+   more), 8 long sentences (seven words or more) */
+const WL_NEW = new Set(['tri', 'dig', 'big']);
+function wlPool(lv){ const n = it=>it.parts.length, word = it=>it.kind !== 'phrase' && it.kind !== 'r' && !WL_NEW.has(it.kind);
   if(lv === 1) return WL_ITEMS.filter(it=>word(it) && n(it) <= 2);
   if(lv === 2) return WL_ITEMS.filter(it=>word(it) && n(it) === 3);
   if(lv === 3) return WL_ITEMS.filter(it=>word(it) && n(it) >= 4);
-  if(lv === 4) return WL_ITEMS.filter(it=>it.then || it.kind === 'r' || (it.kind === 'phrase' && n(it) === 2));
-  return WL_ITEMS.filter(it=>it.kind === 'phrase' && n(it) >= 3); }
+  if(lv === 4) return WL_ITEMS.filter(it=>(it.then && !WL_NEW.has(it.kind)) || it.kind === 'r' || (it.kind === 'phrase' && n(it) === 2));
+  if(lv === 6) return WL_ITEMS.filter(it=>it.kind === 'tri' || it.kind === 'dig');
+  if(lv === 7) return WL_ITEMS.filter(it=>it.kind === 'big' || (word(it) && n(it) >= 5));
+  if(lv === 8) return WL_ITEMS.filter(it=>it.kind === 'phrase' && n(it) >= 7);
+  return WL_ITEMS.filter(it=>it.kind === 'phrase' && n(it) >= 3 && n(it) <= 6); }
 const wlU = ()=>UI.en;
 const wlPickItem = ()=>lrnPick('wl' + wlLvl(), wlPool(wlLvl()));
 const varietyForget = ()=>{ BAG.raw = undefined; };   // tests (varietySim): read the bags again, as a fresh visit does
@@ -13332,7 +13396,7 @@ function wlScore(m, star, why){
   wdCount({w: m.x.w, l:'en'}, star, m.phrase ? 0 : m.jolts);
   if(star && m.jolts === 0 && why !== 'rec') return false;
   if(star && m.jolts === 0){ const n = (+saveGet('hangar-beatclr') || 0) + 1, lv = wlLvl();
-    if(n >= 3 && lv < 5){ saveSet('hangar-beatlvl', String(lv + 1)); saveSet('hangar-beatclr', '0'); return true; } saveSet('hangar-beatclr', String(Math.min(n, 3))); }
+    if(n >= 3 && lv < WL_TOP){ saveSet('hangar-beatlvl', String(lv + 1)); saveSet('hangar-beatclr', '0'); return true; } saveSet('hangar-beatclr', String(Math.min(n, 3))); }
   else saveSet('hangar-beatclr', '0');
   return false;
 }
@@ -13526,7 +13590,7 @@ function wlStripRender(){
   const say = {model:'', parts: m.mode === 'tap' ? u.wlTapIt : u.yourTurn, whole: m.mode === 'tap' && m.listen ? u.wlTapIt : m.ro ? u.roSayAll : u.wlLaunchIt, then: u.wlYes, launch: ''}[m.stage] || '';
   $('wlSay').textContent = say; $('wlSaid').textContent = u.wlSaid; $('wlAgain').textContent = u.wlAgainB; $('wlTap').setAttribute('aria-label', u.wlTapIt);
   const chips = x.parts.map((p, i)=>`<b class="wl-p${i < m.k || m.stage === 'whole' || m.stage === 'launch' ? ' done' : i === m.k && m.stage === 'parts' ? ' on' : ''}" data-i="${i}">${escHTML(p.t)}</b>`);
-  const row = $('wlParts'); row.className = 'wl-row' + (x.w.length > 14 || n > 4 ? ' s' : ''); row.innerHTML = `<span class="wl-e">${x.e || ''}</span>` + chips.join(ph ? '' : '<span class="wl-dot">·</span>');
+  const row = $('wlParts'); row.className = 'wl-row' + (x.w.length > 14 || n > 4 ? ' s' : ''); row.innerHTML = chips.join(ph ? '' : '<span class="wl-dot">·</span>'); const pic = sayPic({w: x.w, e: x.e}), pe = $('wlPic'); if(pe.textContent !== pic) pe.textContent = pic; $('wlStrip').classList.toggle('pic', !!pic);   // one calm picture of the word on the left (2026-10-31)
   if(rpOn) rp.style.bottom = `calc(var(--sb) + ${12 + ($('wlStrip').offsetHeight || 58) + 8}px)`;   // just over the strip, however many lines it has
 }
 /* ---- hearing: a burst detector on the microphone ----
@@ -13612,7 +13676,7 @@ function wlMicPrime(){ if(!wlMicWanted()) return; WL.noMicPrime = false; const b
 function renderWLSetup(){
   const box = $('rsWL'), radio = RACE.type === 'radio', on = (RACE.type === 'beats' || radio) && lang === 'en'; if(box.hidden === on) box.hidden = !on; if(!on){ wlMicTestStop(); return; }   // Radio Out: the same microphone switches, no level
   const u = wlU(), lv = wlLvl(), mic = saveGet('hangar-wlmic') !== '0', chk = saveGet('hangar-wlcheck') !== '0', sens = +(saveGet('hangar-wlsens') || 60), td = wdToday(), hasMic = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
-  box.innerHTML = (radio ? '' : `<div class="rsw-lv" style="grid-template-columns:repeat(5,1fr)">${[1, 2, 3, 4, 5].map(n=>`<button data-lv="${n}" aria-pressed="${n === lv}">${n}</button>`).join('')}</div>
+  box.innerHTML = (radio ? '' : `<div class="rsw-lv" style="grid-template-columns:repeat(${WL_TOP},1fr);gap:4px">${Array.from({length: WL_TOP}, (x, i)=>i + 1).map(n=>`<button data-lv="${n}" aria-pressed="${n === lv}">${n}</button>`).join('')}</div>
     <div class="rsw-row"><span class="rsw-lvname">${u.wLevel} ${lv}: ${u.wlLevels[lv - 1]}</span><span class="rsw-today">${u.todayTries(td.tries, td.clear)}</span></div>`) + `
     <div class="wls-tg"><button id="wlsMic" aria-pressed="${mic}"><i></i><span>${u.wlMic}</span></button><button id="wlsCheck" aria-pressed="${mic && chk}"${mic ? '' : ' disabled'}><i></i><span>${escHTML(u.wlCheck)}</span></button></div>
     <p class="wls-note">${u.wlNote}${hasMic ? '' : ' ' + u.wlNoMicNote}</p>
