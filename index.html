@@ -3520,7 +3520,8 @@ function voUnits(parts){ const out = [];
     voNorm(p).replace(/([.!?])\s+/g, '$1\u0001').split('\u0001').forEach(x=>{ x = x.trim(); if(x) out.push(x); }); });
   return out; }
 const voRacePack = n=>/^[a-z]+-(race|learn|words|words-q|phr|wl|wl-q|wlw|wlw-q|wf\d|wf\d-q|nums|nums-q|lt\d|lt\d-q|ann|annq|bl|bl-.+|pv-.+)$/.test(n);   // the packs a race speaks from (bl: the blimp; lt<letter>: the Letter Race)
-function voDrop(keep){ Object.keys(VO.packs).forEach(n=>{ if(!keep(n)){ delete VO.packs[n]; if(VO.got) delete VO.got[n]; } }); }
+function voDrop(keep){ Object.keys(VO.packs).forEach(n=>{ if(!keep(n)){ delete VO.packs[n]; if(VO.got) delete VO.got[n]; } }); if(VO.full) Object.keys(VO.full).forEach(n=>{ if(!keep(n)) delete VO.full[n]; });
+  for(const [k, e] of VOS.lines){ if(!keep(k.slice(0, k.indexOf('|')))){ VOS.lines.delete(k); VOS.sec -= e.sec; } } }   // (and their decoded lines: section "speech line by line")
 function voIndex(){ return VO.idxP || (VO.idxP = fetch('vo/index.json').then(r=>r.ok ? r.json() : null).then(j=>(VO.idx = j)).catch(()=>{ VO.idxP = null; return null; })); }
 function audioOut(){
   const a = audio(); if(!a) return null;
@@ -3574,10 +3575,74 @@ function voClip(a, p, st, du){   // [the buffer to play, the offset in it] for t
   const sr = p.sampleRate, n0 = Math.min(p.length - 1, Math.max(0, Math.floor(st*sr))), n1 = Math.min(p.length, Math.ceil((st + du)*sr) + 2), len = Math.max(1, n1 - n0), b = a.createBuffer(1, len, sr), d = b.getChannelData(0), k = p.gain/32767, q = p.pcm;
   for(let i = 0; i < len; i++) d[i] = q[n0 + i]*k;
   return [b, Math.max(0, st - n0/sr)]; }
+/* ================= speech line by line ================= */
+/* (2026-10-31, the speech memory pass) A pack decoded whole was its length in 16-bit samples, and decoding made a 32-bit copy first: the
+   number race's question pack alone (about 18 minutes) held 51 MB in English and 61 in Spanish, and briefly twice that, the kind of spike
+   that gets a phone's tab killed. Now a pack is kept as its MP3 bytes (4 to 5 MB for those) with a table of its frames, and only the line
+   about to play is decoded: its frames, a few more on each side (the bit reservoir and the decoder's warm-up), cut to the line's samples.
+   Every pack is the same encoding (CBR 32 kb/s, 24 kHz mono, MPEG-2 Layer III: 576 samples a frame), after an ID3 tag and an Info frame.
+   Where a raw slice's samples fall on the whole pack's timeline depends on the browser (the encoder delay it trims): once per session
+   voCal decodes a pack's first frames with their tags, as a whole-pack decode sees them, and the same frames bare, and measures the lag
+   between them (cross-correlation; 1105 samples in Chromium, where a sliced line then matches the whole-pack decode sample for sample).
+   Lines decoded recently stay in a small cache (VOS.max seconds); the next likely lines can be decoded ahead (voPrefetch). Anything
+   unexpected (a pack that does not parse, a calibration that does not match, a slice the browser will not decode) turns this off for the
+   session and the pack is decoded whole as before (voPackFull); Bulldog's sung clip, which must stay sample-exact with the band, always is. */
+const VOS = {on: true, cal: null, calP: null, lines: new Map(), sec: 0, max: 90, pad: 3, tail: 3, spf: 576, hit: 0, miss: 0, ms: 0};
+function voParse(buf, name){   // the frame table of an MP3 pack, or null (it decodes whole)
+  const u = new Uint8Array(buf); let i = 0;
+  if(u[0] === 0x49 && u[1] === 0x44 && u[2] === 0x33) i = 10 + ((u[6] << 21) | (u[7] << 14) | (u[8] << 7) | u[9]);
+  const BR2 = [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160], SR2 = [22050, 24000, 16000], offs = []; let sr = 0;
+  while(i + 4 <= u.length){ if(u[i] !== 0xFF || (u[i + 1] & 0xE0) !== 0xE0) break;
+    const ver = (u[i + 1] >> 3) & 3, lay = (u[i + 1] >> 1) & 3, br = BR2[u[i + 2] >> 4], s = SR2[(u[i + 2] >> 2) & 3], pad = (u[i + 2] >> 1) & 1;
+    if(ver !== 2 || lay !== 1 || !br || !s) return null;   // MPEG-2 Layer III only (576 samples a frame)
+    if(!sr) sr = s; else if(s !== sr) return null;
+    offs.push(i); i += 72*br*1000/s + pad; }
+  if(offs.length < 40 || i < u.length - 4) return null; offs.push(i);
+  const info = String.fromCharCode(...u.subarray(offs[0] + 4, offs[0] + 40)); if(!/Info|Xing/.test(info)) return null;   // the first frame is the tag frame, not speech
+  return {raw: u, offs: Int32Array.from(offs), sr, name, slice: true, length: (offs.length - 2)*576, sampleRate: sr, mb: u.length/1e6}; }
+function voDecodeF(u8){ return voDecode(u8.slice().buffer).then(b=>b && b.numberOfChannels === 1 ? b : Promise.reject(0)); }   // (a copy: decoding takes its buffer)
+async function voCal(p){   // the lag, in decoded samples, of a bare slice against the whole-pack timeline (null: slices are off)
+  if(VOS.cal) return VOS.cal; if(VOS.calP) return VOS.calP;
+  VOS.calP = (async ()=>{ const N = Math.min(120, p.offs.length - 3), A = await voDecodeF(p.raw.subarray(0, p.offs[1 + N])), B = await voDecodeF(p.raw.subarray(p.offs[1], p.offs[1 + N]));
+    const k = A.sampleRate/p.sr, x = A.getChannelData(0), y = B.getChannelData(0), M = Math.round(3000*k), n0 = Math.round(4000*k), len = Math.min(Math.round(16000*k), x.length - n0 - M, y.length - n0 - M);
+    if(len < 2000) return null;
+    const corr = (L, st)=>{ let s = 0, sx = 0, sy = 0; for(let i = n0; i < n0 + len; i += st){ const a = x[i], b = y[i + L] || 0; s += a*b; sx += a*a; sy += b*b; } return sx < 1e-6 || sy < 1e-6 ? -1 : s/Math.sqrt(sx*sy); };
+    let best = -2, bl = 0; for(let L = -M; L <= M; L += 4){ const c = corr(L, 4); if(c > best){ best = c; bl = L; } }
+    let b2 = -2, L2 = bl; for(let L = bl - 4; L <= bl + 4; L++){ const c = corr(L, 1); if(c > b2){ b2 = c; L2 = L; } }
+    if(b2 < .995) return null;   // not the same sound: slices are off for the session
+    return {L: L2, k, sr: A.sampleRate, c: b2}; })().catch(()=>null).then(c=>{ VOS.cal = c; if(!c) VOS.on = false; return c; });
+  return VOS.calP; }
+/* the whole pack decoded as before ({pcm, ...}, voHold): the fallback, and Bulldog's song */
+function voPackFull(name){ VO.full = VO.full || {}; if(VO.full[name]) return VO.full[name];
+  return (VO.full[name] = fetch('vo/' + name + '.mp3').then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); }).then(voDecode).then(x=>{ x = voHold(x); x.mb = x.length*(x.pcm ? 2 : x.numberOfChannels*4)/1e6; return x; }).catch(()=>{ delete VO.full[name]; return null; })); }
+const voLineKey = (p, st, du)=>p.name + '|' + st + '|' + du;
+function voLineKeep(key, v, sec){ VOS.lines.set(key, {v, sec}); VOS.sec += sec;
+  for(const [k, e] of VOS.lines){ if(VOS.sec <= VOS.max || VOS.lines.size <= 1) break; if(k === key) continue; VOS.lines.delete(k); VOS.sec -= e.sec; } }
+/* [the buffer to play, the offset in it] for the line at st (s) for du (s) in pack p, as voClip gives it (a promise) */
+function voLine(a, p, st, du){
+  if(!p.slice) return Promise.resolve(voClip(a, p, st, du));
+  const key = voLineKey(p, st, du), e = VOS.lines.get(key);
+  if(e){ VOS.lines.delete(key); VOS.lines.set(key, e); VOS.hit++; return e.v; }   // (most recently used last)
+  VOS.miss++; const t0 = performance.now();
+  const v = (async ()=>{ const c = VOS.on ? await voCal(p) : null;
+    if(c){ try{ const sr = p.sr, n0 = Math.max(0, Math.floor(st*sr)), n1 = Math.min(p.length, Math.ceil((st + du)*sr) + 2), F = p.offs.length - 2;
+        const f0 = Math.max(0, Math.floor((n0 + c.L/c.k)/VOS.spf) - VOS.pad), f1 = Math.min(F, Math.ceil((n1 + c.L/c.k)/VOS.spf) + VOS.tail);
+        const S = await voDecodeF(p.raw.subarray(p.offs[1 + f0], p.offs[1 + f1])), d = S.getChannelData(0), b0 = Math.round((n0 - f0*VOS.spf)*c.k + c.L), len = Math.max(1, Math.round((n1 - n0)*c.k));
+        if(b0 >= 0 && b0 + len <= d.length + 2){ const b = a.createBuffer(1, len, c.sr), o = b.getChannelData(0); o.set(d.subarray(b0, Math.min(d.length, b0 + len)));
+          VOS.ms += performance.now() - t0; return [b, Math.max(0, st - n0/sr)]; } }
+      catch(err){ VOS.on = false; } }
+    const w = await voPackFull(p.name); if(!w) throw 0; return voClip(a, w, st, du); })();   // (the fallback: the whole pack)
+  voLineKeep(key, v, du + .02); v.catch(()=>{ if(VOS.lines.get(key) && VOS.lines.get(key).v === v){ VOS.sec -= VOS.lines.get(key).sec; VOS.lines.delete(key); } });
+  return v; }
+/* lines a little ahead of time (the question about to be asked): their packs fetched and the lines decoded, nothing played */
+async function voPrefetch(parts, opt){ try{ const a = audio(); if(!a) return; const idx = await voIndex(); if(!idx) return; const L = (opt && opt.L) || lang, units = voUnits(parts); if(!units.length) return;
+  const locs = voLocSay(idx, L, units, opt, herAt(opt, units.length)); if(!locs) return;
+  for(const [p, st, du] of locs){ const pk = await voPack(p); if(pk) await voLine(a, pk, st, du).catch(()=>{}); } }catch(e){} }
 function voPack(name){ const a = audio(); if(!a) return Promise.resolve(null);
   VO.used = VO.used || {}; VO.used[name] = performance.now();
   if(VO.packs[name]) return VO.packs[name];
-  VO.packs[name] = fetch('vo/' + name + '.mp3').then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); }).then(voDecode).then(x=>{ x = voHold(x); x.mb = x.length*(x.pcm ? 2 : x.numberOfChannels*4)/1e6; (VO.got = VO.got || {})[name] = performance.now(); return x; }).catch(()=>{ delete VO.packs[name]; return null; });   // VO.got: when it was ready (tests: her packs before her hello)
+  VO.packs[name] = fetch('vo/' + name + '.mp3').then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); }).then(buf=>{ const p = VOS.on ? voParse(buf, name) : null; return p || voDecode(buf).then(x=>{ x = voHold(x); x.mb = x.length*(x.pcm ? 2 : x.numberOfChannels*4)/1e6; x.name = name; return x; }); })
+    .then(x=>{ (VO.got = VO.got || {})[name] = performance.now(); return x; }).catch(()=>{ delete VO.packs[name]; return null; });   // VO.got: when it was ready (tests: her packs before her hello)
   const pvs = r=>Object.keys(VO.packs).filter(n=>n.indexOf('-pv-') > 0 && /-r$/.test(n) === r).sort((x, y)=>(VO.used[x] || 0) - (VO.used[y] || 0)), pv = pvs(false), pr = pvs(true);
   while(pv.length > VO_PV_MAX) delete VO.packs[pv.shift()]; while(pr.length > VO_PVR_MAX) delete VO.packs[pr.shift()];
   const lt = Object.keys(VO.packs).filter(n=>/-lt\d(-q)?$/.test(n)).sort((x, y)=>(VO.used[x] || 0) - (VO.used[y] || 0)); while(lt.length > VO_LT_MAX) delete VO.packs[lt.shift()];   // the Letter Race's letter-group packs (ltPk): the least recently used go
@@ -3618,10 +3683,11 @@ async function say0(parts, opt){                // opt.force: speak even with Re
   if(!locs || !a || !out){ deviceSay(units.join(' '), L); talkSet(units.join(' ').length*.07); return; }
   const bufs = {};
   for(const p of [...new Set(locs.map(c=>c[0]))]){ bufs[p] = await voPack(p); if(tok !== VO.tok) return; if(!bufs[p]){ deviceSay(units.join(' '), L); return; } }
+  let cls; try{ cls = await Promise.all(locs.map(([p, st, du])=>voLine(a, bufs[p], st, du))); }catch(e){ cls = null; } if(tok !== VO.tok) return; if(!cls){ deviceSay(units.join(' '), L); return; }   // (each line decoded on its own: section "speech line by line")
   if(a.state === 'suspended'){ try{ await a.resume(); }catch(e){} if(tok !== VO.tok) return; }
   let t = a.currentTime + .03, tH = 0; const rate = (opt && opt.rate) || 1, plain = (opt && opt.plain) || []; ent.a0 = t; ent.packs = locs.slice(0, ent.u.length).map(c=>c[0]); if(ent2) ent2.packs = locs.slice(hk).map(c=>c[0]);   // (tests: when it plays on the audio clock, from which packs)
   if(!VO.tap){ VO.tap = a.createGain(); VO.tap.gain.value = VOL.voice; VO.tap.connect(out); VO.an = a.createAnalyser(); VO.an.fftSize = 512; VO.anBuf = new Uint8Array(512); VO.tap.connect(VO.an); }   // a tap to hear how loud the voice is (talking mouths)
-  locs.forEach(([p, st, du], i)=>{ if(i === hk){ tH = t; if(ent2) ent2.a0 = t; } const src = a.createBufferSource(), r = i >= hk || plain.includes(units[i]) ? 1 : rate, cl = voClip(a, bufs[p], st, du); src.buffer = cl[0]; src.playbackRate.value = r; src.connect(VO.tap); src.start(t, cl[1], du); VO.srcs.push(src); t += du/r + ((opt && opt.gap) || .05); });
+  locs.forEach(([p, st, du], i)=>{ if(i === hk){ tH = t; if(ent2) ent2.a0 = t; } const src = a.createBufferSource(), r = i >= hk || plain.includes(units[i]) ? 1 : rate, cl = cls[i]; src.buffer = cl[0]; src.playbackRate.value = r; src.connect(VO.tap); src.start(t, cl[1], du); VO.srcs.push(src); t += du/r + ((opt && opt.gap) || .05); });
   VO.from = a.currentTime; VO.until = t; VO.prio = 5; talkSet(t - a.currentTime); ent.a1 = ent2 ? tH : t; if(ent2) ent2.a1 = t;
   if(ent2){ const her = units.slice(hk).join(' '), ms = Math.max(0, (tH - a.currentTime)*1000); ent.t1 = performance.now() + ms; ent2.t0 = ent.t1;   // her part: who talks switches to her as it starts (her mouth, the bubble)
     setTimeout(()=>{ if(VO.tok === tok){ VO.who = 'blimp'; VO.text = her; } }, ms); }
@@ -3638,11 +3704,12 @@ async function sayCm(parts, prio, kind, who){
   try{
     const idx = await voIndex(); if(!idx) return false; const units = voUnits(parts), locs = voLocate(idx, lang, units, null, false, CM_PREF[who]); if(!locs) return false;
     const bufs = {}; for(const p of [...new Set(locs.map(c=>c[0]))]){ bufs[p] = await voPack(p); if(!bufs[p]) return false; }
+    let cls; try{ cls = await Promise.all(locs.map(([p, st, du])=>voLine(a, bufs[p], st, du))); }catch(e){ return false; }
     if((a.currentTime < (VO.until||0) - .05 && prio <= (VO.prio||0)) || voPend()) return false;
     voStop(); let t = a.currentTime + .03;
     if(!VO.cmG){ VO.cmG = a.createGain(); VO.cmG.connect(out); } VO.cmG.gain.value = VOL.voice;   // the voices slider
     if(VO.an && !VO.cmAn){ VO.cmG.connect(VO.an); VO.cmAn = true; }   // the blimp's mouth follows the loudness (blimpFrame)
-    const a0 = t; locs.forEach(([p, st, du])=>{ const src = a.createBufferSource(), cl = voClip(a, bufs[p], st, du); src.buffer = cl[0]; src.connect(VO.cmG); src.start(t, cl[1], du); VO.srcs.push(src); t += du + .05; });
+    const a0 = t; locs.forEach(([p, st, du], i)=>{ const src = a.createBufferSource(), cl = cls[i]; src.buffer = cl[0]; src.connect(VO.cmG); src.start(t, cl[1], du); VO.srcs.push(src); t += du + .05; });
     VO.from = a.currentTime; VO.until = t; VO.prio = prio; VO.cmWho = who || null;
     const n = performance.now(); (VO.cmSaid = VO.cmSaid || []).push({t: n, t0: n + 30, t1: n + (t - a.currentTime)*1000, a0, a1: t, packs: locs.map(c=>c[0]), who: who || 'cm', kind: kind || null, prio, u: units}); if(VO.cmSaid.length > 300) VO.cmSaid.shift();   // (tests: the blimp's and Barnaby's lines, when they played on the wall and audio clocks, and from which packs)
     return true;
@@ -9155,7 +9222,7 @@ function raceThrill(dt){
   if(RACE.phase !== 'race') return 1; const st = standings(), lead = st[0], u = UI[lang], NL = RACE.laps || 2; if(!lead) return 1;
   const lap = Math.min(NL, Math.floor((lead.d - lead.take)/rL) + 1);
   if(lead.d > lead.take && lap > (RACE.lapShown || 1)){ RACE.lapShown = lap;
-    if(lap === NL){ raceBanner(u.finalLap); BL.finalT = RACE.clock + 3.5; st.slice(0, 2).forEach(r=>{ const p = planeRacePack(r); if(p) voPack(p); });   /* the likely winners' voices, for the cheer (their race packs: win and banter lines) */ tone(1320, .9, 'triangle', .16); tone(1320, .9, 'triangle', .16, null, .32); tone(1760, 1.1, 'triangle', .12, null, .64); }
+    if(lap === NL){ raceBanner(u.finalLap); BL.finalT = RACE.clock + 3.5; st.slice(0, 2).forEach(r=>{ const p = planeRacePack(r); if(p) voPack(p); gsWarm(r); });   /* the likely winners' voices, for the cheer (their race packs: win and banter lines) */ tone(1320, .9, 'triangle', .16); tone(1320, .9, 'triangle', .16, null, .32); tone(1760, 1.1, 'triangle', .12, null, .64); }
     else { raceBanner(u.lapN(lap)); tone(1046, .5, 'triangle', .14); } }
   const sec = st[1], close = !RACE.finishers.length && sec && lead.D - lead.d < 320 && lead.d - sec.d < 45;
   if(close && !RACE.photo){ RACE.photo = true; raceBanner(u.photoFinish); noiseHit(300, 1200, 1.2, .12, .7); }
@@ -9690,7 +9757,7 @@ async function soloStart(){
     if(!soloBuilt().length && !(await build(soloNext()))) return;   // nothing built yet: the first of SOLO_NEW
     let P = soloPlace(key, soloBuilt());
     if(P.k < 1){ const nx = soloNext(); if(nx >= 0 && await build(nx)){ const Q = soloPlace(key, [nx]); if(Q && Q.k > P.k) P = Q; } }   // nowhere it fits: one more course, if one may be built
-    const pv = planeRacePack({c}); if(pv) await Promise.race([voPack(pv), new Promise(r=>setTimeout(r, 4000))]);   // its cheer, in its own voice (at most 4 s of waiting on a slow link)
+    const pv = planeRacePack({c}); if(pv) await Promise.race([Promise.all([voPack(pv), gsWarm({c})]), new Promise(r=>setTimeout(r, 4000))]);   // its cheer, in its own voice (at most 4 s of waiting on a slow link)
     showLoading(false); closeStudio(); if(flight.mode !== 'parked') resetFlight();
     RACE.list = [c]; raceQualityStart(); voWarm(true);
     closeHangar(); $('rhud').hidden = false; $('rhud').classList.add('solo');
@@ -11766,9 +11833,10 @@ function gsPlay(){ if(WL.m || !SND.on) return; const a = audio(); if(!a) return;
     if(SCA.on && SCA.mus) SCA.mus.gain.setTargetAtTime(SCA_MIX.music*VOL.music*.15, a.currentTime, .25); }catch(e){} }
 /* his voice, in time with the band: t1 is the band's first note (audio time). His race pack is usually in already (the solo show waits for it, a race
    asks for the likely winners' at the last lap); one still on its way starts him late, in step (the clip from where the band is), or not at all near its end */
+function gsWarm(r){ const pk = planeRacePack(r); return voIndex().then(idx=>pk && idx && (idx.clips[lang + '|' + GS_SING.key] || []).some(e=>e[0] === pk) ? voPackFull(pk) : null).catch(()=>null); }   // a singer's whole race pack ahead of his song (gsSing)
 function gsSing(a, t1){ const r = GS.r, L = lang, tok = ++GS.sTok; if(!r || VOL.voice <= 0) return; const pk = planeRacePack(r, L); if(!pk) return;
   GS.st.sing = {want: +t1.toFixed(3), pack: pk};
-  Promise.all([voIndex(), voPack(pk)]).then(([idx, p])=>{ const c = idx && p && (idx.clips[L + '|' + GS_SING.key] || []).find(e=>e[0] === pk);
+  Promise.all([voIndex(), voPackFull(pk)]).then(([idx, p])=>{ const c = idx && p && (idx.clips[L + '|' + GS_SING.key] || []).find(e=>e[0] === pk);   // (the whole pack, as before: sample-exact with the band; section "speech line by line")
     if(!c || tok !== GS.sTok || GS.r !== r || !GS.bus || !SND.on){ if(GS.st && GS.st.sing) GS.st.sing.miss = !c ? 'clip' : 'gone'; return; }
     const at = t1 - GS_SING.lead, now = a.currentTime + .03, skip = Math.max(0, now - at); if(skip > c[2] - 1.5){ GS.st.sing.miss = 'late'; return; }
     try{ const [b, off] = voClip(a, p, c[1], c[2]), src = a.createBufferSource(), g = a.createGain(); g.gain.value = VOL.voice; src.buffer = b; src.connect(g); g.connect(audioOut() || a.destination);
@@ -13104,7 +13172,7 @@ function ltUnlight(){ const big = $('rqPics').querySelector('.lt-big'); if(big) 
    the ending sounds in lt4, the middle vowels in lt5 */
 const ltPk = d=>(d[6] && d[6].pk) || 'lt' + (d[4] === 'v' ? 5 : d[3]);
 function ltPacks(q){ [...new Set(q.opts.map(o=>ltPk(o.d)).concat(ltPk(q.opts[q.right].d)))].forEach(p=>voPack('en-' + p + '-q')); }   // her letter packs (she asks)
-function ltPre(){ LT.next = ltMake(LEARN.last); ltPacks(LT.next); }
+function ltPre(){ LT.next = ltMake(LEARN.last); ltPacks(LT.next); const q = LT.next; try{ voPrefetch([...ltLinesOf(q).ask, ...q.opts.map(o=>UI.en.ltOpt(o.w[0]))], Object.assign({L: 'en'}, ltVoice([]))); }catch(e){} }   // (and her question's lines decoded ahead: section "speech line by line")
 function ltAsk(){
   const q = LEARN.q = LT.next || ltMake(LEARN.last); LT.next = null; LEARN.last = q; q.t0 = RACE.clock; q.n = ++LT.n;
   ltRender(q); $('rQ').hidden = false; $('rW').hidden = true; $('rFeat').hidden = true;
@@ -17970,7 +18038,13 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
   racerPut: (id, ref, m)=>{ const r = RACE.racers.find(x=>x.c.def.id === id), o = RACE.racers.find(x=>x.c.def.id === ref); if(!r || !o) return false; const dd = o.d + m - r.d; r.boostT += dd; r.boost += dd; return true; },   // tests: a racer m metres ahead of another
   btLines: (id, L)=>{ const t = PLANE_TALK[id] && PLANE_TALK[id][L || lang]; return t ? Object.fromEntries(Object.entries(t).map(([k, a])=>[k, a.slice()])) : null; },
   voiceLog: since=>[...(VO.said || []), ...(VO.cmSaid || [])].filter(x=>x.t >= (since || 0)).sort((x, y)=>x.t - y.t).map(x=>({t: Math.round(x.t), t0: Math.round(x.t0 || x.t), t1: Math.round(x.t1 || x.t), who: x.who, kind: x.kind || null, prio: x.prio || null, u: x.u, a0: x.a0 == null ? null : x.a0, a1: x.a1 == null ? null : x.a1, packs: x.packs || null})),   // every line said (say and sayCm) with when it played (a0, a1: on the audio clock; null: it never started) and its packs
-  voClipCheck: async (name, st, du)=>{ const p = await voPack(name); if(st < 0) st += p.length/p.sampleRate; const r = await fetch('vo/' + name + '.mp3').then(x=>x.arrayBuffer()).then(voDecode), [b, off] = voClip(audio(), p, st, du), d = b.getChannelData(0), o = r.getChannelData(0), n0 = Math.round((st - off)*p.sampleRate); let m = 0, e = 0;   // tests: a line copied out of the 16-bit pack against the same samples of a fresh float decode
+  voLines: ()=>({on: VOS.on, cal: VOS.cal, n: VOS.lines.size, sec: +VOS.sec.toFixed(1), hit: VOS.hit, miss: VOS.miss, ms: +VOS.ms.toFixed(1), rawMB: +Object.values(VO.packs).length, full: Object.keys(VO.full || {})}),   // tests: speech line by line
+  voMem: async ()=>{ let raw = 0, held = 0, n = 0; for(const k of Object.keys(VO.packs)){ const x = await Promise.race([VO.packs[k], new Promise(r=>setTimeout(()=>r(null), 300))]); if(!x) continue; n++; if(x.slice) raw += x.raw.length; else held += x.mb*1e6; }
+    let full = 0; for(const k of Object.keys(VO.full || {})){ const x = await Promise.race([VO.full[k], new Promise(r=>setTimeout(()=>r(null), 300))]); if(x) full += x.mb*1e6; }
+    let lines = 0; for(const [, e] of VOS.lines){ const v = await Promise.race([e.v.catch(()=>null), new Promise(r=>setTimeout(()=>r(null), 300))]); if(v && v[0]) lines += v[0].length*4; }
+    return {packs: n, rawMB: +(raw/1e6).toFixed(1), wholeMB: +(held/1e6).toFixed(1), fullMB: +(full/1e6).toFixed(1), linesMB: +(lines/1e6).toFixed(2), lines: VOS.lines.size, totalMB: +((raw + held + full + lines)/1e6).toFixed(1), on: VOS.on, L: VOS.cal && VOS.cal.L}; },
+  voLineCheck: async (name, st, du)=>{ const a = audio(), p = await voPack(name), w = await voPackFull(name), [b, off] = await voLine(a, p, st, du), [b2, off2] = voClip(a, w, st, du), d = b.getChannelData(0), e = b2.getChannelData(0); let m = 0; for(let i = 0; i < Math.min(d.length, e.length); i++) m = Math.max(m, Math.abs(d[i] - e[i])); return {slice: !!p.slice, len: [d.length, e.length], off: [off, off2], maxDiff: m}; },
+  voClipCheck: async (name, st, du)=>{ const p = await voPackFull(name); if(st < 0) st += p.length/p.sampleRate; const r = await fetch('vo/' + name + '.mp3').then(x=>x.arrayBuffer()).then(voDecode), [b, off] = voClip(audio(), p, st, du), d = b.getChannelData(0), o = r.getChannelData(0), n0 = Math.round((st - off)*p.sampleRate); let m = 0, e = 0;   // tests: a line copied out of the 16-bit pack against the same samples of a fresh float decode
     for(let i = 0; i < d.length; i++){ const x = Math.abs(d[i] - (o[n0 + i] || 0)); if(x > m) m = x; e += (o[n0 + i] || 0)**2; } return {maxDiff: m, rms: Math.sqrt(e/d.length), held: !!p.pcm, len: d.length, off, mb: p.mb, floatMB: r.length*4/1e6, gain: p.gain}; },
   voGot: names=>Object.fromEntries(names.map(n=>[n, VO.packs[n] ? (VO.got && VO.got[n] ? 'ready' : 'asked') : 'no'])), voIdx: ()=>VO.idx ? 'ready' : VO.idxP ? 'asked' : 'no',   // tests: which packs are asked for or decoded and ready, and the line index
   cmSay: (who, kind)=>{ const K = who === 'blimp' ? BL_LINES[lang] : COLOUR[lang], line = cmPick(K[kind]); return sayCm(line, 1, kind, who); },   // tests: one of the blimp's or Barnaby's lines now (when nothing plays)
