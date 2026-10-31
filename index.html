@@ -573,6 +573,7 @@
   .rq-pics.skip{gap:8px}.rq-pics .rq-tile{display:inline-flex;align-items:center;justify-content:center;min-width:54px;height:54px;padding:0 6px;box-sizing:border-box;border-radius:14px;background:#e9f4fb;border:3px solid #4ea8de;font:900 30px/1 var(--display);color:var(--ink);transition:transform .15s}
   .rq-pics .rq-tile.q{background:#fff7d6;border-color:#f2b705;border-style:dashed}.rq-pics .rq-tile.lit{transform:scale(1.18);background:#ffe27a}
   .rq-ans.wide button{font-size:32px}
+  .rq-pics.lots{gap:2px 4px}.rq-pics.lots .rq-e{font-size:25px}.rq-pics.lots svg{width:27px;height:27px}.rq-pics.lots .rq-plus{font-size:24px;padding:0 4px}.rq-pics.lots .rq-row{gap:2px}
   .rq-pics .lt-big.small .lt-cap{font-size:84px;letter-spacing:0}
   .rsw-lv.lt-lv.many{grid-template-columns:repeat(8,1fr);gap:4px}.rsw-lv.lt-lv.many button{min-height:44px;font-size:14px}
   @media (prefers-reduced-motion:reduce){.hl i,.cue-ico i,.wl-tap{animation:none}}
@@ -12239,7 +12240,7 @@ function lnRender(){
     : t === 'miss' ? `<div class="rq-grp">${q.a > 5 ? rows(q.a) : run(q.a)}</div><span class="rq-plus">+</span><div class="rq-grp">${q.b > 5 ? rows(q.b, ()=>'ghost') : run(q.b, ()=>'ghost')}</div><span class="rq-plus">=</span><b class="rq-num">${q.sum}</b>`   // the missing ones as outlines
     : t === 'skip' ? q.seq.map(v=>`<b class="rq-tile">${v}</b>`).join('') + '<b class="rq-tile q">?</b>'
     : '';
-  pics.hidden = t === 'find' || t === 'cmp'; pics.classList.toggle('many', many); pics.classList.toggle('skip', t === 'skip');
+  pics.hidden = t === 'find' || t === 'cmp'; pics.classList.toggle('many', many); pics.classList.toggle('lots', q.a + q.b > 10 || (t === 'count' && q.n > 10)); pics.classList.toggle('skip', t === 'skip');   // (lots: past ten, smaller pictures so the card stays low)
   const ans = $('rqAns'); ans.innerHTML = ''; ans.className = 'rq-ans' + (q.live ? '' : ' wait') + (q.choices.some(v=>v > 99) ? ' wide' : '');   // (round number buttons: no picture-card classes left over)
   q.choices.forEach(v=>{ const bt = document.createElement('button'); bt.textContent = v; bt.addEventListener('click', ()=>lnAnswer(v, bt)); ans.appendChild(bt); });
   $('rqSay').setAttribute('aria-label', u.sayAgain); $('rqSay').querySelector('.rq-sayt').textContent = u.sayAgain; lnTrail();
