@@ -1533,8 +1533,28 @@ G({id:'concorde', build:'concorde', jet:true, glowEach:true, droop:true, fem:tru
     S('cab',P('Cockpit windows','Ventanas de la cabina','canopy'),'^(cab|glass)',{en:['Set the cockpit windows','The pilots look out through small windows behind the drooping nose.'],es:['Pon las ventanas de la cabina','Los pilotos miran por ventanas pequeñas detrás de la nariz que se baja.']})
   ]});
 bkLocal(MODELS[MODELS.length - 1], {name:['Aerospatiale/BAC Concorde', 'Aerospatiale/BAC Concorde'], short:['Concorde', 'Concorde']});
+/* Angel (owner's coordinator, 2026-10-31): a Boeing F/A-18E Super Hornet in the colours of the US Navy's Blue Angels, the jet the team has
+   flown since 2021, built in code (buildSuperHornet, which says how). A character made for this game (film:'own'), not from the Planes
+   films: a he, the team's lead, number 1 (ANGEL.num, painted on his tails: gfxAngel). His name in one place (ANGEL.name: the label, the
+   spoken name, the note). Eyes on his windscreen, like the films' jets. */
+const ANGEL = {name: 'Angel', num: '1'};
+G({id:'superhornet', build:'superhornet', jet:true, glowEach:true, faceEyes:'shield', smokeCol:'#ffffff', film:'own', retract:{main:'back', nose:'fwd'}, name:'Boeing F/A-18E Super Hornet', short:'Super Hornet', character:ANGEL.name,
+  credit:'Super Hornet built in code for this game',
+  note:{en:`${ANGEL.name} is a Super Hornet, a big, fast Navy jet. He flies with the Blue Angels, the Navy's flight demonstration team. The Blue Angels fly in a diamond, so close together that their wings almost touch, to show everyone how a Super Hornet can fly. ${ANGEL.name} is number 1, the leader! He is dark blue with bright yellow stripes. Look for his square air intakes and the little notch in each wing.`,
+        es:`${ANGEL.name} es un Super Hornet, un jet grande y rápido de la Marina. Vuela con los Blue Angels, el equipo de exhibición aérea de la Marina. Los Blue Angels vuelan en forma de diamante, tan juntitos que sus alas casi se tocan, para mostrarle a todos cómo vuela un Super Hornet. ¡${ANGEL.name} es el número 1, el líder! Es azul oscuro con rayas amarillas brillantes. Busca sus tomas de aire cuadradas y la muesquita en cada ala.`},
+  spec:{span:['44 ft 9 in','13.6 m'],len:['60 ft 1 in','18.3 m'],first:['Nov 29, 1995','29 de noviembre de 1995']},
+  paint:{a:'#14316e',b:'#f6c11c'},
+  steps:[
+    S('body',P('Fuselage','Fuselaje','body'),null,{en:['Set the fuselage on the bench','A long, pointy Navy jet. The pilot sits up front, under a clear bubble.'],es:['Pon el fuselaje en el banco','Un jet de la Marina largo y puntiagudo. El piloto va adelante, bajo una burbuja transparente.']}),
+    S('intake',P('Square intakes','Tomas de aire cuadradas','intake'),'^intake',{en:['Add the square intakes','Super Hornets have square air intakes. They gulp in air for the engines.'],es:['Pon las tomas de aire cuadradas','Los Super Hornet tienen tomas de aire cuadradas. Se tragan el aire para los motores.']}),
+    S('wing',P('Wings','Alas','wing'),'^wing',{en:['Attach the big wings','See the little notch in each wing? That is how you spot a Super Hornet.'],es:['Pon las alas grandes','¿Ves la muesquita en cada ala? Así se reconoce un Super Hornet.']}),
+    S('tail',P('Twin tails','Colas dobles','tail2'),'^tail',{en:['Fit the twin tails','Two tails lean out, and they say number 1. He is the leader!'],es:['Pon las colas dobles','Dos colas se inclinan hacia afuera, y dicen número 1. ¡Él es el líder!']}),
+    S('nozzles',P('Engine nozzles','Toberas','nozzle',2),'^nozzles',{en:['Install the two engine nozzles','Two strong jet engines go whoosh! At air shows, the Blue Angels make white smoke.'],es:['Pon las dos toberas','¡Dos motores a reacción muy fuertes hacen fuum! En los shows aéreos, los Blue Angels echan humo blanco.']}),
+    S('gear',P('Landing gear','Tren de aterrizaje','gear',3),'^gear',{en:['Lower the landing gear','Tough wheels, made for landing on a Navy ship.'],es:['Baja el tren de aterrizaje','Ruedas fuertes, hechas para aterrizar en un barco de la Marina.']},{gear:true}),
+    S('cab',P('Canopy','Cabina','canopy'),'^(cab|glass)',{en:['Close the canopy','One pilot sits under the bubble and flies close to the team.'],es:['Cierra la cabina','Un piloto va bajo la burbuja y vuela cerquita de su equipo.']})
+  ]});
 const ORDER = ['dromader','dromaderf','f4u','p51d','dh88','geebee','longez','bonanza','stearman','cap10','f18','aerocar','albatross','aw139','skycrane','c119',
-  'beluga','shuttle','bristles','concorde'];   // new planes go last: the saved plane is an index (one literal: tools read it with a regex)
+  'beluga','shuttle','bristles','concorde','superhornet'];   // new planes go last: the saved plane is an index (one literal: tools read it with a regex)
 MODELS.sort((a,b)=>ORDER.indexOf(a.id)-ORDER.indexOf(b.id));
 /* the name the race announcer and the commentators say (owner, 2026-10-05: character names, not the plane names).
    Short first names; the screen still shows the full credit (def.character). tools/tts/cm_gen.py has the same list. */
@@ -1544,6 +1564,7 @@ const SAYN = {dromader:['Dusty','Dusty'], dromaderf:['Fire Dusty','Dusty Bombero
   albatross:["Lil' Dipper","Lil' Dipper"], aw139:['Blade Ranger','Blade Ranger'], skycrane:['Windlifter','Windlifter'], c119:['Cabbie','Cabbie']};
 Object.assign(SAYN, {beluga:['Baby Beluga', 'Bebé Beluga'], shuttle:[SHUTTLE.name, SHUTTLE.name]});   // 2026-10-10 (the Beluga renamed Baby Beluga by the owner, 2026-10-17)
 SAYN.concorde = [CONCORDE.name, CONCORDE.name];   // 2026-10-23 (the owner may rename it: CONCORDE.name)
+SAYN.superhornet = [ANGEL.name, ANGEL.name];   // 2026-10-31: Angel, the Blue Angels' Super Hornet (Spanish says it as written)
 SAYN.bristles = ['Bristles', 'Bristles'];   // 2026-10-16 (Spanish says it as written; gen_speak.py ES_NAMES respells it for the voice)
 const sayName = (d, L)=>{ const n = SAYN[d.id]; return n ? n[(L || lang) === 'es' ? 1 : 0] : d.character || d.short; };
 const showName = (d, L)=>sayName(d, L).replace(/ (and|y) /, ' & ');   // the same names on screen: the start screen's name tags
@@ -2711,6 +2732,124 @@ function buildConcorde(T){
   BK_SHOW.concorde = {C, XH, hx: X(XH), hy: fc(XH) + 5.2*Math.min(1, fw(XH)/4.5)};
   K.done(); return root;
 }
+/* Angel (owner's coordinator, 2026-10-31): a Boeing F/A-18E Super Hornet in the Blue Angels' colours, the jet the US Navy's flight
+   demonstration team has flown since 2021, built in code (no model file: the published site is at its file cap). The real E's shape, where it
+   differs from the legacy Hornet beside it (Echo & Bravo's F/A-18C, models/f18.json): about a fifth bigger (60 ft long, 44 ft 9 in across with
+   its tip rails, a wing a quarter bigger); rectangular caret intakes, their lips raked back in both views (the C's are rounded D shapes); a
+   bigger, squarer LEX running nearly straight from the windscreen out to the wing; the dogtooth in each wing's leading edge at the fold;
+   bigger fins and stabilators; the saw-tooth edges of its doors and access panels. Navy blue with yellow trim: a stripe along the top of the
+   nose to the windscreen, the canopy rails, two stripes along the top of the fuselage to the fins, the LEX edges; U.S. NAVY and the lead's 1
+   in yellow are drawn in the paint (gfxAngel, section "graphics"); no squadron crest or insignia. Feet, x aft from the nose (X turns it
+   around), the ground at y = 0, the origin 30 ft back. lod: hvKit's (0 the full model, 1 and 2 the city copies: shSky, no files). */
+const SH = {C: 30, cant: 20*Math.PI/180, navy: 0x14316e, yel: 0xf6c11c};
+function buildSuperHornet(T, lod){
+  const C = SH.C, X = x=>C - x, root = new T.Group(); root.name = 'superhornet'; const K = bkKit(T, X), H = hvKit(T, K, X, lod), n = H.n, D = H.D, L = H.L, sm = bkSm, PI = Math.PI;
+  const navy = H.skin(SH.navy, .42), yel = H.skin(SH.yel, .45), seam = H.skin(0x0b1f4c, .5);
+  navy.normalScale && navy.normalScale.set(.35, .35); yel.normalScale && yel.normalScale.set(.3, .3);
+  const dark = H.keep(H.M(0x16191d, .7, .1)), duct = H.keep(H.M(0x2b3036, .6, .2)), metal = H.keep(H.M(0x8d949a, .35, .65)), burnt = H.keep(H.M(0x5d564e, .45, .55));
+  const chrome = H.keep(H.M(0xd9dee2, .22, .8)), tire = H.keep(H.M(0x1c1c1c, .85, 0)), white = H.keep(H.M(0xe9ecef, .5, .1)), cabin = H.keep(H.M(0x2a2e33, .85, 0)), seatM = H.keep(H.M(0x3b3f2f, .8, 0));
+  const red = H.keep(H.M(0xd12a22, .35, .1, {emissive: 0x4a0806})), grn = H.keep(H.M(0x22b14c, .35, .1, {emissive: 0x063a14})), lamp = H.keep(H.M(0xfff4c2, .3, .1, {emissive: 0x6a5a20}));
+  const glassM = H.glass();
+  const grp = nm=>{ const g = new T.Group(); g.name = nm; root.add(g); return g; }, put = H.put, loft = H.loft;
+  const body = grp('body'), intake = grp('intake'), wing = grp('wing'), tail = grp('tail'), noz = grp('nozzles'), gear = grp('gear'), cab = grp('cab');
+  // ---- the fuselage: a radome tip 7 ft up, the cockpit's sill at 8.8 ft, the spine behind the canopy, the wide flat body over the engines
+  const T0 = K.curve([0, 1, 3, 6, 9, 11, 19.5, 22, 26, 34, 42, 50, 55, 58], [7.05, 7.62, 8.18, 8.62, 8.95, 9.12, 9.3, 9.74, 9.7, 9.52, 9.3, 8.85, 8.25, 7.9]);
+  const B0 = K.curve([0, 1, 3, 6, 9, 12, 16, 20, 26, 40, 46, 52, 55, 58], [7.05, 6.5, 6.0, 5.6, 5.28, 5.08, 4.95, 4.5, 4.08, 4.02, 4.12, 4.62, 5.1, 5.5]);
+  const W0 = K.curve([0, 1, 3, 6, 9, 12, 16, 19, 23, 27, 31, 38, 46, 51, 55, 58], [.02, .78, 1.22, 1.62, 1.92, 2.15, 2.3, 2.45, 2.95, 3.6, 4.05, 4.22, 4.12, 3.78, 3.32, 3.05]);
+  const Y0 = K.curve([0, 6, 12, 20, 30, 45, 58], [7.05, 7.12, 7.3, 7.32, 7.22, 7.0, 6.7]), XE = 58;
+  const FS = x=>{ const y = Y0(x); return [y, Math.max(.01, W0(x)), Math.max(.01, T0(x) - y), Math.max(.01, y - B0(x)), 2.1 + .5*sm((x - 8)/14), 2.2 + 1.4*sm((x - 10)/14)]; };
+  const pit = [11.6, 19.2, -.55, .55];   // the cockpit's opening under the canopy (ring angles about the top)
+  put(body, loft(FS, 0, XE, n(78, 10), 0, 2*PI, n(52, 10), {holes: D ? [pit] : null}), navy);
+  put(body, loft(x=>{ const s = FS(XE), k = Math.max(.02, bkNose(XE + .45 - x, .45, 2)); return [s[0], s[1]*k, s[2]*k, s[3]*k, s[4], s[5]]; }, XE - .02, XE + .45, n(4, 1), 0, 2*PI, n(36, 8)), dark);   // the body's back end round the nozzles
+  // a point on the body's ring (its section at x, ring angle a from the top, grown by g), for bands and saw-tooth lines that follow it
+  const ring = (x, a, g)=>{ const s = FS(x), c = Math.cos(a), sn = Math.sin(a), up = c >= 0, e = up ? s[4] : s[5]; return [x, s[0] + ((up ? s[2] : s[3]) + (g || 0))*K.sp(c, e), (s[1] + (g || 0))*K.sp(sn, e)]; };
+  const angY = (x, y, up)=>H.angAt(FS(x), y, up);
+  // the yellow: a stripe along the top of the nose to the windscreen, the canopy rails, two stripes along the top of the fuselage to the fins
+  if(L < 2){
+    put(body, loft(FS, 3.6, 11.4, n(14, 3), x=>-(.1 + .3*sm((x - 3.6)/7.8)), x=>.1 + .3*sm((x - 3.6)/7.8), n(8, 2), {grow: .03}), yel);
+    [1, -1].forEach(s=>{ const A = (a, b)=>s > 0 ? [a, b] : [x=>-b(x), x=>-a(x)];
+      put(body, loft(FS, 11.2, 20.2, n(16, 3), ...A(x=>angY(x, 8.95, true) - .06, x=>angY(x, 8.45, true) + .02), n(3, 1), {grow: .035}), yel);   // the canopy rail
+      put(body, loft(FS, 19.6, 49, n(30, 5), ...A(x=>.24 + .05*sm((x - 19.6)/4), x=>.42 - .12*sm((x - 40)/9)), n(3, 1), {grow: .03}), yel); }); }   // the spine stripe
+  if(D){
+    put(body, loft(FS, 6.4, 6.5, 1, 0, 2*PI, 40, {grow: .02}), seam);   // the radome's joint
+    // the saw-tooth edges of the access panels: across the spine behind the cockpit, and along the engine bay doors underneath
+    const zig = (x0, a0, a1, amp, teeth, g, m)=>put(body, K.surf((u, v)=>{ const k = u*teeth, tri = Math.abs(k - Math.round(k))*2; return ring(x0 + amp*tri + v*.13, a0 + (a1 - a0)*u, g); }, 0, 1, teeth*2, 0, 1, 1, (p, u)=>{ const a = a0 + (a1 - a0)*u; return [0, Math.cos(a), Math.sin(a)]; }), m);
+    zig(21.6, -1.0, 1.0, .55, 6, .04, seam); zig(26.4, -.75, .75, .5, 5, .04, seam); zig(36.5, -.6, .6, .45, 4, .04, seam);
+    [1, -1].forEach(s=>{ zig(41, s*2.35, s*2.85, .4, 2, .04, seam); zig(49, s*2.4, s*2.85, .4, 2, .04, seam);
+      put(body, loft(FS, 41, 49.4, 10, s > 0 ? 2.38 : -2.42, s > 0 ? 2.42 : -2.38, 1, {grow: .04}), seam); });   // the engine bay doors' long edges
+    // the cockpit: its lining, the ejection seat, the panel under its coaming, the head-up display's glass
+    put(body, H.flip(loft(FS, 11.4, 19.4, 10, -1.0, 1.0, 14, {grow: -.18})), cabin); put(body, K.disc(19.3, 8.0, 0, 0, 1.6, 1, 14), cabin);
+    put(body, H.at(new T.BoxGeometry(1.4, 1.5, 1.6), 16.6, 8.3, 0), seatM); put(body, H.at(new T.BoxGeometry(.5, 2.4, 1.5), 17.6, 9.0, 0), seatM); put(body, H.at(new T.BoxGeometry(.5, .7, 1.0), 17.5, 10.5, 0), dark);
+    put(body, H.at(new T.BoxGeometry(1.4, .75, 2.4), 12.6, 8.85, 0), dark); const hud = new T.BoxGeometry(.06, .55, .7); hud.rotateZ(-.35); put(body, H.at(hud, 12.15, 9.5, 0), glassM, 'glass-hud');
+    H.tube(body, metal, [.5, 7.05, 0], [-1.2, 7.05, 0], .05, .02, 6);   // the pitot on the radome's tip
+    [1, -1].forEach(s=>{ const p = ring(8.2, s*1.3, 0); H.tube(body, metal, p, [7.4, p[1] + .1, p[2] + s*.3], .05, .03, 5); });   // the angle-of-attack probes
+    const bc = new T.SphereGeometry(.22, 10, 6, 0, 2*PI, 0, PI/2), bc2 = bc.clone(); bc2.rotateX(PI); put(body, H.at(bc, 24, T0(24) + .02, 0), red); put(body, H.at(bc2, 30, B0(30) - .02, 0), red);   // the beacons
+    H.tube(body, dark, [27.5, T0(27.5), 0], [28.6, T0(27.5) + .9, 0], .12, .05, 6); }   // an antenna
+  // ---- the canopy: one bubble, the windscreen's frame, its rails
+  const CY = K.curve([11.2, 12.5, 15, 18, 19.8], [9.08, 8.9, 8.8, 8.86, 9.2]), CW = K.curve([11.2, 12.4, 14.5, 17, 19.8], [.95, 1.42, 1.62, 1.55, 1.15]), CH = K.curve([11.2, 12.5, 14, 15.5, 17.5, 19.8], [.12, 1.12, 1.78, 1.98, 1.72, .72]);
+  const CS = x=>[CY(x), CW(x), CH(x), .02, 2.2, 2];
+  put(cab, loft(CS, 11.2, 19.8, n(24, 5), -PI/2, PI/2, n(26, 6)), glassM, 'glass');
+  if(L < 2){ [[13.15, 13.45], [19.45, 19.8]].forEach(([a, b])=>put(cab, loft(CS, a, b, 2, -PI/2, PI/2, n(26, 6), {grow: .04}), navy, 'cabframe'));
+    [1, -1].forEach(s=>put(cab, loft(CS, 11.3, 19.8, n(16, 3), s > 0 ? PI/2 - .14 : -PI/2, s > 0 ? PI/2 : -PI/2 + .14, 1, {grow: .05}), yel, 'cabframe')); }
+  // ---- the caret intakes under the LEX: boxy trunks, the lips raked back (the top inner corner farthest forward), dark ducts inside
+  const IY = 5.85, IW = 1.05, IH = 1.5, IE = 4.6;   // the mouth's centre height, half width and half height; the corners' squareness
+  const lip = (dy, dz)=>17.4 + 1.15*(IH - dy)/(2*IH) + .95*(dz + IW)/(2*IW);   // dz: outward from the trunk's middle
+  [1, -1].forEach(s=>{ const zc = x=>s*(3.25 - .55*sm((x - 25)/8)), sh = x=>1 - .3*sm((x - 26)/7), xe = 33;
+    const pt = (a, u, g)=>{ const dy = (IH + g)*K.sp(Math.cos(a), IE), dz0 = (IW + g)*K.sp(Math.sin(a), IE), dz = dz0 - .14*(dy/IH), x0 = lip(dy, dz), x = x0 + (xe - x0)*u, k = sh(x);
+      return [x, IY + dy*k + .25*sm((x - 24)/8), zc(x) + s*dz*k]; };
+    put(intake, K.surf((u, v)=>pt(2*PI*v, u, 0), 0, 1, n(18, 4), 0, 1, n(32, 8), (p, u, v)=>{ const a = 2*PI*v; return [0, Math.cos(a), s*Math.sin(a)]; }), navy);
+    put(intake, K.surf((u, v)=>{ const a = 2*PI*v, p = pt(a, 0, -.14*(1 - u)); return [p[0] + .01*u, p[1], p[2]]; }, 0, 1, 1, 0, 1, n(32, 8), ()=>[1, 0, 0]), navy);   // the lip
+    put(intake, K.surf((u, v)=>{ const a = 2*PI*v, p = pt(a, 0, -.14); return [p[0] + 5.2*u, IY + (p[1] - IY)*(1 - .25*u), zc(p[0]) + (p[2] - zc(p[0]))*(1 - .2*u)]; }, 0, 1, n(4, 1), 0, 1, n(32, 8), (p, u, v)=>{ const a = 2*PI*v; return [0, -Math.cos(a), -s*Math.sin(a)]; }), duct);
+    const xf = lip(0, 0) + 3.9; put(intake, K.surf((r, a)=>[xf, IY + r*(IH - .14)*.75*K.sp(Math.cos(a), IE), zc(xf) + s*r*(IW - .14)*.8*K.sp(Math.sin(a), IE)], 0, 1, 1, 0, 2*PI, n(24, 6), ()=>[1, 0, 0]), dark);   // the engine's face
+    if(D){ put(intake, H.at(new T.SphereGeometry(.3, 12, 8), xf - .05, IY, zc(xf)), metal);   // its hub
+      put(intake, H.at(new T.BoxGeometry(5.5, 2.4, .08), 20.6, IY + .3, s*(2.05)), navy); } });   // the splitter between each intake and the fuselage
+  // ---- the LEX: big and nearly straight-edged from the windscreen to the wing (the C's curves out in an ogee); its yellow edge, its vents
+  [1, -1].forEach(s=>{ const st = [[10.8, 7.68, 1.9*s, 19.6, .022], [11.2, 7.66, 2.3*s, 19.1, .024], [16, 7.62, 3.6*s, 14.2, .03], [19, 7.6, 4.3*s, 11.2, .035], [23, 7.56, 5.2*s, 7.2, .045], [28.2, 7.5, 6.3*s, 2.0, .09]];
+    put(wing, H.foil(st, [0, 1, 0], 1, 0, 1, n(14, 4), n(16, 4)), navy); put(wing, H.foil(st, [0, 1, 0], -1, 0, 1, n(14, 4), n(16, 4), .9), navy);
+    if(L < 2) put(wing, H.foil(st.slice(1).map(q=>{ const r = q.slice(); r[4] *= 1.06; r[3] *= 1.004; return r; }), [0, 1, 0], 1, 0, sv=>Math.min(.45, .55/sv[3]), n(3, 1), n(12, 3)), yel); });   // its yellow edge
+  // ---- the wings: 500 sq ft, the leading edge swept 26 degrees with its dogtooth at the fold, the tip rails
+  const LE = z=>z < 13.8 ? 28.2 + (z - 6.2)*.487 : 31.1 + (z - 13.8)*.487, TE = z=>43.8 - (z - 4.2)*.165, WY = z=>7.35 - Math.max(0, z - 4.2)*.035;
+  const wst = s=>[2.5, 4.2, 6.2, 10, 13.8, 13.9, 17.5, 21.2, 21.25].map((z, i)=>{ const le = i === 5 ? LE(13.9) : i < 5 ? LE(Math.min(z, 13.79)) : LE(z); return [le, WY(z), z*s, TE(z) - le, i === 8 ? .004 : .05 - .01*z/21.2]; });
+  const vAt = (st, z)=>{ const a = st.map(q=>Math.abs(q[2])); for(let i = 0; i < a.length - 1; i++) if(z <= a[i + 1]) return (i + (z - a[i])/(a[i + 1] - a[i]))/(a.length - 1); return 1; };
+  [1, -1].forEach(s=>{ const st = wst(s);
+    put(wing, H.foil(st, [0, 1, 0], 1, 0, 1, n(24, 5), n(28, 6)), navy); put(wing, H.foil(st, [0, 1, 0], -1, 0, 1, n(24, 5), n(28, 6), .9), navy);
+    if(D){ const band = (z0, z1, u0, u1, sd)=>put(wing, H.foil(H.slice(st, vAt(st, z0), vAt(st, z1), 1.012), [0, 1, 0], sd || 1, u0, u1, 1, 8), seam);
+      band(6.4, 13.7, .135, .148); band(14.0, 21.0, .14, .153); band(6.4, 14.3, .7, .712); band(14.6, 20.6, .74, .752);   // the leading-edge flaps' hinge lines, the flaps' and the ailerons'
+      band(14.3, 14.45, 0, 1); band(14.3, 14.45, 0, 1, -1);   // the fold
+      const rail = new T.BoxGeometry(8.2, .26, .34); put(wing, H.at(rail, 37.2, WY(21.2), s*21.35), yel);
+      put(wing, H.at(new T.SphereGeometry(.16, 8, 6), 35.6, WY(21.2), s*21.15), s > 0 ? grn : red); } });   // the tip rails, the navigation lights
+  // ---- the twin tails, canted out 20 degrees, and the stabilators
+  [1, -1].forEach(s=>{ const c = Math.cos(SH.cant), sn = Math.sin(SH.cant), b = [41.2, 8.75, 3.05*s], up = h=>[b[1] + h*c, b[2] + s*h*sn];
+    const fst = [[41.2, ...up(0), 11.8, .05], [44.3, ...up(3.6), 8.6, .05], [47.4, ...up(7.3), 5.0, .045], [47.55, ...up(7.4), 4.75, .004]], nv = [0, -s*sn, c];
+    [1, -1].forEach(sd=>put(tail, H.foil(fst, nv, sd, 0, 1, n(18, 4), n(14, 3)), navy));
+    if(D){ [1, -1].forEach(sd=>put(tail, H.foil(H.slice(fst, .1, .62, 1.012), nv, sd, .7, .712, 1, 8), seam));   // the rudder's hinge line
+      put(tail, H.at(new T.SphereGeometry(.13, 8, 6), 52.3, up(7.2)[0], up(7.2)[1]), lamp); }
+    const tst = [[48.5, 6.55, 3.1*s, 9.8, .045], [49.1, 6.55, 4.0*s, 9.1, .045], [54.6, 6.55, 11.0*s, 3.7, .035], [54.75, 6.55, 11.15*s, 3.5, .004]];
+    [1, -1].forEach(sd=>put(tail, H.foil(tst, [0, 1, 0], sd, 0, 1, n(16, 4), n(12, 3)), navy)); });
+  // ---- two F414 nozzles: grey petals outside, dark inside (each its own mesh: its own glow)
+  [1, -1].forEach((s, k)=>{ const z = 1.85*s, y = 6.45, r = x=>1.42 - .1*sm((x - 55)/3.6);
+    put(noz, H.lathe(r, 55, 58.7, n(6, 2), y, z, n(28, 8)), metal, 'bell' + k); put(noz, H.lathe(x=>r(x) - .1, 55.4, 58.7, n(3, 1), y, z, n(28, 8), true), burnt, 'bell' + k);
+    put(noz, K.disc(56.6, y, z, 0, 1.25, -1, n(20, 6)), dark, 'bell' + k);
+    if(D) for(let i = 0; i < 12; i++){ const a = i*PI/6, g2 = new T.BoxGeometry(3.3, .035, .07); g2.translate(0, r(57) + .01, 0); H.rotAbout(g2, new T.Vector3(1, 0, 0), a, [0, 0, 0]); g2.translate(X(57.0), y, z); put(noz, H.boxUV(g2), burnt, 'bell' + k); } });   // the petals' seams
+  // ---- the gear: twin nose wheels on a long leg with its launch bar (it folds forward), a main leg under each intake (they fold back),
+  //      the doors hanging open with their saw-tooth edges
+  const saw = (x0, x1, y0, y1, teeth, amp)=>{ const sh = new T.Shape(), P = []; P.push([X(x0), y1], [X(x1), y1]);
+    for(let i = 1; i <= teeth*2; i++) P.push([X(x1) + (i % 2 ? amp : 0), y1 + (y0 - y1)*i/(teeth*2)]); P.push([X(x0), y0]);
+    for(let i = 1; i < teeth*2; i++) P.push([X(x0) + (i % 2 ? amp : 0), y0 + (y1 - y0)*i/(teeth*2)]);
+    P.forEach((p, i)=>i ? sh.lineTo(p[0], p[1]) : sh.moveTo(p[0], p[1])); sh.closePath(); return sh; };
+  const door = (x0, x1, y0, y1, z, th, m)=>{ if(!D) return; const g = new T.ExtrudeGeometry(saw(x0, x1, y0, y1, 2, .32), {depth: th, bevelEnabled: false, curveSegments: 1}); g.translate(0, 0, z - th/2); bbIdx(g); put(gear, H.boxUV(g), m, 'gear-door'); };
+  H.tube(gear, metal, [10.3, 5.3, 0], [9.9, 2.6, 0], .24, .22, n(12, 5), 'gear-n'); H.tube(gear, chrome, [9.95, 2.9, 0], [9.6, 1.0, 0], .16, .16, n(10, 5), 'gear-n');
+  H.tube(gear, metal, [9.6, .92, -.65], [9.6, .92, .65], .12, .12, 8, 'gear-n'); H.tube(gear, metal, [12.6, 5.15, 0], [10.1, 3.4, 0], .1, .1, 6, 'gear-n');
+  if(L < 2) H.tube(gear, metal, [9.4, 1.4, 0], [7.8, .5, 0], .08, .06, 6, 'gear-n');   // the launch bar
+  [-.42, .42].forEach(z=>H.wheel(gear, .92, .5, 9.6, .92, z, tire, white, 'gear-n'));
+  door(7.4, 12.0, 4.0, 5.25, .78, .07, navy); door(7.4, 12.0, 4.0, 5.25, -.78, .07, navy);
+  [1, -1].forEach(s=>{ const leg = s > 0 ? 'gear-l' : 'gear-r', z = 5.1*s;
+    H.tube(gear, metal, [32.0, 4.5, 4.6*s], [32.9, 2.3, z], .32, .3, n(14, 6), leg); H.tube(gear, chrome, [32.75, 2.7, 4.98*s], [33.2, 1.45, z], .22, .22, n(12, 5), leg);
+    H.tube(gear, metal, [30.6, 4.3, 3.7*s], [32.6, 2.6, 4.95*s], .12, .12, 7, leg);   // the side brace
+    H.wheel(gear, 1.33, .95, 33.3, 1.33, z + s*.15, tire, white, leg);
+    door(30.8, 35.4, 2.7, 4.3, s*5.95, .08, navy); });
+  K.done(); return root;
+}
 /* Bristles (owner, 2026-10-16: "turn this into a plane that can race ... It's a plane a kid made"; then "Put propeller blades
    on it"): a kid's own plane made of bristle blocks (chunky blocks covered in short, soft, round-tipped bristles), built in code
    from three photos of the toy. A long pale mint-grey block for the body; a round yellow-green geared wheel for a nose; straight
@@ -2823,6 +2962,32 @@ const BUILDERS = {skycrane: ()=>bakeBuilt(buildSkycrane(T), .3048), boxcar: ()=>
 Object.assign(BUILDERS, {beluga: ()=>bakeBuilt(buildBeluga(T), .3048), shuttle: ()=>bakeBuilt(buildShuttle(T), .3048)});   // 2026-10-10
 BUILDERS.bristles = ()=>bakeBuilt(buildBristles(T), .3048);   // 2026-10-16
 BUILDERS.concorde = ()=>bakeBuilt(buildConcorde(T), .3048);   // 2026-10-23
+BUILDERS.superhornet = ()=>bakeBuilt(buildSuperHornet(T), .3048);   // 2026-10-31: Angel
+/* the light copies (a far racer, Sky City's traffic) of a plane built in code that has no city file (Angel, 2026-10-31: the published site is at its
+   file cap): made here once from its own builder at lods 1 and 2, in the city files' own form (models/<id>-city.json: the box, the faces
+   quantised into it, a colour and a kind per face, the lights, the face spots), so the far copy and Sky City take it as they take a file.
+   Kinds as the traffic shader's paint roles: 1 body (and intakes), 2 wings, 3 tail, 4 engines, 5 the canopy's glass, 0 its own colour. */
+const CITY_BUILT = {superhornet: {build: lod=>buildSuperHornet(T, lod), ym: 7.2*.3048,
+  lights: ()=>{ const X = x=>(SH.C - x)*.3048, f = .3048; return {l: [X(35.6), 6.85*f, -21.3*f], r: [X(35.6), 6.85*f, 21.3*f], t: [X(58.7), 6.45*f, 0], b: [X(24), 9.72*f, 0], u: [X(30), 4.0*f, 0], n: [X(-1.2), 7.05*f, 0]}; }}};
+const CITY_MADE = {};
+function cityData(id){ const B = CITY_BUILT[id]; if(!B) return fetch('models/' + id + '-city.json').then(r=>r.ok ? r.json() : null).catch(()=>null);
+  try{ return Promise.resolve(CITY_MADE[id] || (CITY_MADE[id] = cityMake(id, B))); }catch(e){ return Promise.resolve(null); } }
+function cityMake(id, B){
+  const def = MODELS.find(m=>m.id === id), KIND = {body: 1, intake: 1, wing: 2, tail: 3, engines: 4, engine: 4}, v = new T.Vector3();
+  const lods = [1, 2].map(l=>{ const root = B.build(l), P = [], C = [], Kd = []; root.scale.setScalar(.3048); root.updateMatrixWorld(true);
+    root.traverse(o=>{ if(!o.isMesh) return; const g = o.geometry, pos = g.attributes.position, ix = g.index, m = o.material, n = ix ? ix.count : pos.count;
+      const k = m.transparent && m.opacity < .95 ? 5 : m.userData.keep ? 0 : KIND[o.parent && o.parent.name] || 0, rgb = [m.color.r, m.color.g, m.color.b].map(x=>Math.round(Math.min(1, Math.max(0, x))*255));
+      for(let i = 0; i < n; i++){ v.fromBufferAttribute(pos, ix ? ix.getX(i) : i).applyMatrix4(o.matrixWorld); P.push(v.x, v.y, v.z); }
+      for(let f = 0; f < n/3; f++){ C.push(...rgb); Kd.push(k); } g.dispose(); m.dispose(); });
+    return {P, C, Kd}; });
+  const b0 = [1e9, 1e9, 1e9], b1 = [-1e9, -1e9, -1e9]; lods.forEach(L=>{ for(let i = 0; i < L.P.length; i++){ const a = i % 3; b0[a] = Math.min(b0[a], L.P[i]); b1[a] = Math.max(b1[a], L.P[i]); } });
+  const b64 = u8=>{ let s = ''; for(let i = 0; i < u8.length; i += 8192) s += String.fromCharCode.apply(null, u8.subarray(i, i + 8192)); return btoa(s); };
+  const out = lods.map(L=>{ const q = new Int16Array(L.P.length); for(let i = 0; i < q.length; i++){ const a = i % 3; q[i] = Math.round((L.P[i] - b0[a])/((b1[a] - b0[a]) || 1)*65534 - 32767); }
+    return {n: L.Kd.length, p: b64(new Uint8Array(q.buffer)), c: b64(Uint8Array.from(L.C)), k: b64(Uint8Array.from(L.Kd))}; });
+  let face = null; try{ const pc = prepareGLB(def, bakeBuilt(B.build(1), .3048)); face = faceSpecOut(pc.faceSpec, def.fem);
+    pc.model.traverse(o=>{ if(o.geometry) o.geometry.dispose(); if(o.material) (Array.isArray(o.material) ? o.material : [o.material]).forEach(m=>m.dispose()); }); }catch(e){}
+  const len = b1[0] - b0[0], span = b1[2] - b0[2], r3 = x=>+x.toFixed(3);
+  return {id, v: 2, src: 'cityMake (built from its builder at lods 1 and 2)', units: 'm', box: [b0.map(r3), b1.map(r3)], len: r3(len), span: r3(span), ym: r3(B.ym), lights: B.lights(), rad: r3(Math.hypot(len, span)/2), face, lods: out}; }
 function prepareGLB(def, gltf){
   const wrap = new T.Group(); wrap.scale.setScalar(FT);
   const root = gltf.scene; wrap.add(root);
@@ -3500,7 +3665,14 @@ function voDecode(b){ const a = audio(), OC = window.OfflineAudioContext || wind
    (pv-<voice>: a voice nobody else has) instead of pv-<voice>-<id>, and the blimp's calls with its name in her shared pack (bl) instead
    of bl-<id>; its race pack (pv-<voice>-<id>-r) stays its own, so a classic race still loads only its race lines (NARRATION.md) */
 const VO_FOLD = {bristles: 1, concorde: 1}, blPack = id=>VO_FOLD[id] ? 'bl' : 'bl-' + id;
-const VO_BUILD = {concorde: 'ui'}, buildPack = id=>VO_BUILD[id] || id;   // 2026-10-23 (the Concorde, at the test build's file cap of 511): its build narration rides in the narrator's ui pack, no <lang>-concorde pack of its own
+const VO_BUILD = {concorde: 'ui', superhornet: 'ui'}, buildPack = id=>VO_BUILD[id] || id;   // 2026-10-23 (the Concorde, at the test build's file cap of 511): its build narration rides in the narrator's ui pack, no <lang>-concorde pack of its own
+/* a plane whose voice has no pack of its own (Angel, 2026-10-31: the published site at its file cap, every file it has spoken for): its lines ride in
+   two existing packs per language (VO_HOST: [the learning races' pack, the race pack], the Hornet family's, Echo & Bravo's), keyed
+   '<lang>|@<id>|<sentence>' (voTag) so no other voice ever picks them up, and the narrator's copies of the same sentences never stand in for
+   them. A line not recorded for it yet: the ordinary copies of that sentence (the narrator's, at its rate), else the device's voice, as for any
+   line; its race and trick lines (bbTalk) are only said when recorded. VO_VTAG: its voices (nobody else's), so voLocate finds the tag. */
+const VO_HOST = {superhornet: {en: ['pv-am_eric-f18', 'pv-am_eric-f18-r'], es: ['pv-em_alex-f18', 'pv-em_alex-f18-r']}}, voTag = id=>VO_HOST[id] ? '@' + id + '|' : '';
+const VO_VTAG = {am_liam: 'superhornet', xm_angels: 'superhornet'};
 const VO_PV_MAX = 6, VO_PVR_MAX = 3, VO_LT_MAX = 4;   // shared plane-voice packs and each plane's own small pack; each plane's race pack (win and banter lines, -r), on their own count
 /* Decoded speech is held as 16-bit samples, half the memory of an AudioBuffer's 32-bit floats (2026-10-26, the crash hunt: a number race held about 450 MB of
    decoded speech, a classic race about 180). A pack is {pcm, sampleRate, length, gain, mb}; voClip copies the line that plays into a small AudioBuffer (a mono pack
@@ -3526,8 +3698,9 @@ function voPack(name){ const a = audio(); if(!a) return Promise.resolve(null);
    (HER_Q, <pack>-q, in her voice), else the narrator's copy until hers is recorded. Anyone else never takes a line from her packs while
    another recording has it. (Until 2026-10-17 a boy plane's question came from the man's copies, <pack>-m: retired.) */
 function voLocate(idx, L, units, voice, her, pref){   // pref: a pattern for the pack to prefer among equal lines (the slow practice words over a normal-speed name; hers: one of her packs)
-  const pv = voice ? L + '-pv-' + voice : '';
-  const locs = units.map(x=>{ const l = idx.clips[L + '|' + x]; if(!l) return l; const own = pv && l.filter(q=>q[0] === pv || q[0].startsWith(pv + '-'));   // the plane's own voice when it has the line (its shared, own and race packs: another plane may say the same sentence in another voice)
+  const pv = voice ? L + '-pv-' + voice : '', tg = voice && VO_VTAG[voice] ? '@' + VO_VTAG[voice] + '|' : '';
+  const locs = units.map(x=>{ const lt = tg && idx.clips[L + '|' + tg + x]; if(lt) return lt;   // (a hosted voice's own clip: VO_HOST)
+    const l = idx.clips[L + '|' + x]; if(!l) return l; const own = pv && l.filter(q=>q[0] === pv || q[0].startsWith(pv + '-'));   // the plane's own voice when it has the line (its shared, own and race packs: another plane may say the same sentence in another voice)
     if(own && own.length) return own; const hv = her ? l.filter(q=>HER_Q.test(q[0])) : [], hp = pref ? hv.filter(q=>pref.test(q[0])) : []; if(hv.length) return hp.length ? hp : hv;
     const plain = l.filter(q=>q[0].indexOf('-pv-') < 0 && !HER_Q.test(q[0])), pf = pref ? plain.filter(q=>pref.test(q[0])) : []; return pf.length ? pf : plain.length ? plain : l; });
   if(locs.some(l=>!l)) return null;
@@ -3653,8 +3826,10 @@ function voAllLines(){
     const talk = [u.countTogether, u.howManyAll, u.yourTurn, ...u.praise, ...u.praiseTry, ...u.praiseClear, ...LC.wl.prompt[L], ...LC.wl.after[L], ...LC.lead.count[L], ...LC.lead.add[L], ...lrnTalk(u, L), ...twTalk(u, L), ...wlTalk(L), ...ltTalk(L)];
     for(let n=1;n<=10;n++) talk.push(String(n));
     talk.push(...PLEA_ANY[L].flat());   // pleas for a plane with no lines of its own (each character's own pleas are in PLANE_TALK)
-    [...new Set(Object.values(PLANE_VOICE).map(v=>L === 'es' ? v[2] : v[0]))].forEach(v=>add('pv-' + v, talk));
+    [...new Set(Object.entries(PLANE_VOICE).filter(([id])=>!VO_HOST[id]).map(([id, v])=>L === 'es' ? v[2] : v[0]))].forEach(v=>add('pv-' + v, talk));
+    const addT = (pack, parts, tg)=>{ const arr = P[pack] = P[pack] || []; voUnits(parts).forEach(x=>{ x = tg + x; if(!arr.includes(x)) arr.push(x); }); };   // (a hosted plane's lines, tagged: VO_HOST)
     Object.entries(PLANE_VOICE).forEach(([id, v])=>{ const t = PLANE_TALK[id] && PLANE_TALK[id][L], vb = 'pv-' + (L === 'es' ? v[2] : v[0]), pk = VO_FOLD[id] ? vb : vb + '-' + id;   // each plane's own lines: its own small pack (the learning races' lines; VO_FOLD: in its voice's pack)
+      const ho = VO_HOST[id] && VO_HOST[id][L]; if(ho){ addT(ho[0], talk, voTag(id)); if(t) Object.entries(t).forEach(([k, a])=>addT(PT_RACE.has(k) || k.includes(':') ? ho[1] : ho[0], a, voTag(id))); return; }   // (VO_HOST: everything it says, in the two packs it rides in)
       if(t) Object.entries(t).forEach(([k, a])=>add(PT_RACE.has(k) || k.includes(':') ? vb + '-' + id + '-r' : pk, a)); });   // and its race pack (2026-10-11): the win and banter lines, all a classic race needs (planeRacePack)
     COURSES.forEach(C=>{ add('race', C[L]); add('ui', C[L]); for(let n = 1; n <= 5; n++) add('race', u.raceIntro(C[L], [], n)); add('ann', u.raceIntro(C[L], [], 2)[0]); });
     MODELS.forEach(m=>{ add('ann', sayName(m, L) + ','); add('ann', sayName(m, L) + '.'); }); add('ann', u.annGo);   // annIntro: course, character names, a start line
@@ -4094,7 +4269,8 @@ const ENGINE = {
 };
 ENGINE.bristles = {kind:'flat', cyl:2, rpm:3400, blades:2, ratio:1, rasp:.22};   // 2026-10-16: Bristles, a buzzy little toy engine (a quick two-cylinder putter under its two blades)
 Object.assign(ENGINE, {beluga:{kind:'fan', whine:2050, roar:230, buzz:54},   // 2026-10-10: two Rolls-Royce Trent 700s, the big turbofans' low whine
-  shuttle:{kind:'jet'}, concorde:{kind:'jet'}});   // 2026-10-23: the Concorde's four reheat Olympus engines roar like a jet; the orbiter glides home with its engines off; in a race it roars like its rockets
+  shuttle:{kind:'jet'}, concorde:{kind:'jet'}});
+ENGINE.superhornet = {kind:'jet'};   // 2026-10-31: Angel's two F414 turbofans with afterburners roar like the Hornet's   // 2026-10-23: the Concorde's four reheat Olympus engines roar like a jet; the orbiter glides home with its engines off; in a race it roars like its rockets
 const SND = {bus:null, duck:null, noise:null, waves:{}, voices:new Map(), on:true, _v:V(0,0,0), _r:V(0,0,0)};
 function sndBus(){
   const a = audio(); if(!a) return null;
@@ -6141,12 +6317,35 @@ function gfxBeluga(g, side, own){
   block(x0, x0 + tw, ()=>{ gfxWord(g, 'BABY', x0, Y(B.baby.y), bh, {w: 15, col: B.baby.col}); gfxWord(g, 'BELUGA', x0 + w1 + sp, Y(B.baby.y) + bh - wh, wh, {w: 14, col: B.word.col}); });
 }
 
+/* Angel's letters (2026-10-31): U.S. NAVY in yellow along each intake's side and his number, the lead's 1 (ANGEL.num), big on both fins, the way the
+   Blue Angels' jets wear them; plain block letters (the sticker letters' centre lines, LET), no crest or insignia. On every look, as Baby Beluga's
+   letters: they say who he is. Seen from the left each block is mirrored about its middle so it reads the right way round. Builder feet. */
+const GFX_SH = {navy: {x0: 19.2, x1: 29.6, y: 4.72, h: 1.12, w: 15}, num: {x: 47.4, y: 10.5, h: 3.4, w: 19}, col: '#f6c11c',
+  lw: {U: [26, 74], S: [27, 73], N: [26, 74], A: [24, 76], V: [22, 78], Y: [24, 76], '.': [42, 58], '1': [36, 64], '2': [28, 72], '3': [28, 72], '4': [26, 74], '5': [28, 72], '6': [28, 72], '7': [28, 72]},
+  dig: {'1': 'M36 30L54 16V84', '2': 'M30 30C34 12 70 12 70 34C70 54 30 62 30 84H72', '3': 'M30 22C46 8 72 18 68 36C66 46 54 50 46 50C58 50 72 56 70 70C66 90 38 90 28 76', '4': 'M60 84V16L26 64H76', '5': 'M70 16H34L30 46C44 38 72 40 72 62C72 88 38 90 28 76', '6': 'M66 20C40 6 28 40 30 60C32 90 72 90 72 64C72 42 42 40 30 58', '7': 'M28 16H72L44 84'}};
+const GFX_SHP = {};
+function gfxShWord(g, s, x, y, h, w, col){ const k = h/68, L = GFX_SH.lw; let at = x;
+  [...s].forEach(ch=>{ if(ch === ' '){ at += 34*k; return; } const [a, b] = L[ch] || [26, 74];
+    g.save(); g.translate(at - a*k, y + 84*k); g.scale(k, -k);
+    if(ch === '.'){ g.beginPath(); g.arc(50, 78, w*.62, 0, 2*Math.PI); g.fillStyle = col; g.fill(); }
+    else { const P = GFX_SHP[ch] || (GFX_SHP[ch] = new Path2D(GFX_SH.dig[ch] || LET[ch])); g.lineWidth = w; g.lineCap = 'butt'; g.lineJoin = 'miter'; g.miterLimit = 3; g.strokeStyle = col; g.stroke(P); }
+    g.restore(); at += (b - a + 12)*k; });
+  return at - x; }
+const gfxShW = (s, h)=>[...s].reduce((a, ch)=>{ if(ch === ' ') return a + 34; const q = GFX_SH.lw[ch] || [26, 74]; return a + q[1] - q[0] + 12; }, 0)*h/68;
+function gfxAngel(g, side){
+  const S = GFX_SH, X = x=>(SH.C - x)*.3048, Y = y=>y*.3048, block = (x0, x1, f)=>{ g.save(); if(side === 'L'){ const m = (x0 + x1)/2; g.translate(m, 0); g.scale(-1, 1); g.translate(-m, 0); } f(); g.restore(); };
+  const n = S.navy, h = Y(n.h), tw = gfxShW('U.S. NAVY', h), xc = (X(n.x0) + X(n.x1))/2, x0 = xc - tw/2;
+  block(x0, x0 + tw, ()=>gfxShWord(g, 'U.S. NAVY', x0, Y(n.y), h, n.w, S.col));
+  const q = S.num, hn = Y(q.h), nw = gfxShW(ANGEL.num, hn), nx = X(q.x) - nw/2;
+  block(nx, nx + nw, ()=>gfxShWord(g, ANGEL.num, nx, Y(q.y), hn, q.w, S.col)); }
+
 /* ---- the picture: what a copy wears, drawn when it changes ---- */
 function gfxWant(c){   // what this copy's picture shows, or null (then no picture and no texture)
   const id = c.def.id, G = gfxGet(id), o = {g: {}};
   GFX_LAYERS.forEach(k=>{ const L = G[k]; if(L.on && (k !== 'w' || (gfxMeasure(c) || {}).wing)) o.g[k] = [L.s, gfxCols(k, L, gfxBase(c)), +(+L.at).toFixed(3), +(+L.k).toFixed(3)]; });
   if(id === 'beluga'){ o.bt = 1; o.bo = paintOf(c) ? 0 : 1; }   // Baby Beluga: her letters always, her tail and sweep on the Original look
-  return Object.keys(o.g).length || o.bt ? o : null;
+  if(id === 'superhornet') o.sh = 1;   // Angel: U.S. NAVY and his number, always
+  return Object.keys(o.g).length || o.bt || o.sh ? o : null;
 }
 function gfxDraw(c, want){
   const M = gfxMeasure(c), K = c.gfx, S = K.S, g = K.g, V = GFX_VIEW; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, S, S); if(!M) return;
@@ -6154,6 +6353,7 @@ function gfxDraw(c, want){
     g.setTransform(1, 0, 0, 1, 0, 0); g.beginPath(); g.rect(2, y0 + 2, S - 4, h - 4); g.clip(); g.setTransform(kx, 0, 0, -ky, -x0*kx, y0 + s1*ky); };
   ['R', 'L'].forEach(v=>{ g.save(); side(v);
     if(want.bt) gfxBeluga(g, v, want.bo);
+    if(want.sh) gfxAngel(g, v);
     if(want.g.b) gfxBody(g, M, ...want.g.b);
     if(want.g.n) gfxNose(g, M, ...want.g.n);
     g.restore(); });
@@ -8495,7 +8695,7 @@ function racerDetailRestore(r){ (r.det || []).forEach(q=>{ q.o.visible = true; q
    winner on the results. Not in Sky City Sprint (the city draws its own copies, crRacers) and not Ned & Zed (two planes). */
 const FAR = {px: 110, back: 135, on: true};   // buffer pixels across the plane: under px it goes far, over back it comes back
 async function farBuild(c){ if(c.far !== undefined || c.pair) return; c.far = null;
-  const d = await fetch('models/' + c.def.id + '-city.json').then(r=>r.ok ? r.json() : null).catch(()=>null); if(!d || !d.lods || c.far !== null || !Object.values(RCACHE).includes(c)) return;   // (the race may be over)
+  const d = await cityData(c.def.id); if(!d || !d.lods || c.far !== null || !Object.values(RCACHE).includes(c)) return;   // (the race may be over)
   const L = d.lods[0], b64 = x=>Uint8Array.from(atob(x), ch=>ch.charCodeAt(0)), q = new Int16Array(b64(L.p).buffer), col = b64(L.c), kd = b64(L.k), b0 = d.box[0], b1 = d.box[1];
   const h = {def: c.def}; scHeroColors(h); const A = h.cA, B = h.cB, pat = h.pat, lin = v=>Math.pow(v/255, 2.2), sm = (a, b, x)=>{ const t = Math.min(1, Math.max(0, (x - a)/(b - a))); return t*t*(3 - 2*t); };
   const faces = [], discs = []; for(let f = 0; f < L.n; f++) (kd[f] === 6 ? discs : faces).push(f); const n0 = faces.length; faces.push(...discs);   // propeller and rotor discs last: a faint see-through grey of their own
@@ -8917,16 +9117,18 @@ const _sf = V(0,0,0), _sr = V(0,0,0), _su = V(0,0,0), _sq = V(0,0,0);
 function smokeFrame(){
   const M = SMOKE.mesh; if(!M) return; const t = RACE.t, per = SMOKE.per, cap = SMOKE.cap; let n = 0;
   RACE.racers.forEach((r, i)=>{
-    const S = r.smk || (r.smk = {pos: new Float32Array(per*3), born: new Float32Array(per).fill(-99), head: 0, acc: 0, col: new T.Color(SMOKE.cols[i % SMOKE.cols.length]).convertSRGBToLinear()});
+    const S = r.smk || (r.smk = {pos: new Float32Array(per*3), born: new Float32Array(per).fill(-99), head: 0, acc: 0, col: new T.Color(r.c.def.smokeCol || SMOKE.cols[i % SMOKE.cols.length]).convertSRGBToLinear()});   // (def.smokeCol: Angel's is always the Blue Angels' white)
+    const shw = r.c.def.smokeCol && WM.on && WM.r === r && !WM.done;   // Angel in his win show: the smoke comes off his real tail (up a vertical climb too), thicker
     const flying = (RACE.phase === 'race' || RACE.phase === 'results') && r.d > r.take*.9 && r.wlHold === undefined && !r.noSmk;   // (Radio Out: smoke only for the escorts' flyover)   // a plane held by Word Launch hovers: no smoke piling up around it
     if(flying){ S.acc += RACE.dtR || 0;
       while(S.acc >= SMOKE.gap){ S.acc -= SMOKE.gap; const k = S.head; S.head = (S.head + 1) % per; S.born[k] = t - S.acc;
         _sf.set(Math.cos(r.yaw), 0, -Math.sin(r.yaw)); _sr.set(-_sf.z, 0, _sf.x); const sz = r.c.size;
         if(r.c.pair) twinTail(r.c, k & 1, _sq);   // Ned & Zed: a trail from each, every other puff
+        else if(shw){ _sf.set(1, 0, 0).applyQuaternion(r.root.quaternion); _sq.copy(r.P).addScaledVector(_sf, -sz*.5); }
         else { _sq.copy(r.P).addScaledVector(_sf, -sz*.45);
           if(r.rollT >= 0){ const a = r.bank + r.rollA; _sq.addScaledVector(_sr, Math.cos(a)*sz*.45).addScaledVector(V_UP, Math.sin(a)*sz*.45); } }   // corkscrew off the wing tip
         S.pos[k*3] = _sq.x; S.pos[k*3+1] = _sq.y; S.pos[k*3+2] = _sq.z; } }
-    const base = Math.max(5, r.c.size*.22*twinK(r.c))*(rCourse && rCourse.city ? .6 : 1)*(r.c.def.id === 'concorde' ? .5 : 1);   // (the Concorde is long and slim: a thinner trail, so the camera is never inside a cloud of it)   // (Sky City Sprint: thinner trails in the canyons, where the pack flies closer)
+    const base = Math.max(5, r.c.size*.22*twinK(r.c))*(rCourse && rCourse.city ? .6 : 1)*(r.c.def.id === 'concorde' ? .5 : 1)*(shw ? 1.35 : 1);   // (the Concorde is long and slim: a thinner trail, so the camera is never inside a cloud of it)   // (Sky City Sprint: thinner trails in the canyons, where the pack flies closer)
     for(let k = 0; k < per && n < cap; k++){ const age = t - S.born[k]; if(age < 0 || age > SMOKE.life) continue; const f = age/SMOKE.life;
       SMOKE.p[n*3] = S.pos[k*3]; SMOKE.p[n*3+1] = S.pos[k*3+1] + age*3; SMOKE.p[n*3+2] = S.pos[k*3+2];
       SMOKE.a[n*2] = base*(1 + age*1.3); SMOKE.a[n*2+1] = (rCourse && rCourse.city ? .36 : .5)*Math.pow(1 - f, 1.4);
@@ -9190,14 +9392,14 @@ async function cmSim(o){
    comes: anything else talking, a card up or the race over, and it is skipped. Not in word races (a card every few seconds), Word
    Launch or Control Tower (their own talk). It plays with the announcer switched off too: it is the planes talking, like the
    winner's cheer. Measured with cmSim({banter: true}) (tools/test/banter.mjs). */
-const BANTER_PAIRS = [["dromader","p51d","rivals"],["dromader","f4u","mentor and student"],["dromader","cap10","rivals"],["dromader","dh88","friendly rivals"],["dromader","geebee","friends"],["dromader","longez","friends"],["dromader","stearman","friends (his boss back home)"],["dromader","f18","friends"],["dromader","aerocar","friends (a big fan)"],["dromader","albatross","a crush kept sweet (his biggest fan)"],["dromader","dromaderf","the same plane twice"],["p51d","cap10","team-mates (the boss and his twins)"],["p51d","f4u","rivals"],["p51d","dh88","rivals"],["p51d","geebee","rivals"],["p51d","shuttle","rivals"],["f4u","f18","team-mates (the old squadron)"],["f4u","stearman","friends (two old-timers)"],["f4u","shuttle","friends (two heroes)"],["geebee","bonanza","a crush kept sweet"],["bonanza","longez","friendly rivals (two champions)"],["cap10","f18","rivals (twins and twin jets)"],["aw139","dromaderf","mentor and student"],["aw139","skycrane","team-mates"],["aw139","c119","team-mates"],["aw139","albatross","team-mates"],["skycrane","c119","team-mates"],["albatross","dromaderf","a crush kept sweet (his biggest fan)"],["beluga","c119","friends (cargo haulers)"],["beluga","skycrane","friends (heavy lifters)"],["beluga","shuttle","friends"],["beluga","albatross","friends (the whale and the scooper)"],["shuttle","f18","friends"],["aerocar","beluga","friends (two unusual flyers)"],["bristles","dromader","friends (two little planes with big dreams)"],["bristles","beluga","friends (the littlest and the biggest)"],["bristles","cap10","friendly rivals (planes that come in pieces)"],["bristles","shuttle","friends (blocks and rockets)"],["concorde","f18","friendly rivals (two fast jets)"],["concorde","shuttle","friends (fast and high)"],["concorde","bonanza","friends (two French friends)"]];
+const BANTER_PAIRS = [["superhornet","f18","team-mates (Navy jets, Hornet cousins)"],["superhornet","f4u","mentor and student (the old Navy and the new)"],["superhornet","concorde","friendly rivals (two fast jets)"],["dromader","p51d","rivals"],["dromader","f4u","mentor and student"],["dromader","cap10","rivals"],["dromader","dh88","friendly rivals"],["dromader","geebee","friends"],["dromader","longez","friends"],["dromader","stearman","friends (his boss back home)"],["dromader","f18","friends"],["dromader","aerocar","friends (a big fan)"],["dromader","albatross","a crush kept sweet (his biggest fan)"],["dromader","dromaderf","the same plane twice"],["p51d","cap10","team-mates (the boss and his twins)"],["p51d","f4u","rivals"],["p51d","dh88","rivals"],["p51d","geebee","rivals"],["p51d","shuttle","rivals"],["f4u","f18","team-mates (the old squadron)"],["f4u","stearman","friends (two old-timers)"],["f4u","shuttle","friends (two heroes)"],["geebee","bonanza","a crush kept sweet"],["bonanza","longez","friendly rivals (two champions)"],["cap10","f18","rivals (twins and twin jets)"],["aw139","dromaderf","mentor and student"],["aw139","skycrane","team-mates"],["aw139","c119","team-mates"],["aw139","albatross","team-mates"],["skycrane","c119","team-mates"],["albatross","dromaderf","a crush kept sweet (his biggest fan)"],["beluga","c119","friends (cargo haulers)"],["beluga","skycrane","friends (heavy lifters)"],["beluga","shuttle","friends"],["beluga","albatross","friends (the whale and the scooper)"],["shuttle","f18","friends"],["aerocar","beluga","friends (two unusual flyers)"],["bristles","dromader","friends (two little planes with big dreams)"],["bristles","beluga","friends (the littlest and the biggest)"],["bristles","cap10","friendly rivals (planes that come in pieces)"],["bristles","shuttle","friends (blocks and rockets)"],["concorde","f18","friendly rivals (two fast jets)"],["concorde","shuttle","friends (fast and high)"],["concorde","bonanza","friends (two French friends)"]];
 const BT_RULE = {first: 7, firstRnd: 14, load: 1, wait: 4, gap: 45, cm: 12, perLap: 1, perRace: [1, 1, 2], quiet: 2.5, clear: 3, est: 7, hist: .7, any: .3, me: .15, ansHist: .65, ansAny: .3, reply: .45};   // perRace: exchanges at most in a race of 1, 2, 3 laps
 const BT_ALIAS = {dromader: 'dromaderf', dromaderf: 'dromader'};
 function btKind(a, kind, b){ const t = a && b && PLANE_TALK[a.c.def.id], tl = t && t[lang]; if(!tl) return null;   // the speaker's lines for that plane, else for any plane
   for(const id of [b.c.def.id, BT_ALIAS[b.c.def.id]]) if(id && tl[kind + ':' + id] && tl[kind + ':' + id].length) return kind + ':' + id;
   return tl[kind + ':any'] && tl[kind + ':any'].length ? kind + ':any' : null; }
 function btState(){ if(!RACE.bt || RACE.bt.run !== RACE.run) RACE.bt = {run: RACE.run, lastT: -99, used: {}, order: null, chk: 0, rep: null, log: [], n: 0, force: null, forceAns: false, first: BT_RULE.first + Math.random()*BT_RULE.firstRnd, heard: {}, prep: null, pre: false}; return RACE.bt; }   // first: not before this race time (a new moment each race); heard: planes whose race pack is in (cmSim)
-const planeRacePack = (r, L)=>{ const v = planeVoice(r, L); return v.voice ? (L || lang) + '-pv-' + v.voice + '-' + r.c.def.id + '-r' : null; };   // its win and banter lines
+const planeRacePack = (r, L)=>{ const v = planeVoice(r, L), ho = VO_HOST[r.c.def.id]; if(ho) return (L || lang) + '-' + ho[L || lang][1]; return v.voice ? (L || lang) + '-pv-' + v.voice + '-' + r.c.def.id + '-r' : null; };   // its win and banter lines
 function btIdle(q){ const a = actx; return !!a && !voPend() && !(VO.cmBusy && performance.now() - (VO.cmBusyT || 0) < 3000) && a.currentTime > (VO.until || 0) + q && performance.now() > (VO.wall || 0) + q*1000; }   // no voice of the game (recorded or the device's) for q seconds, and none on its way
 function btLen(r, parts){ const rate = planeVoice(r).rate || 1; return voUnits(parts).reduce((a, x)=>{ const c = VO.idx && VO.idx.clips[lang + '|' + voNorm(x)]; return a + (c ? c[0][2]/rate : x.length*.075) + .05; }, 0); }
 const btLoad = (io, B, ...rs)=>rs.filter(r=>{ if(io) return !B.heard[r.c.def.id]; const p = planeRacePack(r); return p && !VO.packs[p]; }).length*BT_RULE.load;   // seconds to fetch the race packs not asked for yet (cmSim: a plane that has not talked this race)
@@ -10643,7 +10845,13 @@ const csPt = t=>{ const s = x=>x*x*(3 - 2*x); return s(Math.min(1, t/.2))*s(Math
 Object.assign(WM_MOVES, {
   dash: (o, u, L, h)=>{ o.f += L*shEz(u); o.u -= h*Math.pow(Math.sin(Math.PI*u), 2); o.pitch -= .07*Math.sin(2*Math.PI*u); },   // a super fast low pass: L sizes ahead in its step, a little low
   climb: (o, u, L, A)=>{ const n = 24; let f = 0, h = 0; for(let i = 0; i < n; i++){ const p = A*csPt((i + .5)/n*u); f += Math.cos(p); h += Math.sin(p); } o.f += f*L*u/n; o.u += h*L*u/n; o.pitch += A*csPt(u); o.glow = 1; },   // a steep climb to the angle A, level again at the end of its step (its glow bright)
-  space: (o, u, a, b)=>{ o.space = a + (b - a)*u*u*(3 - 2*u); }});   // how far into space the sky is (0 to 1), from a to b over its step
+  space: (o, u, a, b)=>{ o.space = a + (b - a)*u*u*(3 - 2*u); }});
+/* ---- Angel's show (2026-10-31): the Blue Angels' solo. alpha: the high-alpha pass, slow and nose high (A radians, eased in and out), falling back D
+   sizes behind its line as it slows, the wings rocking a little; climb (above) with rolls is his vertical climbing roll. Nothing but code: his white
+   smoke is his race trail (smokeFrame, def.smokeCol), his "Smoke on!" one of his own lines (PLANE_TRICK, said only when recorded: bbTalk). */
+Object.assign(WM_MOVES, {alpha: (o, u, A, D)=>{ const e = shEz(Math.min(1, u*2.5))*shEz(Math.min(1, (1 - u)*2.5)); o.pitch += A*e; o.f -= (D == null ? .9 : D)*shEz(u); o.u += .05*e; o.roll += .1*Math.sin(4*Math.PI*u)*e; }});
+const SHW = {at: -1};
+function shFrame(r, o){ if(SHW.at !== WM.at){ SHW.at = WM.at; bbTalk(r, 'smoke'); } if(o.glow) r.glowT = Math.max(r.glowT || 0, 1.3); }   // how far into space the sky is (0 to 1), from a to b over its step
 /* ---- El Chupacabra's maracas (owner, 2026-10-25): a second win show for the Gee Bee, WIN_MOVE.geebee2, taking turns with his Cuban eight. He slows to a
    strut (little hops), two big painted maracas pop out beside the cockpit and he shakes them in rhythm, wiggling his wings, with a rattle "shk-shk" (noise bursts,
    as the other sfx) and a sparkle of music notes; he says one of two playful lines of his own (PLANE_TRICK, 'maracas'; original words that only nod to an old
@@ -11356,6 +11564,7 @@ const WIN_MOVE = {
   bristles:  {cam: 'front', tap: 'clack', ov: 'hop', s: [[1.0, ['hop', .2, 2]], [BB_APART.len + .15, ['apart'], ['wag', .1, 1]], [1.5, ['roll', 1, 1], ['fx', 'stars', .05]], [.8, ['hop', .3, 1], ['fx', 'stars', .5]]]},   // Bristles: two little hops, then its own trick: it comes apart into its blocks and snaps back together (bbApart), a ta-da roll and one big hop                                                                      // Endeavour: a slow roll like a launch's roll program (then its bay opens)
   concorde:  {cam: 'q', tap: 'reheat', ov: 'wag', settle: 2.0, s: [[2.2, ['dash', 2.2, .12], ['fx', 'puff', .02], ['fx', 'cone', .3]], [2.3, ['climb', 3.4, .95], ['fx', 'boom', .05]]]},   // Concorde 1, the sonic boom: a super fast low pass, a cone of vapour at its wings and a soft ring in the air, then a steep climb
   concorde2: {cam: 'q', tap: 'reheat', ov: 'wag', settle: 1.8, s: [[3.0, ['climb', 4.2, 1.1], ['space', 0, 1]], [1.6, ['space', 1, 0]]]},   // Concorde 2, the edge of space: a steep climb, the sky deepens to black and stars with the Earth's curve below, level off, the sky comes back
+  superhornet: {cam: 'q', tap: 'reheat', ov: 'roll', settle: 2.2, cs: [[1.8, ['alpha', .32, .45]], [2.6, ['roll', 1, 1], ['rise', .3]]], s: [[2.8, ['alpha', .42, .9]], [3.8, ['climb', 3.0, 1.42], ['roll', 2, 1]]]},   // Angel, the Blue Angels' solo: "Smoke on!", a slow high-alpha pass (nose high, wings rocking a little), then a vertical climbing roll, two rolls straight up with his burners lit, all in a white smoke trail (shFrame; Sky City: a gentler pass and one roll)
   _:         {cam: 'q', s: [[1.6, ['roll', 1, 1]], [1.6, ['wag', .4, 2]]]}};                                                            // anything without its own
 /* the bursts: colours, and [count, speed ft/s, size (of the plane's size), life s, fall] (fxBurst) */
 const WM_FX = {puff: ['#ffffff', '#e8eef2'], dust: ['#f3e3a0', '#fff6d6', '#e9d38a'], splash: ['#bfe6ff', '#ffffff', '#7cc8f0'], boom: ['#ffffff', '#dff3ff'], stars: ['#ffd740', '#ff5252', '#40c4ff', '#69f0ae', '#e040fb', '#ffffff']};
@@ -11502,6 +11711,7 @@ function wmPose(r, dt){
     else if(e[1] === 'tw' && W.tw && r.c.pair && !twinTrick(r.c, e[2], e[3]) && W.t < e[0] + .4) break;   // (a trick still running: this one a moment later)
     W.ei++; }
   if(r.c.def.id === 'concorde') csFrame(r, o);   // the Concorde's vapour cone, boom rings and edge of space
+  else if(r.c.def.id === 'superhornet') shFrame(r, o);   // Angel: "Smoke on!" and his burners up the climb
   if(W.bb != null) bbApartFrame(r, W.t - W.bb);   // Bristles: its blocks come off and snap back (bbApart)
   if(W.mc != null) mcPose(r, W.t - W.mc);   // El Chupacabra: his maracas
   if(W.def && W.def.flags != null) gsPose(r, W.t);   // Bulldog: his Union Jacks and the anthem
@@ -11975,6 +12185,7 @@ const PLANE_VOICE = {dromader:['am_puck',1,'em_alex',1], dromaderf:['am_puck',.9
   bonanza:['ff_siwis',1,'ff_siwis',1], dh88:['bm_george',.97,'bm_george',.97], aerocar:['bm_fable',1.04,'bm_fable',1.04], albatross:['af_bella',1.04,'ef_dora',1.06], aw139:['am_michael',.95,'em_santa',.9], skycrane:['am_adam',.9,'em_santa',.86], c119:['am_santa',.88,'em_santa',.88]};
 Object.assign(PLANE_VOICE, {beluga:['af_sarah',.9,'ef_dora',.9], shuttle:['am_onyx',.97,'em_alex',.92]});
 PLANE_VOICE.concorde = ['xf_mach', 1.1, 'xf_machs', 1.1];   // 2026-10-23: the Concorde, a light French accent (Rochelle's ff_siwis blended with af_nova / ef_dora so she is a different character, and a quicker, higher rate); tools/tts/gen.py BLENDS
+PLANE_VOICE.superhornet = ['am_liam', 1.03, 'xm_angels', 1.03];   // 2026-10-31: Angel, a warm, upbeat young Navy lead: am_liam (no other plane's), in Spanish xm_angels (.55 em_alex + .45 am_liam: a Spanish voice with his warmth, nobody else's); his lines ride in Echo & Bravo's packs (VO_HOST)
 PLANE_VOICE.bristles = ['af_jessica', 1.04, 'xk_bristles', 1.04];   // 2026-10-16: Bristles, bright and young, nobody else's voice: af_jessica (the clearest of 17 voices and blends measured), in Spanish 0.6 ef_dora + 0.4 af_jessica (tools/tts/gen.py BLENDS; NARRATION.md)   // 2026-10-10: the Beluga a warm, gentle giant (lower, slower), Endeavour a calm, steady explorer
 /* Accents come from the voice: Kokoro voices trained on another language read English (or Spanish) with that accent,
    so Bulldog is a British voice, Rochelle a French one, El Chupacabra a Spanish one, Ishani an Indian English one, and
@@ -11996,6 +12207,10 @@ PLANE_PLEA.bristles = {"en":[["Hey, builder! I could use your help!","Come on, b
 /* More pleas (2026-10-11): one more line per step per character, EN and ES, from tools/content/talk-2026-10-11.txt and talk-2026-10-16-bristles.txt (build_talk.py writes the next line) */
 const PLANE_PLEA_MORE = {"dromader":{"en":[["Psst, buddy! I'm ready when you are!"],["Buddy, my propeller misses you! Help me, please!"],["Buddy, please! This crop duster is stuck!"]],"es":[["¡Psst, amigo! ¡Estoy listo cuando tú digas!"],["¡Amigo, mi hélice te extraña! ¡Ayúdame, por favor!"],["¡Amigo, por favor! ¡Este fumigador está atascado!"]]},"dromaderf":{"en":[["Buddy, the fire plane is waiting for you!"],["Partner, I can't do this rescue without you!"],["Please, buddy! My floats are stuck!"]],"es":[["¡Amigo, el avión bombero te está esperando!"],["¡Compañero, no puedo hacer este rescate sin ti!"],["¡Por favor, amigo! ¡Mis flotadores están atascados!"]]},"f4u":{"en":[["Recruit, your wingman is standing by!"],["Recruit, I need you back on the radio!"],["Mayday, recruit! This old Corsair is stuck!"]],"es":[["¡Recluta, tu compañero espera tus órdenes!"],["¡Recluta, te necesito de vuelta en la radio!"],["¡Auxilio, recluta! ¡Este viejo Corsair está atascado!"]]},"p51d":{"en":[["Hello? The champion is waiting, kid!"],["Kid, my fans are getting worried! Help me!"],["Please, kid! Even champions get stuck!"]],"es":[["¿Hola? ¡El campeón está esperando, niño!"],["¡Niño, mis fans se preocupan! ¡Ayúdame!"],["¡Por favor, niño! ¡Hasta los campeones se atascan!"]]},"dh88":{"en":[["I say, young fellow, I'm still here!"],["Do help an old gentleman, sir! Please!"],["Oh dear, I'm quite stuck! Please help!"]],"es":[["¡Digo yo, jovencito, sigo aquí!"],["¡Ayude a este viejo caballero, señor! ¡Por favor!"],["¡Ay, caramba, estoy muy atascado! ¡Ayúdeme, por favor!"]]},"geebee":{"en":[["¡Amigo! El Chupacabra is waiting for his hero!"],["My heart needs you, amigo! Please help!"],["¡Ay, amigo, por favor! I am stuck!"]],"es":[["¡Amigo! ¡El Chupacabra espera a su héroe!"],["¡Mi corazón te necesita, amigo! ¡Ayúdame, por favor!"],["¡Ay, amigo, por favor! ¡Estoy atascado!"]]},"longez":{"en":[["Dear friend, I am here, waiting calmly for you."],["I need your gentle help, friend. Please."],["Please help me, dear friend. I am stuck."]],"es":[["Querido amigo, aquí estoy, esperándote con calma."],["Necesito tu ayuda amable, amigo. Por favor."],["Por favor ayúdame, querido amigo. Estoy atascada."]]},"stearman":{"en":[["Hmph. I'm still waiting, youngster."],["Kid, an old biplane needs you. Please."],["Confound it, I'm stuck! Please help me, kid!"]],"es":[["Mmm. Sigo esperando, jovencito."],["Niño, un viejo biplano te necesita. Por favor."],["¡Rayos, estoy atascado! ¡Ayúdame, por favor, niño!"]]},"f18":{"en":[["Echo here. Wingman, are you there? Over."],["Bravo here. We need you on the radio, wingman!"],["Mayday, mayday! Echo and Bravo are stuck!"]],"es":[["Aquí Echo. Compañero, ¿estás ahí? Cambio."],["Aquí Bravo. ¡Te necesitamos en la radio, compañero!"],["¡Auxilio, auxilio! ¡Echo y Bravo están atascados!"]]},"aerocar":{"en":[["Hallo? Franz is still waiting, little friend!"],["Bitte, friend! The flying car needs you!"],["Ach, help! My wheels are stuck!"]],"es":[["¿Hola? ¡Franz sigue esperando, amiguito!"],["¡Por favor, amigo! ¡El coche volador te necesita!"],["¡Ay, ayuda! ¡Mis ruedas están atascadas!"]]},"bonanza":{"en":[["Mon ami, Rochelle is waiting for you!"],["S'il vous plaît, I need my sweet helper!"],["Oh la la, please help! I am stuck!"]],"es":[["¡Amigo, Rochelle te está esperando!"],["¡S'il vous plaît, necesito a mi dulce ayudante!"],["¡Oh la la, ayúdame, por favor! ¡Estoy atascada!"]]},"cap10":{"en":[["Ned says we're waiting! Zed says still waiting!"],["Ned needs you! Zed needs you too! Please!"],["Ned is stuck! Zed is stuck! Help, buddy!"]],"es":[["¡Ned dice que esperamos! ¡Zed dice que seguimos esperando!"],["¡Ned te necesita! ¡Zed también! ¡Por favor!"],["¡Ned está atascado! ¡Zed está atascado! ¡Ayuda, amigo!"]]},"albatross":{"en":[["Hi! I'm still here, bestie! Help me?"],["Oh my gosh, I really need you! Please!"],["Eek! I'm stuck! Please help me, bestie!"]],"es":[["¡Hola! ¡Sigo aquí, mejor amigo! ¿Me ayudas?"],["¡Ay, Dios mío, de verdad te necesito! ¡Por favor!"],["¡Ay! ¡Estoy atascada! ¡Ayúdame, por favor!"]]},"aw139":{"en":[["Partner, I'm standing by. Whenever you're ready."],["I need my partner on this one. Please."],["Partner, I'm stuck. Please help me."]],"es":[["Compañero, estoy en espera. Cuando estés listo."],["Necesito a mi compañero en esta. Por favor."],["Compañero, estoy atascado. Ayúdame, por favor."]]},"skycrane":{"en":[["I wait for you, friend, like the patient mountain."],["My rotors need your voice, little one."],["I am stuck, friend. Please help me."]],"es":[["Te espero, amigo, como la montaña paciente."],["Mis rotores necesitan tu voz, pequeño."],["Estoy atascado, amigo. Ayúdame, por favor."]]},"c119":{"en":[["Cabbie to co-pilot. Still standing by, over."],["Kid, this old hauler needs you! Please!"],["Mayday, sport! Old Cabbie is stuck!"]],"es":[["Cabbie a copiloto. Sigo en espera, cambio."],["¡Niño, este viejo cargador te necesita! ¡Por favor!"],["¡Auxilio, campeón! ¡El viejo Cabbie está atascado!"]]},"beluga":{"en":[["Yoo-hoo, little friend! The big whale is waiting!"],["My big bubble needs your little help, please!"],["Oh my, my wheels are stuck! Help the big whale, please!"]],"es":[["¡Yuju, amiguito! ¡La ballena grande te espera!"],["¡Mi gran burbuja necesita tu ayudita, por favor!"],["¡Ay, mis ruedas están atascadas! ¡Ayuda a la ballena grande, por favor!"]]},"shuttle":{"en":[["Shuttle to co-pilot. I'm still on the launch pad!"],["Mission control, I really need my co-pilot!"],["Mayday! The space plane is stuck! Please help!"]],"es":[["Transbordador a copiloto. ¡Sigo en la plataforma!"],["¡Control de misión, de verdad necesito a mi copiloto!"],["¡Auxilio! ¡El avión espacial está atascado! ¡Ayuda, por favor!"]]},"bristles":{"en":[["Psst! Your block plane is ready when you are!"],["My bristles miss you, builder! Help me, please!"],["Please! This little block plane is stuck!"]],"es":[["¡Psst! ¡Tu avión de bloques está listo cuando tú digas!"],["¡Mis cerdas te extrañan, constructor! ¡Ayúdame, por favor!"],["¡Por favor! ¡Este avioncito de bloques está atascado!"]]},"concorde":{"en":[["Mon ami, I could use your help!","Allons-y, mon ami! You and me, up in the sky!","Help me out, mon ami, so I can go supersonic!"],["I need you, mon ami! I can't do it alone!","Oh la la, my engines are waiting for you!","Please, mon ami! Help this plane fly high!"],["Mon ami, last chance! Let's make my nose fly up!","One more answer, and I'll go whoosh!","Voila, the finish is near! Help me, please!"]],"es":[["Mon ami, ¡me vendría bien tu ayuda!","¡Allons-y, mon ami! ¡Tú y yo, arriba en el cielo!","¡Ayúdame, mon ami, para volar más rápido que el sonido!"],["¡Te necesito, mon ami! ¡Yo sola no puedo!","¡Oh là là, mis motores te están esperando!","¡Por favor, mon ami! ¡Ayuda a este avión a volar alto!"],["¡Mon ami, última oportunidad! ¡Hagamos que mi nariz suba!","¡Una respuesta más, y salgo fuum!","¡Voilà, la meta está cerca! ¡Ayúdame, por favor!"]]}};
 PLANE_PLEA.concorde = {en: [[], [], []], es: [[], [], []]};   // 2026-10-23: its pleas are all in PLANE_PLEA_MORE (tools/content/talk-2026-10-23-concorde.txt), three a step
+/* Angel (2026-10-31): his own lines, a warm, upbeat Navy lead who calls the child his teammate and wingman (original lines, his name never in them, so a
+   rename re-records nothing of his), and his pleas; they ride in Echo & Bravo's packs (VO_HOST) */
+PLANE_TALK.superhornet = {"en":{"ask":["Lead to teammate! I'm at the back. Can you help me?","I need my wingman! Help me catch up!","Hey teammate, the diamond is getting away! Can you help?","I'm falling behind! Let's fly together. Help me answer!","Number one needs a boost! Can you help me?","My engines want more speed! Can you help me?","Teammate, I can't lead from the back! Will you help me?","Let's catch the team! What do you say?","Smoke on, and help me fly faster! Can you answer?","I'm way behind the formation! Can you help me?","Teammate, I need you on my wing! Help me answer!","Those planes are zooming past me! Can you help?","A good leader asks for help. Can you help me?","Let's show them how a Super Hornet flies! Help me answer!"],"thanks":["Great job, teammate! Thank you!","Wow, you did it! Hit it!","That was perfect! We fly great together!","Thank you, teammate! Here we go!","Nice answer! Burners on!","You helped me fly! Thanks, wingman!","Super answer! Now I'm really zooming!","Yes! That's teamwork!","Thank you! The diamond is back together!","Awesome, teammate! Full speed!","You did it! I'm flying fast now!","Way to go! Thanks for the boost!","That's the right one! Thank you!","Perfect! You're a great wingman!"],"retry":["Almost, teammate! Let's try again.","Not that one. Look again, slowly.","That's okay! Pilots practice a lot. Try again!","Good try! Let's look one more time.","Hmm, not quite. You can do it!","Close! Take your time, teammate.","Oops, not that one. Try another!","Keep trying! Every pilot learns."],"zoom":["Zoom! Super Hornet coming through!","Whoosh! Here I go!","Afterburners on!","Look at me fly!","Smoke on! Zoom!","Full speed ahead!","Passing! Nice and smooth!","Up, up, and away!"],"win":["We won! Great flying, teammate!","First place! Thank you for flying with me!","Yes! The Blue Angels win!","We did it! What a team!","Hooray! Smoke on, we won!","First place! You're the best wingman!","We won! Let's do a victory roll!","Amazing! Thank you, teammate!"],"pass:any":["Passing on your left! Smooth and steady!","Coming through! Super Hornet on the way!","Excuse me! Navy jet passing!"],"ans:any":["My teammate knew the answer! Your turn!","Great answer from my wingman! Your turn!"],"rep:any":["Nice pass! I'm right behind you!","Wow, nice flying! Here I come!","Good one! Let's race!"],"pass:f18":["Hi, Echo! Hi, Bravo! Passing on your left!","Hornet cousins! The lead is coming through!","Echo, Bravo, form up behind me!"],"ans:f18":["My teammate got that one, Echo and Bravo! Your turn!","Great answer! Your turn, Echo and Bravo!"],"rep:f18":["Nice pass, Echo and Bravo! Good flying!","Wait for me, Hornet cousins!","Roger that, Echo and Bravo! Here I come!"],"pass:f4u":["Hi, Skipper! Passing on your left, sir!","Skipper! The Navy is still flying fast!","Coming through, Skipper! Navy jet passing!"],"ans:f4u":["My teammate knew it, Skipper! Your turn, sir!","Great answer! Your turn, Skipper!"],"rep:f4u":["Nice pass, Skipper! Great flying, sir!","Wow, Skipper! The old Navy still has it!","Roger, Skipper! I'm right behind you!"],"pass:concorde":["Hi, Concorde! Two fast jets in the sky!","Passing, Concorde! See you up ahead!","Coming through, Concorde! Nice nose!"],"ans:concorde":["My teammate knew it, Concorde! Your turn!","Great answer! Your turn, Concorde!"],"rep:concorde":["Nice pass, Concorde! You are so fast!","Wow, Concorde! Wait for me!","Here I come, Concorde!"]},"es":{"ask":["¡Líder a compañero! Voy hasta atrás. ¿Me ayudas?","¡Necesito a mi compañero de ala! ¡Ayúdame a alcanzarlos!","¡Oye, compañero, el diamante se está yendo! ¿Me ayudas?","¡Me estoy quedando atrás! Volemos juntos. ¡Ayúdame a contestar!","¡El número uno necesita un empujón! ¿Me ayudas?","¡Mis motores quieren más velocidad! ¿Me ayudas?","¡Compañero, no puedo guiar desde atrás! ¿Me ayudas?","¡Alcancemos al equipo! ¿Qué dices?","¡Humo encendido, y ayúdame a volar más rápido! ¿Contestas?","¡Voy muy atrás de la formación! ¿Me ayudas?","¡Compañero, te necesito en mi ala! ¡Ayúdame a contestar!","¡Esos aviones me están pasando! ¿Me ayudas?","Un buen líder pide ayuda. ¿Me ayudas?","¡Mostremos cómo vuela un Super Hornet! ¡Ayúdame a contestar!"],"thanks":["¡Muy bien, compañero! ¡Gracias!","¡Guau, lo lograste! ¡Ahora!","¡Eso fue perfecto! ¡Volamos muy bien juntos!","¡Gracias, compañero! ¡Allá vamos!","¡Buena respuesta! ¡Postquemadores encendidos!","¡Me ayudaste a volar! ¡Gracias, compañero de ala!","¡Súper respuesta! ¡Ahora sí voy rapidísimo!","¡Sí! ¡Eso es trabajo en equipo!","¡Gracias! ¡El diamante está junto otra vez!","¡Increíble, compañero! ¡A toda velocidad!","¡Lo lograste! ¡Ya vuelo rápido!","¡Bien hecho! ¡Gracias por el empujón!","¡Esa es la correcta! ¡Gracias!","¡Perfecto! ¡Eres un gran compañero de ala!"],"retry":["¡Casi, compañero! Intentemos otra vez.","Esa no. Mira otra vez, despacito.","¡Está bien! Los pilotos practican mucho. ¡Otra vez!","¡Buen intento! Miremos una vez más.","Mmm, no exactamente. ¡Tú puedes!","¡Cerca! Tómate tu tiempo, compañero.","¡Uy, esa no! ¡Prueba otra!","¡Sigue intentando! Todos los pilotos aprenden."],"zoom":["¡Zum! ¡Ahí va un Super Hornet!","¡Fuuum! ¡Allá voy!","¡Postquemadores encendidos!","¡Mírame volar!","¡Humo encendido! ¡Zum!","¡A toda velocidad!","¡Paso! ¡Suavecito y firme!","¡Arriba, arriba, y lejos!"],"win":["¡Ganamos! ¡Qué bien volaste, compañero!","¡Primer lugar! ¡Gracias por volar conmigo!","¡Sí! ¡Ganan los Blue Angels!","¡Lo logramos! ¡Qué equipo!","¡Hurra! ¡Humo encendido, ganamos!","¡Primer lugar! ¡Eres el mejor compañero de ala!","¡Ganamos! ¡Hagamos un giro de victoria!","¡Increíble! ¡Gracias, compañero!"],"pass:any":["¡Paso por tu izquierda! ¡Suave y firme!","¡Con permiso! ¡Ahí va un Super Hornet!","¡Perdón! ¡Pasa un jet de la Marina!"],"ans:any":["¡Mi compañero sabía la respuesta! ¡Te toca!","¡Gran respuesta de mi compañero de ala! ¡Te toca!"],"rep:any":["¡Buen rebase! ¡Voy justo detrás!","¡Guau, qué bien vuelas! ¡Ahí voy!","¡Buena! ¡A competir!"],"pass:f18":["¡Hola, Echo! ¡Hola, Bravo! ¡Paso por su izquierda!","¡Primos Hornet! ¡Pasa el líder!","¡Echo, Bravo, en formación detrás de mí!"],"ans:f18":["¡Mi compañero se la sabía, Echo y Bravo! ¡Les toca!","¡Gran respuesta! ¡Les toca, Echo y Bravo!"],"rep:f18":["¡Buen rebase, Echo y Bravo! ¡Qué bien vuelan!","¡Espérenme, primos Hornet!","¡Recibido, Echo y Bravo! ¡Ahí voy!"],"pass:f4u":["¡Hola, Skipper! ¡Paso por su izquierda, señor!","¡Skipper! ¡La Marina sigue volando rápido!","¡Con permiso, Skipper! ¡Pasa un jet de la Marina!"],"ans:f4u":["¡Mi compañero se la sabía, Skipper! ¡Le toca, señor!","¡Gran respuesta! ¡Le toca, Skipper!"],"rep:f4u":["¡Buen rebase, Skipper! ¡Qué bien vuela, señor!","¡Guau, Skipper! ¡La vieja Marina todavía puede!","¡Recibido, Skipper! ¡Voy justo detrás!"],"pass:concorde":["¡Hola, Concorde! ¡Dos jets rápidos en el cielo!","¡Paso, Concorde! ¡Nos vemos adelante!","¡Con permiso, Concorde! ¡Bonita nariz!"],"ans:concorde":["¡Mi compañero se la sabía, Concorde! ¡Te toca!","¡Gran respuesta! ¡Te toca, Concorde!"],"rep:concorde":["¡Buen rebase, Concorde! ¡Qué rápida eres!","¡Guau, Concorde! ¡Espérame!","¡Ahí voy, Concorde!"]}};
+PLANE_PLEA.superhornet = {"en":[["Hey teammate, I could use your help!","Come on, wingman, you and me can do this!","Help me out, teammate, so I can fly!"],["I need you, teammate! I can't do it alone!","Teammate, my engines are waiting for you!","Please, wingman, help me lead the team!"],["Please help me, teammate, I'm stuck!","Teammate, last chance! Help me fly!","The team is waiting! Help me, please!"]],"es":[["¡Oye, compañero, me vendría bien tu ayuda!","¡Vamos, compañero de ala, tú y yo podemos!","¡Ayúdame, compañero, para poder volar!"],["¡Te necesito, compañero! ¡Yo solo no puedo!","¡Compañero, mis motores te están esperando!","¡Por favor, compañero de ala, ayúdame a guiar al equipo!"],["¡Ayúdame, por favor, compañero, estoy atascado!","¡Compañero, última oportunidad! ¡Ayúdame a volar!","¡El equipo está esperando! ¡Ayúdame, por favor!"]]};
 Object.entries(PLANE_PLEA_MORE).forEach(([id, o])=>Object.entries(o).forEach(([L, st])=>{ const P = PLANE_PLEA[id] && PLANE_PLEA[id][L]; if(P) st.forEach((a, i)=>a.forEach(x=>{ if(!P[i].includes(x)) P[i].push(x); })); }));
 Object.entries(PLANE_PLEA).forEach(([id, o])=>Object.entries(o).forEach(([L, st])=>{ const t = PLANE_TALK[id] && PLANE_TALK[id][L]; if(t) st.forEach((a, i)=>{ t['plea' + (i + 1)] = a; }); }));
 /* the planes' own lines for the show (recorded in each plane's pack, pv-<voice>-<id>, as its other lines: voAllLines through PLANE_TALK) */
@@ -12015,8 +12230,9 @@ const PLANE_TRICK = {bristles: {en: {apart: ['Snap apart!'], clicks: ['Click, cl
     es: {maracas: ['¡Ay, ay, ay! Soy una máquina de carreras, y solo vuelo para ustedes, amigos!', '¡A sacudir, a sacudir! ¡Miren, soy una máquina de carreras feliz!']}}};   // Echo & Bravo's flares at its win (flBurst, 2026-10-17)
 PLANE_TRICK.dh88 = {en: {anthem: ['God save the Queen! Hip hip hooray!', 'God save the Queen! Jolly good show!', 'God save the Queen! Victory is ours, old chap!']},
   es: {anthem: ['God save the Queen! ¡Hip hip hurra!', 'God save the Queen! ¡Splendid!', 'God save the Queen! ¡La victoria es nuestra, amigo!']}};   // Bulldog's cheer after his anthem (WIN_MOVE.dh88q, gsWinKind): a proud "God save the Queen!" (in English in both: he is British; recorded 2026-10-30 into his race pack, the voice tools' say.py), then one of his proudest win lines
+PLANE_TRICK.superhornet = {en: {smoke: ['Smoke on!', 'Hit it! Smoke on!']}, es: {smoke: ['¡Humo encendido!', '¡Ahora! ¡Humo encendido!']}};   // Angel's call as his win show starts (shFrame): the Blue Angels' "smoke on"
 Object.entries(PLANE_TRICK).forEach(([id, o])=>Object.entries(o).forEach(([L, k])=>{ const t = PLANE_TALK[id] && PLANE_TALK[id][L]; if(t) Object.assign(t, k); }));
-const PT_RACE = new Set(['win', 'apart', 'clicks', 'together', 'flares', 'maracas', 'anthem']);   // the kinds in a plane's race pack (with the banter, kinds with a colon)
+const PT_RACE = new Set(['win', 'apart', 'clicks', 'together', 'flares', 'maracas', 'anthem', 'smoke']);   // the kinds in a plane's race pack (with the banter, kinds with a colon)
 const PLEA_ANY = {en:[["Hey buddy, I could use your help!", "Come on, buddy, help me fly!"], ["I need you, buddy! Please help me!", "Buddy, I can't do it without you!"], ["I can't move! Please help me!", "Help me, buddy! I really need you!"]],
   es:[["¡Oye amigo, me vendría bien tu ayuda!", "¡Vamos, amigo, ayúdame a volar!"], ["¡Te necesito, amigo! ¡Ayúdame, por favor!", "¡Amigo, sin ti no puedo!"], ["¡No me puedo mover! ¡Ayúdame, por favor!", "¡Ayúdame, amigo! ¡De verdad te necesito!"]]};
 const PLEA_AT = [15, 40, 60];
@@ -12032,7 +12248,7 @@ function talkLine(r, kind, L){ const t = r && PLANE_TALK[r.c.def.id], a = t && t
    retired, her packs (-q) take their place one for one */
 function planeVoice(r, L){ const v = r && PLANE_VOICE[r.c.def.id]; if(!v) return {}; L = L || lang; return {voice: L === 'es' ? v[2] : v[0], rate: L === 'es' ? v[3] : v[1], who: r.c.def.id}; }
 /* a plane's voice packs: the lines every plane says (pv-<voice>) and its own lines (pv-<voice>-<id>) */
-function planePacks(r, L){ const v = planeVoice(r, L); L = L || lang; return v.voice ? [L + '-pv-' + v.voice].concat(VO_FOLD[r.c.def.id] ? [] : [L + '-pv-' + v.voice + '-' + r.c.def.id]) : []; }   // (VO_FOLD: one pack)
+function planePacks(r, L){ const v = planeVoice(r, L), ho = VO_HOST[r.c && r.c.def.id]; L = L || lang; if(ho) return [L + '-' + ho[L][0]]; return v.voice ? [L + '-pv-' + v.voice].concat(VO_FOLD[r.c.def.id] ? [] : [L + '-pv-' + v.voice + '-' + r.c.def.id]) : []; }   // (VO_HOST: the pack its lines ride in)   // (VO_FOLD: one pack)
 function lnVoice(L){ return Object.assign({force:true}, planeVoice(LEARN.spk, L)); }
 /* who is helped next (2026-10-12, owner: "you shouldn't be helping the same plane every single time. It should switch"): a plane in
    the back half of st (the standings, leader first), the one helped least this race first so every plane gets its turn, never the
@@ -14013,6 +14229,7 @@ $('rtCoachOk').addEventListener('click', twCoachClose);
 const FIELD = {on:false, group:null, planes:{}, meta:null, cam:{az:0, el:.92, fit:0}, zoom:1, swoop:null, tags:{}, openAfter:null, busy:false};
 const FIELD_ROWS = [['cap10','geebee','longez','aerocar'], ['stearman','dh88','p51d','f4u'], ['dromader','dromaderf','bonanza','f18'], ['aw139','albatross','skycrane','c119']];
 FIELD_ROWS.push(['shuttle','beluga','concorde']);   // 2026-10-10: the two biggest at the far end
+FIELD_ROWS[2].push('superhornet');   // 2026-10-31: Angel just after his Hornet cousins, Echo & Bravo
 FIELD_ROWS.unshift(['bristles']);   // 2026-10-16: the littlest in front (the others each move one slot along)
 const FIELD_C = V(1650, 0, 430), FIELD_DX = 84, FIELD_DZ = 78, FIELD_TOY = 52;   // on the runway (centre line z = 430, 130 ft wide)
 const SHOT = {scene:null, cam:null, rt:null, fov:24, px:768, out:384};
@@ -14072,7 +14289,7 @@ async function fieldBuild(){
 async function fieldCatchUp(){
   if(FIELD.busy) return; FIELD.busy = true;
   for(const id of FIELD_ROWS.flat()){
-    if(!FIELD.on) break; if(fieldSnapSaved(id) || !fieldCustom(id)) continue;
+    if(!FIELD.on) break; if(fieldSnapSaved(id) || (!fieldCustom(id) && FIELD.meta[id])) continue;   // (a plane with no shipped picture yet, models/field/meta.json: its picture is taken here once)
     const def = MODELS.find(m=>m.id === id); if(!def) continue;
     await new Promise(r=>setTimeout(r, 600)); if(!FIELD.on || FIELD.swoop) break;
     try{ const c = await loadRacer(def); if(!FIELD.on || RACE.on || RACE.loading || SC.on) break;   // a race or Sky City started while it loaded: its copy is theirs now (they free it), and their copies must not be released here
@@ -15738,6 +15955,7 @@ const SC_MIXW = {cub: 3, geebee: 3, longez: 3, cap10: 3, stearman: 3, bonanza: 3
   albatross: 2, c119: 2, b737: 1, aw139: 2, skycrane: 2, uh1: 2, oh6: 3,   // phase 8: the Skycrane 2 (was 1: with four helicopters a lane the no-neighbour rule kept a weight of 1 a quarter over its share)
   jenny: 2, stampe: 3, c150: 3, sr22: 3, katana: 3, dhc1: 3, p47: 3, c337: 2, pc12: 2, dhc3: 2, trimotor: 2, b247: 2, dc6: 1, b206: 2, r44: 3};   // stage B
 Object.assign(SC_MIXW, {beluga: 1, shuttle: 1, concorde: 1});   // 2026-10-10
+SC_MIXW.superhornet = 2; SC_TIER.superhornet = 2;   // 2026-10-31: Angel, a fighter like the Hornet (weight 2, the fast lanes)
 Object.assign(SC_MIXW, {bristles: 2}); SC_TIER.bristles = 1;   // 2026-10-16: Bristles, a small plane in the medium lanes (as the CAP 10)
 const SC_BAG = {}; const scBagAdd = (k, i)=>{ const b = SC_BAG[k] || (SC_BAG[k] = []); for(let n = 0; n < (SC_MIXW[SC_TYPES[i]] || 2); n++) b.push(i); };
 Object.keys(SCK).forEach(c=>SCK[c].forEach(i=>{ scBagAdd(c, i); if(c === 'plane') scBagAdd('plane' + (SC_TIER[SC_TYPES[i]] || 0), i); }));   // phase 7: plane0..2, the bags of the slow, medium and fast lanes
@@ -16204,7 +16422,7 @@ const SC_CAB = {albatross:[-12.2, -4.2, .5, .2, 1.05, .5], c119:[-7.2, 4.6, 3.95
    fan from its centre: each of its corners gets the centre, radius and facing axis (dc) so the shader can draw a blur. */
 async function scLoadTypes(){
   SC.loadTok = SC.tok;
-  const out = await Promise.all(SC_TYPES.map(id=>fetch('models/' + id + '-city.json').then(r=>r.json()).catch(()=>null)));
+  const out = await Promise.all(SC_TYPES.map(id=>cityData(id).catch(()=>null)));   // (cityData: a city file, or a built plane's own copy, CITY_BUILT)
   if(!SC.scene || SC.loadTok !== SC.tok) return;
   SC_HOPBAG = [0, 1, 2].map(k=>SC_BAG['plane' + k].filter(i=>{ const d = out[i]; return d && d.span <= SCL.hopSpan; })); SC.lines && SC.lines.clear();   // phase 7: no wide plane changes lanes
   SC.types = out.map((d, ti)=>{ if(!d) return null;
