@@ -3587,6 +3587,10 @@ function voClip(a, p, st, du){   // [the buffer to play, the offset in it] for t
    Lines decoded recently stay in a small cache (VOS.max seconds); the next likely lines can be decoded ahead (voPrefetch). Anything
    unexpected (a pack that does not parse, a calibration that does not match, a slice the browser will not decode) turns this off for the
    session and the pack is decoded whole as before (voPackFull); Bulldog's sung clip, which must stay sample-exact with the band, always is. */
+/* the blimp's packs (CM_PREF.blimp) stay whole: her calls start only when blCan finds every sentence ready in a pack, and a pack is small (20 to
+   90 s; about 10 MB in all for a race of eight). Sliced, her hello at a race's start waited on its decode behind the course being built (1.9
+   to 2.3 s late, measured) */
+const VO_WHOLE = /-bl(-.+)?$/;
 const VOS = {on: true, cal: null, calP: null, lines: new Map(), sec: 0, max: 90, pad: 3, tail: 3, spf: 576, hit: 0, miss: 0, ms: 0};
 function voParse(buf, name){   // the frame table of an MP3 pack, or null (it decodes whole)
   const u = new Uint8Array(buf); let i = 0;
@@ -3641,7 +3645,7 @@ async function voPrefetch(parts, opt){ try{ const a = audio(); if(!a) return; co
 function voPack(name){ const a = audio(); if(!a) return Promise.resolve(null);
   VO.used = VO.used || {}; VO.used[name] = performance.now();
   if(VO.packs[name]) return VO.packs[name];
-  VO.packs[name] = fetch('vo/' + name + '.mp3').then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); }).then(buf=>{ const p = VOS.on ? voParse(buf, name) : null; return p || voDecode(buf).then(x=>{ x = voHold(x); x.mb = x.length*(x.pcm ? 2 : x.numberOfChannels*4)/1e6; x.name = name; return x; }); })
+  VO.packs[name] = fetch('vo/' + name + '.mp3').then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); }).then(buf=>{ const p = VOS.on && !VO_WHOLE.test(name) ? voParse(buf, name) : null; return p || voDecode(buf).then(x=>{ x = voHold(x); x.mb = x.length*(x.pcm ? 2 : x.numberOfChannels*4)/1e6; x.name = name; return x; }); })
     .then(x=>{ (VO.got = VO.got || {})[name] = performance.now(); return x; }).catch(()=>{ delete VO.packs[name]; return null; });   // VO.got: when it was ready (tests: her packs before her hello)
   const pvs = r=>Object.keys(VO.packs).filter(n=>n.indexOf('-pv-') > 0 && /-r$/.test(n) === r).sort((x, y)=>(VO.used[x] || 0) - (VO.used[y] || 0)), pv = pvs(false), pr = pvs(true);
   while(pv.length > VO_PV_MAX) delete VO.packs[pv.shift()]; while(pr.length > VO_PVR_MAX) delete VO.packs[pr.shift()];
