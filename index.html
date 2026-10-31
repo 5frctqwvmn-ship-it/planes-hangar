@@ -553,6 +553,25 @@
   .rq-ans.lt.three .pr-w.long{font-size:17px}.rq-ans.lt.three .pr-w.longer{font-size:15px}   /* three pictures on a phone: about 100 px a button ("newspaper", "watermelon") */
   .ls-card.c-letters{background:#fff1c9}
   .rsw-lv.lt-lv{grid-template-columns:repeat(4,1fr)}.rsw-lv.lt-lv button{min-height:48px}
+  /* one try a question (2026-10-31): the answers sleep until the question has been said (.wait) and fade in; a tap too soon only wiggles
+     (.nudge); after a miss the right answer lights up (.show); the first-try stars on the card (#rqTrail); the levels 7 to 12 of the number
+     race (things that go away, the missing ones as outlines, number tiles); the Letter Race's small letters (level 5) */
+  .rq-ans button{transition:opacity .45s,transform .15s}.rq-ans.wait button{opacity:.38;filter:saturate(.6)}
+  .rq-ans button.nudge{animation:ltNudge .3s}@keyframes ltNudge{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  .rq-ans button.show,.rq-ans.lt button.show{background:#c9f29b;border-color:#3f6d0c;box-shadow:0 0 0 5px #ffd23f;animation:spotp 1s ease-in-out 3}
+  .rq-ans button:disabled:not(.show):not(.yes):not(.no){opacity:.55}
+  .rq-trail{position:absolute;left:12px;top:6px;display:flex;align-items:center;gap:1px;pointer-events:none;font-size:15px;line-height:1;color:#f2b705;text-shadow:0 1px 0 #9a6d00}
+  .rq-trail i{font-style:normal}.rq-trail i.new{animation:trailPop .6s ease-out}.rq-trail b{font:800 13px var(--display);color:var(--ink-2);margin-left:3px;text-shadow:none}
+  @keyframes trailPop{0%{transform:scale(0) rotate(-40deg)}70%{transform:scale(1.6)}100%{transform:scale(1)}}
+  .rq-pics .rq-grp{display:flex;flex-direction:column;align-items:center;gap:2px}.rq-pics .rq-grp:not(:has(.rq-row)){flex-direction:row;flex-wrap:wrap;justify-content:center}
+  .rq-pics .gone{opacity:.28;filter:grayscale(.6);transform:translateY(-6px) scale(.85)}.rq-pics .gone.lit{opacity:.28}
+  .rq-pics .ghost{opacity:.45;filter:grayscale(1) contrast(.7);outline:2px dashed #9aa3a7;outline-offset:1px;border-radius:10px}.rq-pics .ghost.lit{opacity:1;filter:none}
+  .rq-pics .rq-num{font:900 40px/1 var(--display);color:var(--ink);padding:0 4px}
+  .rq-pics.skip{gap:8px}.rq-pics .rq-tile{display:inline-flex;align-items:center;justify-content:center;min-width:54px;height:54px;padding:0 6px;box-sizing:border-box;border-radius:14px;background:#e9f4fb;border:3px solid #4ea8de;font:900 30px/1 var(--display);color:var(--ink);transition:transform .15s}
+  .rq-pics .rq-tile.q{background:#fff7d6;border-color:#f2b705;border-style:dashed}.rq-pics .rq-tile.lit{transform:scale(1.18);background:#ffe27a}
+  .rq-ans.wide button{font-size:32px}
+  .rq-pics .lt-big.small .lt-cap{font-size:84px;letter-spacing:0}
+  .rsw-lv.lt-lv.many{grid-template-columns:repeat(8,1fr);gap:4px}.rsw-lv.lt-lv.many button{min-height:44px;font-size:14px}
   @media (prefers-reduced-motion:reduce){.hl i,.cue-ico i,.wl-tap{animation:none}}
 
   /* Control Tower race: the command panel, the turn chip and the grown-up card */
@@ -770,7 +789,7 @@
         </div>
       </div>
       <div class="r-zoom" id="rZoom"></div>
-      <div class="rq" id="rQ" hidden>
+      <div class="rq" id="rQ" hidden><div class="rq-trail" id="rqTrail" hidden aria-hidden="true"></div>
         <div class="rq-head"><b id="rqText"></b><button class="iconbtn rq-say big" id="rqSay"><svg class="i" viewBox="0 0 24 24"><path d="M4 9.5h4l5-4v13l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span class="rq-sayt"></span></button></div>
         <div class="rq-pics" id="rqPics"></div>
         <div class="rq-ans" id="rqAns"></div>
@@ -3604,7 +3623,7 @@ function stickerSpeech(spec){ if(spec.k==='up') return [UI[lang].yourImage]; if(
    gen.py records <pack>-q in her voice, the copied practice words as slow as the narrator's, the rest a little slower than her calls. */
 function herLines(L, P, add){ const u = UI[L], cp = (from, to)=>(P[from] || []).slice().forEach(x=>add(to, x));
   const word = [u.yourTurn, u.oneMore, ...lrnTalk(u, L), ...LC.wl.prompt[L], ...LC.wl.after[L]];   // (u.oneMore: the second try after "Good try", 2026-10-20)
-  cp('nums', 'nums-q'); add('nums-q', [...LC.lead.count[L], ...LC.lead.add[L], u.countTogether]); for(let n = 1; n <= 10; n++){ add('nums-q', String(n)); add('nums-q', u.thatsN(n)); } add('nums-q', [u.moreN, u.fewerN]);   // (and the reasons for a wrong tap: "That's 4. There are more.")
+  cp('nums', 'nums-q'); add('nums-q', [...LC.lead.count[L], ...LC.lead.add[L], u.countTogether]); lnHerMore(L, add); for(let n = 1; n <= 10; n++){ add('nums-q', String(n)); add('nums-q', u.thatsN(n)); } add('nums-q', [u.moreN, u.fewerN]);   // (and the reasons for a wrong tap: "That's 4. There are more.")
   cp('words', 'words-q'); cp('phr', 'words-q'); add('words-q', word);
   if(L === 'en') Object.values(LRN_DATA.pairs).forEach(a=>a.forEach(p=>add('words-q', [u.thatsW(p[0]), u.thatsW(p[2])])));   // the listening pairs: what he picked, when it was wrong (2026-10-20)
   for(let n = 1; n <= 6; n++){ cp('wf' + n, 'wf' + n + '-q'); add('wf' + n + '-q', word); }
@@ -11953,12 +11972,14 @@ function wmRecShot(){ const R = WM.rec, r = WM.r; if(!R || !r) return; R.shots++
 /* The first plane picked is the child's. It starts a little slower than the rest, and every question answered gives it a
    boost, so a child who keeps answering usually wins. While a question is up the race slows right down but never stops.
    A wrong tap costs nothing: the game counts along (or says which number that was) and the right answer starts to glow.
-   Levels (1 to 6: count to 3, count to 5, find the number, count to 10, add within 5, add within 10) go up after three
-   right-first-time answers in a row, down after two misses in a row, and are saved. */
+   Levels (1 to 6: count to 3, count to 5, find the number, count to 10, add within 5, add within 10; 7 to 12 since 2026-10-31: adding
+   past ten, take away, the missing number, counting by twos, fives and tens, the biggest or smallest, story problems) go up after three
+   right-first-time answers in a row, down after two misses in a row, and are saved. Since 2026-10-31 a question has one try (lnAnswer). */
 const raceTypeSaved = ()=>{ const t = saveGet('hangar-racetype'); return t === 'numbers' || t === 'words' || ((t === 'beats' || t === 'radio' || t === 'letters') && lang === 'en') || t === 'tower' ? t : 'classic'; };   // (the Letter Race too: English only)   // (Radio Out too: English only)   // Word Launch is English only for now (an old Spanish save with it opens the classic race)
 RACE.type = raceTypeSaved();
 const LEARN = {on:false, me:null, q:null, nextT:0, stars:0, scale:1, streak:0, miss:0, lvl:1, help:[]};
-const lnLevel = ()=>Math.min(6, Math.max(1, +saveGet('hangar-mathlvl') || 1));
+const LN_TOP = 12;   // levels 1 to 12 (7 to 12 since 2026-10-31: lnMake)
+const lnLevel = ()=>Math.min(LN_TOP, Math.max(1, +saveGet('hangar-mathlvl') || 1));
 LEARN.lvl = lnLevel();
 const LN_COLS = ['#d62828','#f77f00','#fcbf49','#8ac926','#1f9aa6','#4ea8de','#7b2cbf','#ff70a6'];
 /* In learning races the questions come from a plane: each aircraft has its own recorded voice (Kokoro voice, then a
@@ -12103,59 +12124,152 @@ function lnNoun(k, L){ return L === 'es' ? k[5] : k[3]; }
 function lnQ(k, L){ return L === 'es' ? `¿${k[6] === 'f' ? 'Cuántas' : 'Cuántos'} ${k[5]}?` : `How many ${k[3]}?`; }
 function lnAll(k, L){ return L === 'es' ? `¿${k[6] === 'f' ? 'Cuántas' : 'Cuántos'} ${k[5]} hay en total?` : `How many ${k[3]} in all?`; }
 function lnPlus(a, b, L){ return L === 'es' ? `${a} más ${b}.` : `${a} plus ${b}.`; }
-function lnPic(kind, i){ const k = LC.kinds.find(x=>x[0] === kind); if(k) return `<span class="rq-e">${k[1]}</span>`;
+function lnPic(kind, i, cls){ const k = LC.kinds.find(x=>x[0] === kind); if(k) return `<span class="rq-e${cls ? ' ' + cls : ''}">${k[1]}</span>`;
   if(kind === 'balloons'){ const c = LN_COLS[i % LN_COLS.length];
-    return `<svg viewBox="0 0 40 48" aria-hidden="true"><path d="M20 33c0 6-4 7-2 14" fill="none" stroke="#666" stroke-width="1.5"/><ellipse cx="20" cy="17" rx="13" ry="15.5" fill="${c}"/><path d="M17 32h6l-3 3z" fill="${c}"/><ellipse cx="15" cy="11" rx="3.5" ry="5" fill="#fff" opacity=".45"/></svg>`; }
-  if(kind === 'stars') return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5-4.9-4.5 6.6-.8z" fill="#fcbf49" stroke="#9a6d00" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
-  return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13.5l7-1.5 5.5-7h2.5l-2.5 7 5-1 1.5-2.5H23l-1 5-6.5 1.5L12 21H9.5l2-4.5-7 .5z" fill="${LN_COLS[(i*3 + 5) % LN_COLS.length]}" stroke="#1c2426" stroke-width="1" stroke-linejoin="round"/></svg>`;
+    return `<svg class="${cls || ''}" viewBox="0 0 40 48" aria-hidden="true"><path d="M20 33c0 6-4 7-2 14" fill="none" stroke="#666" stroke-width="1.5"/><ellipse cx="20" cy="17" rx="13" ry="15.5" fill="${c}"/><path d="M17 32h6l-3 3z" fill="${c}"/><ellipse cx="15" cy="11" rx="3.5" ry="5" fill="#fff" opacity=".45"/></svg>`; }
+  if(kind === 'stars') return `<svg class="${cls || ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.8-4.9 4.5 1.3 6.5L12 17l-5.9 3.3 1.3-6.5-4.9-4.5 6.6-.8z" fill="#fcbf49" stroke="#9a6d00" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+  return `<svg class="${cls || ''}" viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13.5l7-1.5 5.5-7h2.5l-2.5 7 5-1 1.5-2.5H23l-1 5-6.5 1.5L12 21H9.5l2-4.5-7 .5z" fill="${LN_COLS[(i*3 + 5) % LN_COLS.length]}" stroke="#1c2426" stroke-width="1" stroke-linejoin="round"/></svg>`;
 }
 const lnRand = (a, b)=>a + Math.floor(Math.random()*(b - a + 1)), lnShuffle = a=>{ for(let i = a.length - 1; i > 0; i--){ const j = Math.floor(Math.random()*(i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-function lnMake(prev){   // counting, and simple adding as the child gets them right (levels 1 to 6); every part from its own bag (bagPick)
-  const L = LEARN.lvl, cnt = (lo, hi)=>{ max = hi; n = bagPick('ncount' + lo + '-' + hi, Array.from({length: hi - lo + 1}, (x, i)=>lo + i), String); };
-  const add = top=>{ type = 'add'; max = top; const pairs = []; for(let s = 2; s <= top; s++) for(let x = 1; x < s; x++) pairs.push([x, s - x]); const p = bagPick('nadd' + top, pairs, p=>p.join('+')); a = p[0]; b = p[1]; n = a + b; };
+/* Higher levels (2026-10-31, the owner: "We should have higher levels of difficulty. He's maxing out at all of them"): 7 adding past ten
+   (sums 11 to 15), 8 take away within 10, 9 the missing number ("3 and how many more make 7?", the missing ones drawn as outlines),
+   10 counting by twos, fives and tens ("2, 4, 6, what comes next?"), 11 the biggest or the smallest of three numbers, 12 little story
+   problems read aloud. Each new level mixes in the ones under it. The level saves as before (hangar-mathlvl, now 1 to 12). */
+const LN_STORY = {
+  en:[[['Dusty sees three clouds.', 'Two more clouds float by.', 'How many clouds are there now?'], 'clouds', 3, 2], [['Four ducks swim in the pond.', 'One more duck lands.', 'How many ducks are there now?'], 'ducks', 4, 1],
+    [['Skipper has two medals.', 'He wins three more.', 'How many medals does he have now?'], 'medals', 2, 3], [['Five planes wait on the runway.', 'Two more planes taxi out.', 'How many planes are there now?'], 'airplanes', 5, 2],
+    [['Three kites fly high.', 'Three more kites join them.', 'How many kites are flying now?'], 'kites', 3, 3], [['Six stars shine at night.', 'Two more stars come out.', 'How many stars are there now?'], 'stars', 6, 2],
+    [['Two balloons float up.', 'Four more balloons float up too.', 'How many balloons are there now?'], 'balloons', 2, 4], [['Four apples sit in a basket.', 'Four more apples go in.', 'How many apples are there now?'], 'apples', 4, 4],
+    [['Seven birds sit on the hangar roof.', 'Two more birds land.', 'How many birds are there now?'], 'birds', 7, 2], [['Five cookies are on the plate.', 'Three more cookies are added.', 'How many cookies are there now?'], 'cookies', 5, 3],
+    [['Six butterflies dance in the field.', 'Four more fly in.', 'How many butterflies are there now?'], 'butterflies', 6, 4], [['Eight trophies are on the shelf.', 'Three more trophies arrive.', 'How many trophies are there now?'], 'trophies', 8, 3],
+    [['Five ducks sit on the lake.', 'Two ducks fly away.', 'How many ducks are left?'], 'ducks', 5, -2], [['Six balloons float up.', 'One balloon pops.', 'How many balloons are left?'], 'balloons', 6, -1],
+    [['Eight cookies are on the plate.', 'Dusty eats three.', 'How many cookies are left?'], 'cookies', 8, -3], [['Seven planes are in the hangar.', 'Four planes take off.', 'How many planes are left?'], 'airplanes', 7, -4],
+    [['Four frogs sit on a log.', 'Two frogs hop away.', 'How many frogs are left?'], 'frogs', 4, -2], [['Nine stars twinkle.', 'Three stars hide behind a cloud.', 'How many stars can we see?'], 'stars', 9, -3],
+    [['Ten flags wave in the wind.', 'Five flags blow away.', 'How many flags are left?'], 'flags', 10, -5], [['Six kites fly high.', 'Two kites come down.', 'How many kites are still flying?'], 'kites', 6, -2],
+    [['Seven bees buzz by the flowers.', 'Three bees fly home.', 'How many bees are left?'], 'bees', 7, -3], [['Five helicopters hover.', 'One helicopter lands.', 'How many helicopters are still flying?'], 'helicopters', 5, -1],
+    [['Eight fish swim by the boat.', 'Four fish swim away.', 'How many fish are left?'], 'fish', 8, -4], [['Three rockets are on the pad.', 'One rocket blasts off.', 'How many rockets are left?'], 'rockets', 3, -1]],
+  es:[[['Dusty ve tres nubes.', 'Llegan dos nubes más.', '¿Cuántas nubes hay ahora?'], 'clouds', 3, 2], [['Cuatro patos nadan en el estanque.', 'Llega un pato más.', '¿Cuántos patos hay ahora?'], 'ducks', 4, 1],
+    [['Skipper tiene dos medallas.', 'Gana tres más.', '¿Cuántas medallas tiene ahora?'], 'medals', 2, 3], [['Cinco aviones esperan en la pista.', 'Salen dos aviones más.', '¿Cuántos aviones hay ahora?'], 'airplanes', 5, 2],
+    [['Tres cometas vuelan alto.', 'Se juntan tres cometas más.', '¿Cuántas cometas vuelan ahora?'], 'kites', 3, 3], [['Seis estrellas brillan de noche.', 'Salen dos estrellas más.', '¿Cuántas estrellas hay ahora?'], 'stars', 6, 2],
+    [['Dos globos suben.', 'Suben cuatro globos más.', '¿Cuántos globos hay ahora?'], 'balloons', 2, 4], [['Hay cuatro manzanas en la canasta.', 'Ponemos cuatro más.', '¿Cuántas manzanas hay ahora?'], 'apples', 4, 4],
+    [['Siete pájaros están en el techo del hangar.', 'Llegan dos pájaros más.', '¿Cuántos pájaros hay ahora?'], 'birds', 7, 2], [['Hay cinco galletas en el plato.', 'Ponemos tres más.', '¿Cuántas galletas hay ahora?'], 'cookies', 5, 3],
+    [['Seis mariposas bailan en el campo.', 'Llegan cuatro más.', '¿Cuántas mariposas hay ahora?'], 'butterflies', 6, 4], [['Hay ocho trofeos en la repisa.', 'Llegan tres trofeos más.', '¿Cuántos trofeos hay ahora?'], 'trophies', 8, 3],
+    [['Cinco patos están en el lago.', 'Dos patos se van volando.', '¿Cuántos patos quedan?'], 'ducks', 5, -2], [['Seis globos suben.', 'Un globo se revienta.', '¿Cuántos globos quedan?'], 'balloons', 6, -1],
+    [['Hay ocho galletas en el plato.', 'Dusty se come tres.', '¿Cuántas galletas quedan?'], 'cookies', 8, -3], [['Hay siete aviones en el hangar.', 'Despegan cuatro aviones.', '¿Cuántos aviones quedan?'], 'airplanes', 7, -4],
+    [['Cuatro ranas están en un tronco.', 'Dos ranas se van saltando.', '¿Cuántas ranas quedan?'], 'frogs', 4, -2], [['Brillan nueve estrellas.', 'Tres estrellas se esconden detrás de una nube.', '¿Cuántas estrellas vemos?'], 'stars', 9, -3],
+    [['Diez banderas ondean con el viento.', 'El viento se lleva cinco.', '¿Cuántas banderas quedan?'], 'flags', 10, -5], [['Seis cometas vuelan alto.', 'Bajan dos cometas.', '¿Cuántas cometas siguen volando?'], 'kites', 6, -2],
+    [['Siete abejas zumban en las flores.', 'Tres abejas vuelan a casa.', '¿Cuántas abejas quedan?'], 'bees', 7, -3], [['Cinco helicópteros flotan en el aire.', 'Un helicóptero aterriza.', '¿Cuántos helicópteros siguen volando?'], 'helicopters', 5, -1],
+    [['Ocho peces nadan junto al barco.', 'Cuatro peces se van nadando.', '¿Cuántos peces quedan?'], 'fish', 8, -4], [['Hay tres cohetes en la plataforma.', 'Despega un cohete.', '¿Cuántos cohetes quedan?'], 'rockets', 3, -1]]};
+const LN_SKIP = [2, 5, 10];
+Object.assign(UI.en, {lnTake:(a, b)=>`${a} take away ${b}.`, lnMiss:(a, n)=>`${a} and how many more make ${n}?`, lnBy:{2:'Count by twos!', 5:'Count by fives!', 10:'Count by tens!'}, lnNext:'What comes next?',
+  lnBiggest:'Which number is the biggest?', lnSmallest:'Which number is the smallest?', lnBigger:"There's a bigger one.", lnSmaller:"There's a smaller one.",
+  lnSoon:["We'll try that one again soon!", 'Good try! That one will come back.', "Let's count it again later!"]});
+Object.assign(UI.es, {lnTake:(a, b)=>`${a} menos ${b}.`, lnMiss:(a, n)=>`¿${a} y cuántos más son ${n}?`, lnBy:{2:'¡Cuenta de dos en dos!', 5:'¡Cuenta de cinco en cinco!', 10:'¡Cuenta de diez en diez!'}, lnNext:'¿Qué número sigue?',
+  lnBiggest:'¿Qué número es el más grande?', lnSmallest:'¿Qué número es el más pequeño?', lnBigger:'Hay uno más grande.', lnSmaller:'Hay uno más pequeño.',
+  lnSoon:['¡Esa vuelve pronto!', '¡Buen intento! Esa va a volver.', '¡La contamos otra vez más tarde!']});
+/* every line her number pack (nums-q) needs for the levels 7 to 12 (herLines) */
+function lnHerMore(L, add){ const u = UI[L], P = 'nums-q';
+  LN_BIG.forEach(n=>add(P, [String(n), u.thatsN(n)]));
+  for(let a = 1; a <= 10; a++) for(let b = 1; b <= 10; b++) if(a + b > 10 && a + b <= 15) add(P, lnPlus(a, b, L));
+  for(let a = 2; a <= 10; a++) for(let b = 1; b < a; b++) add(P, u.lnTake(a, b));
+  for(let a = 1; a <= 9; a++) for(let n = a + 1; n <= 10; n++) add(P, u.lnMiss(a, n));
+  add(P, [...Object.values(u.lnBy), u.lnNext, u.lnBiggest, u.lnSmallest, u.lnBigger, u.lnSmaller, ...u.lnSoon, ...LC.lead.sub[L]]);
+  add(P, L === 'es' ? ['¿Cuántos quedan?', '¿Cuántas quedan?'] : ['How many are left?']);
+  LN_STORY[L].forEach(x=>add(P, x[0])); }
+/* the numbers she says past ten: the sums to 15, the biggest and smallest to 20, counting by twos, fives and tens to 100 */
+const LN_BIG = [...Array.from({length: 10}, (x, i)=>11 + i), 25, 30, 35, 40, 45, 50, 60, 70, 80, 90, 100];
+/* which kind of question a level asks (its own most often, the levels under it now and then) */
+function lnType(L){ const r = Math.random();
+  if(L <= 6) return L === 1 || L === 2 ? 'count' : r < [0, 0, 0, .3, .4, .55, .65][L] ? 'add' : 'count';
+  if(L === 7) return r < .7 ? 'add15' : 'add';
+  if(L === 8) return r < .65 ? 'sub' : r < .85 ? 'add15' : 'add';
+  if(L === 9) return r < .6 ? 'miss' : r < .8 ? 'sub' : 'add15';
+  if(L === 10) return r < .55 ? 'skip' : r < .7 ? 'miss' : r < .85 ? 'sub' : 'add15';
+  if(L === 11) return r < .5 ? 'cmp' : r < .65 ? 'skip' : r < .8 ? 'miss' : 'sub';
+  return r < .55 ? 'story' : r < .67 ? 'cmp' : r < .78 ? 'skip' : r < .9 ? 'miss' : 'sub'; }
+function lnMake(prev){   // counting, adding and the rest as the child gets them right (levels 1 to 12); every part from its own bag (bagPick)
+  const L = LEARN.lvl, rd = LEARN.redo || [], ri = rd.findIndex(x=>x.due <= (LEARN.qn || 0) + 1);
+  if(ri >= 0){ const o = rd.splice(ri, 1)[0].q; return Object.assign({}, o, {choices: lnShuffle(o.choices.slice()), tries:0, done:false, live:false, again:true, t0:RACE.clock, nag:false}); }   // a question he missed, two or three later (spaced repeat)
+  const cnt = (lo, hi)=>{ max = hi; n = bagPick('ncount' + lo + '-' + hi, Array.from({length: hi - lo + 1}, (x, i)=>lo + i), String); };
+  const add = (top, lo)=>{ type = 'add'; max = top; const pairs = []; for(let s = lo || 2; s <= top; s++) for(let x = 1; x < s; x++) if(x <= 10 && s - x <= 10) pairs.push([x, s - x]); const p = bagPick('nadd' + top + (lo ? '-' + lo : ''), pairs, p=>p.join('+')); a = p[0]; b = p[1]; n = a + b; };
   const kind = bagPick('nkind', LC.kinds, k=>k[0])[0];   // every thing to count once before any comes back
-  let type = 'count', n, a = 0, b = 0, max;
-  if(L === 1) cnt(1, 4);
-  else if(L === 2) cnt(2, 6);
-  else if(L === 3){ if(Math.random() < .3) add(5); else cnt(3, 8); }
-  else if(L === 4){ if(Math.random() < .4) add(6); else cnt(4, 10); }
-  else if(L === 5){ if(Math.random() < .55) add(8); else cnt(5, 10); }
-  else { if(Math.random() < .65) add(10); else cnt(6, 10); }
-  if(prev && prev.type === type && prev.n === n && prev.a === a) return lnMake(prev);          // never the same question twice in a row
-  const near = lnShuffle([n - 2, n - 1, n + 1, n + 2].filter(v=>v >= 1 && v <= Math.max(max, 3)));
-  const ld = bagPick('nlead-' + type + ':' + lang, LC.lead[type === 'add' ? 'add' : 'count'][lang]);
-  return {type, kind, n, a, b, lead: ld, choices: lnShuffle([n, near[0], near[1]]), tries:0, done:false, t0:RACE.clock, nag:false};
+  let type = lnType(L), n, a = 0, b = 0, max, extra = {};
+  if(type === 'count'){ if(L === 1) cnt(1, 4); else if(L === 2) cnt(2, 6); else if(L === 3) cnt(3, 8); else if(L === 4) cnt(4, 10); else if(L === 5) cnt(5, 10); else cnt(6, 10); }
+  else if(type === 'add') add([0, 0, 0, 5, 6, 8][L] || 10);
+  else if(type === 'add15') add(15, 11);
+  else if(type === 'sub'){ const pairs = []; for(let x = 2; x <= 10; x++) for(let y = 1; y < x; y++) pairs.push([x, y]); const p = bagPick('nsub', pairs, p=>p.join('-')); a = p[0]; b = p[1]; n = a - b; max = 10; }
+  else if(type === 'miss'){ const pairs = []; for(let x = 1; x <= 9; x++) for(let y = x + 1; y <= 10; y++) pairs.push([x, y]); const p = bagPick('nmiss', pairs, p=>p.join('/')); a = p[0]; b = p[1] - p[0]; n = b; extra.sum = p[1]; max = 10; }
+  else if(type === 'skip'){ const st = bagPick('nskip', LN_SKIP, String), top = st === 2 ? 20 : st === 5 ? 50 : 100, k = lnRand(1, top/st - 3); extra.step = st; extra.seq = [k*st, (k + 1)*st, (k + 2)*st]; n = (k + 3)*st; max = top; }
+  else if(type === 'cmp'){ const big = Math.random() < .6, s = new Set(); while(s.size < 3) s.add(lnRand(1, 20)); const v = [...s]; n = big ? Math.max(...v) : Math.min(...v); extra.big = big; extra.vals = v; max = 20; }
+  else { const st = bagPick('nstory:' + lang, LN_STORY[lang], x=>x[0][0]); extra.lines = st[0]; a = st[2]; b = Math.abs(st[3]); n = st[3] > 0 ? a + b : a - b; extra.op = st[3] > 0 ? '+' : '-'; max = 15; return lnDone(prev, {type, kind: st[1], n, a, b, max, ...extra}); }
+  return lnDone(prev, {type, kind, n, a, b, max, ...extra});
 }
-function lnSpeech(q, first){ const k = lnKind(q.kind), core = q.type === 'add' ? [lnPlus(q.a, q.b, lang), lnAll(k, lang)] : [lnQ(k, lang)];
+function lnDone(prev, q){
+  if(prev && prev.type === q.type && prev.n === q.n && prev.a === q.a && !prev.again) return lnMake(prev);   // never the same question twice in a row
+  let choices;
+  if(q.type === 'cmp') choices = q.vals.slice();
+  else if(q.type === 'skip'){ const s = q.step, o = [q.n - s, q.n + s, q.n + 1, q.n - 1].filter(v=>v >= 1 && v !== q.n && !q.seq.includes(v)); choices = [q.n, ...lnShuffle(o).slice(0, 2)]; }
+  else { const lo = 1, near = lnShuffle([q.n - 2, q.n - 1, q.n + 1, q.n + 2].filter(v=>v >= lo && v <= Math.max(q.max, 3))); choices = [q.n, near[0], near[1]]; }
+  const lt = {add:'add', add15:'add', sub:'sub'}[q.type] || 'count', ld = q.type === 'story' || q.type === 'cmp' || q.type === 'skip' || q.type === 'miss' ? null : bagPick('nlead-' + lt + ':' + lang, LC.lead[lt][lang]);
+  return Object.assign(q, {lead: ld, choices: lnShuffle(choices), tries:0, done:false, live:false, t0:RACE.clock, nag:false});
+}
+const lnLeft = (k, L)=>L === 'es' ? (k[6] === 'f' ? '¿Cuántas quedan?' : '¿Cuántos quedan?') : 'How many are left?';
+function lnSpeech(q, first){ const k = lnKind(q.kind), L = lang, u = UI[L]; let core;
+  if(q.type === 'add' || q.type === 'add15') core = [lnPlus(q.a, q.b, L), lnAll(k, L)];
+  else if(q.type === 'sub') core = [u.lnTake(q.a, q.b), lnLeft(k, L)];
+  else if(q.type === 'miss') core = [u.lnMiss(q.a, q.sum)];
+  else if(q.type === 'skip') core = [u.lnBy[q.step], ...q.seq.map(String), u.lnNext];
+  else if(q.type === 'cmp') core = [q.big ? u.lnBiggest : u.lnSmallest];
+  else if(q.type === 'story') core = q.lines;
+  else core = [lnQ(k, L)];
   return first && q.lead ? [q.lead, ...core] : core; }
+function lnBubble(q){ const k = lnKind(q.kind), u = UI[lang]; return q.type === 'add' || q.type === 'add15' ? lnAll(k, lang) : q.type === 'sub' ? lnLeft(k, lang) : q.type === 'miss' ? u.lnMiss(q.a, q.sum) : q.type === 'skip' ? u.lnNext : q.type === 'cmp' ? (q.big ? u.lnBiggest : u.lnSmallest) : q.type === 'story' ? q.lines[q.lines.length - 1] : lnQ(k, lang); }
 function lnRender(){
-  const q = LEARN.q, u = UI[lang], k = lnKind(q.kind);
-  $('rqText').textContent = q.bubble = q.type === 'add' ? lnAll(k, lang) : lnQ(k, lang);
-  let i = 0; const run = m=>{ let o = ''; for(let j = 0; j < m; j++) o += lnPic(q.kind, i++); return o; };
-  const pics = $('rqPics');
-  pics.innerHTML = q.type === 'count' ? (q.n > 5 ? `<div class="rq-row">${run(5)}</div><div class="rq-row">${run(q.n - 5)}</div>` : run(q.n))
-    : q.type === 'add' ? run(q.a) + '<span class="rq-plus">+</span>' + run(q.b) : '';
-  pics.hidden = q.type === 'find'; pics.classList.toggle('many', q.n > 5);
-  const ans = $('rqAns'); ans.innerHTML = ''; ans.className = 'rq-ans';   // (round number buttons: no picture-card classes left over)
+  const q = LEARN.q, u = UI[lang];
+  $('rqText').textContent = q.bubble = lnBubble(q);
+  let i = 0; const run = (m, cls)=>{ let o = ''; for(let j = 0; j < m; j++) o += lnPic(q.kind, i++, cls && cls(j)); return o; }, rows = (m, cls)=>{ let o = '', j0 = 0; while(j0 < m){ const c = Math.min(5, m - j0); o += `<div class="rq-row">${run(c, cls ? j=>cls(j0 + j) : null)}</div>`; j0 += c; } return o; };
+  const pics = $('rqPics'), t = q.type, many = q.n > 5 || q.a + q.b > 7 || q.sum > 7;
+  pics.innerHTML = t === 'count' ? (q.n > 5 ? rows(q.n) : run(q.n))
+    : t === 'add' || t === 'add15' || (t === 'story' && q.op === '+') ? `<div class="rq-grp">${q.a > 5 ? rows(q.a) : run(q.a)}</div><span class="rq-plus">+</span><div class="rq-grp">${q.b > 5 ? rows(q.b) : run(q.b)}</div>`
+    : t === 'sub' || t === 'story' ? (q.a > 5 ? rows(q.a, j=>j >= q.a - q.b ? 'gone' : '') : run(q.a, j=>j >= q.a - q.b ? 'gone' : ''))   // the ones that go fade and float up
+    : t === 'miss' ? `<div class="rq-grp">${q.a > 5 ? rows(q.a) : run(q.a)}</div><span class="rq-plus">+</span><div class="rq-grp">${q.b > 5 ? rows(q.b, ()=>'ghost') : run(q.b, ()=>'ghost')}</div><span class="rq-plus">=</span><b class="rq-num">${q.sum}</b>`   // the missing ones as outlines
+    : t === 'skip' ? q.seq.map(v=>`<b class="rq-tile">${v}</b>`).join('') + '<b class="rq-tile q">?</b>'
+    : '';
+  pics.hidden = t === 'find' || t === 'cmp'; pics.classList.toggle('many', many); pics.classList.toggle('skip', t === 'skip');
+  const ans = $('rqAns'); ans.innerHTML = ''; ans.className = 'rq-ans' + (q.live ? '' : ' wait') + (q.choices.some(v=>v > 99) ? ' wide' : '');   // (round number buttons: no picture-card classes left over)
   q.choices.forEach(v=>{ const bt = document.createElement('button'); bt.textContent = v; bt.addEventListener('click', ()=>lnAnswer(v, bt)); ans.appendChild(bt); });
-  $('rqSay').setAttribute('aria-label', u.sayAgain); $('rqSay').querySelector('.rq-sayt').textContent = u.sayAgain;
+  $('rqSay').setAttribute('aria-label', u.sayAgain); $('rqSay').querySelector('.rq-sayt').textContent = u.sayAgain; lnTrail();
 }
 function lnAsk(){
-  const q = LEARN.q = lnMake(LEARN.last); LEARN.last = q; lnRender(); $('rQ').hidden = false; $('rFeat').hidden = true;
-  LEARN.spk = LEARN.lastSpk = LEARN.next || lnHelper(); LEARN.next = null; const ask = talkLine(LEARN.spk, 'ask'); say([ask, lnSpeech(q, true)], askV(LEARN.spk, ask, null, {qpref: /-nums-q$/}));   // its own line asks for help, then the blimp asks the question (2026-10-17)
+  const q = LEARN.q = lnMake(LEARN.last); LEARN.last = q; LEARN.qn = (LEARN.qn || 0) + 1; lnRender(); $('rQ').hidden = false; $('rFeat').hidden = true;
+  LEARN.spk = LEARN.lastSpk = LEARN.next || lnHelper(); LEARN.next = null; const ask = talkLine(LEARN.spk, 'ask'); lnLiveAfter(q, say([ask, lnSpeech(q, true)], askV(LEARN.spk, ask, null, {qpref: /-nums-q$/})));   // its own line asks for help, then the blimp asks the question (2026-10-17); the buttons wake when it has been said
   newShot('talk', LEARN.spk); RACE.nextCut = RACE.clock + 4.2;   // the plane that asks, from the front; then the whole pack while they think
 }
 function lnClose(){ LEARN.help.forEach(clearTimeout); LEARN.help = []; LEARN.q = null; ltFlyClear(); $('rQ').hidden = true; $('rW').hidden = true; }
+/* The listening beat (2026-10-31, the owner: no tapping each answer until one is right): the answers stay asleep (faded, .wait) until the
+   question has been said, then fade in; a tap before that does nothing but a tiny wiggle. lnLiveAfter(q, p): p is say()'s promise; once it
+   has started the line, the buttons wake when the voice ends (and in 12 s at most, if no voice plays). */
+function lnLive(q){ if(!q || q.live) return; q.live = true; const ans = $('rqAns'); if(LEARN.q === q && ans) ans.classList.remove('wait'); }
+function lnLiveAfter(q, p){ const t0 = performance.now(); LEARN.help.push(setTimeout(()=>lnLive(q), 12000));
+  Promise.resolve(p).then(()=>{ const poll = ()=>{ if(LEARN.q !== q || q.live) return; if(!wlTalking() || performance.now() - t0 > 12000) return lnLive(q); LEARN.help.push(setTimeout(poll, 120)); }; LEARN.help.push(setTimeout(poll, 250)); }); }
+function lnNotYet(bt){ bt.classList.remove('nudge'); void bt.offsetWidth; bt.classList.add('nudge'); }
+/* the first-try trail: a small star on the card for every question right the first time this race (the newest one pops in) */
+function lnFirst(){ LEARN.firstN = (LEARN.firstN || 0) + 1; LEARN.firstNew = true; lnTrail(); }
+function lnTrail(){ const el = $('rqTrail'); if(!el) return; const n = LEARN.firstN || 0, show = Math.min(n, 8); el.hidden = !n;
+  el.innerHTML = Array.from({length: show}, (x, i)=>`<i class="${i === show - 1 && LEARN.firstNew ? 'new' : ''}">★</i>`).join('') + (n > 8 ? `<b>${n}</b>` : ''); LEARN.firstNew = false; el.setAttribute('aria-label', String(n)); }
 function lnHint(q){ if(LEARN.q !== q || q.done) return; const bs = [...$('rqAns').children]; if(bs.filter(b=>!b.disabled).length === 1) bs.forEach(b=>b.classList.toggle('hint', +b.textContent === q.n)); }   // (2026-10-20, owner: don't show the answer: it glows only when one choice is left)
-function lnCountAlong(q, pre, why){   // the last choice left (2026-10-20): the plane's own "try again" line (pre), her reason (why), then she counts along with him (2026-10-17: hers), and the last choice glows
-  const u = UI[lang], pics = [...$('rqPics').querySelectorAll('svg,.rq-e')], nums = pics.map((p, i)=>String(i + 1)), pu = voUnits(pre || []), wu = voUnits(why || []), hu = voUnits([wu, u.countTogether, ...nums]), v = askV(LEARN.spk, pu, null, {qpref: /-nums-q$/});
-  say([pu, hu], v);
+/* the model after a wrong pick: her reason (why), "Let's count together." and she counts what to count (els, the numbers nums) while each
+   lights up, then the right answer lights up (.show) as she says it ("That's 7."), and that it will come back (after) */
+function lnCountAlong(q, pre, why, els, nums, after){
+  const u = UI[lang], pics = els || [...$('rqPics').querySelectorAll('svg,.rq-e')], ns = nums || pics.map((p, i)=>String(i + 1)), pu = voUnits(pre || []), wu = voUnits(why || []), hu = voUnits([wu, ns.length ? u.countTogether : [], ...ns, after || []]), v = askV(LEARN.spk, pu, null, {qpref: /-nums-q$/});
+  const p = say([pu, hu], v);
   const lp = VO.idx && pu.length ? voLocate(VO.idx, lang, pu, v.voice, false, null) : null, lh = VO.idx ? voLocate(VO.idx, lang, hu, null, true, /-nums-q$/) : null;   // follow the recorded voices
-  const dur = (l, i, r)=>(l && l[i] ? l[i][2]/r : .7) + .05, k = wu.length;
-  let t = .35 + pu.reduce((a, x, i)=>a + dur(lp, i, v.rate || 1), 0); for(let i = 0; i <= k; i++) t += dur(lh, i, 1);   // (her reason, then "Let's count together.")
-  pics.forEach((p, i)=>{ LEARN.help.push(setTimeout(()=>p.classList.add('lit'), t*1000)); t += dur(lh, k + 1 + i, 1); });
-  LEARN.help.push(setTimeout(()=>{ pics.forEach(p=>p.classList.remove('lit')); lnHint(q); }, (t + .5)*1000));
-}
+  const dur = (l, i, r)=>(l && l[i] ? l[i][2]/r : .7) + .05, k = wu.length + (ns.length ? 1 : 0);
+  let t = .35 + pu.reduce((a, x, i)=>a + dur(lp, i, v.rate || 1), 0); for(let i = 0; i < k; i++) t += dur(lh, i, 1);   // (her reason, then "Let's count together.")
+  pics.forEach((el, i)=>{ LEARN.help.push(setTimeout(()=>el.classList.add('lit'), t*1000)); t += dur(lh, k + i, 1); });
+  LEARN.help.push(setTimeout(()=>{ pics.forEach(el=>el.classList.remove('lit')); lnShow(q); }, (t + .1)*1000));
+  return {p, t}; }
+function lnShow(q){ if(LEARN.q !== q) return; [...$('rqAns').children].forEach(b=>{ if(+b.textContent === q.n) b.classList.add('show'); }); }
 function lnBoost(f){ const r = LEARN.spk; if(!r) return; r.boostT += r.D*f; r.glowT = 1.4; r.helped = (r.helped || 0) + 1; }
 /* after a right answer: the helped plane thanks the child, then the camera rides along as it passes the others */
 function lnThanks(r, pre){ say([pre || [], talkLine(r, 'thanks')], lnVoice()); newShot('talk', r); RACE.nextCut = RACE.clock + (pre ? 5 : 3.4);   // pre: the Letter Race's praise, said first in the same breath
@@ -12168,34 +12282,43 @@ function lnThanks(r, pre){ say([pre || [], talkLine(r, 'thanks')], lnVoice()); n
     if(btAnswer(r, ahead)) return;   // a line to a plane it just passed, which answers back (banter, race section), in place of the zoom line
     say(talkLine(r, 'zoom'), Object.assign({force:true}, planeVoice(r))); if(r.c.pair) twinCue(r); };   // Ned & Zed show off
   clearTimeout(LEARN.zoomT); LEARN.zoomT = setTimeout(()=>{ LEARN.zoomBy = 0; zoom(); }, 3600); LEARN.zoomBy = t0 + 6600; }   // (zoomBy: the zoom line is on its way, so the blimp's lap call waits: blLapRoom)
+/* One try (2026-10-31, the owner: "I think he's just pressing each one until he gets the right one"): only a first-try right answer gives
+   the boost, the zoom and a star on the trail. A wrong tap ends the question kindly: her reason ("That's 4. There are more."), she counts
+   along with him (what is left, the missing ones, the numbers in the row), the right answer lights up as she says it, and she says it
+   will come back; no boost, no lost places, and the same question returns two or three questions later with its answers shuffled. */
 function lnAnswer(v, bt){
-  const q = LEARN.q; if(!q || q.done || bt.disabled) return; audio(); const u = UI[lang];
+  const q = LEARN.q; if(!q || q.done || bt.disabled) return;
+  if(!q.live) return lnNotYet(bt);   // still listening: the answers are not awake yet
+  audio(); const u = UI[lang];
   if(v === q.n){
     q.done = true; bt.classList.add('yes'); sfx.chime(); LEARN.stars++;
-    if(q.tries === 0){ LEARN.streak++; LEARN.miss = 0; } else LEARN.streak = 0;
-    if(LEARN.streak >= 3 && LEARN.lvl < 6){ LEARN.lvl++; LEARN.streak = 0; saveSet('hangar-mathlvl', String(LEARN.lvl)); }
-    const r = LEARN.spk; lnBoost(q.tries === 0 ? .06 : .045);
+    LEARN.streak++; LEARN.miss = 0; lnFirst();
+    if(LEARN.streak >= 3 && LEARN.lvl < LN_TOP){ LEARN.lvl++; LEARN.streak = 0; saveSet('hangar-mathlvl', String(LEARN.lvl)); }
+    const r = LEARN.spk; lnBoost(.06);
     const z = $('rZoom'); z.textContent = u.zoom; z.classList.remove('pop'); void z.offsetWidth; z.classList.add('pop');
     LEARN.help.forEach(clearTimeout); LEARN.help = [setTimeout(()=>{ if(LEARN.q === q) lnClose(); }, 700)];
     lnThanks(r); LEARN.nextT = RACE.t + 17 + Math.random()*4;   // about half as many questions as before
     return;
   }
-  bt.classList.add('no'); bt.disabled = true; tone(240, .22, 'sine', .14, 190); q.pT = 0;   // he is trying: the plea clock starts again
-  if(q.tries++ === 0){ LEARN.streak = 0; if(++LEARN.miss >= 2 && LEARN.lvl > 1){ LEARN.lvl--; LEARN.miss = 0; saveSet('hangar-mathlvl', String(LEARN.lvl)); } }
-  LEARN.help.forEach(clearTimeout); LEARN.help = [];
-  /* a wrong tap (2026-10-20, owner: "explain why the answer that he picked is incorrect ... and then let him figure out"): the plane's own
-     "try again" line the first time, her reason about what he picked ("That's 4. There are more."), that button greys out and he picks
-     again from what is left. The right number is never said or shown first: it glows (with her counting along) only when one is left. */
-  const re = q.tries === 1 ? talkLine(LEARN.spk, 'retry') : [], last = [...$('rqAns').children].filter(b=>!b.disabled).length === 1;
-  const why = q.type === 'find' ? [u.thatsN(v)] : [u.thatsN(v), v > q.n ? u.fewerN : u.moreN];
-  if(q.type === 'find'){ say([re, why, u.findN(q.n)], askV(LEARN.spk, re)); lnHint(q); }
-  else if(last) lnCountAlong(q, re, why);
-  else say([re, why], askV(LEARN.spk, re, null, {qpref: /-nums-q$/}));
+  q.done = true; q.tries = 1; q.miss = v; bt.classList.add('no'); tone(240, .22, 'sine', .14, 190); q.pT = 0;
+  LEARN.streak = 0; if(++LEARN.miss >= 2 && LEARN.lvl > 1){ LEARN.lvl--; LEARN.miss = 0; saveSet('hangar-mathlvl', String(LEARN.lvl)); }
+  (LEARN.redo = LEARN.redo || []).push({q: Object.assign({}, q, {done:false}), due: (LEARN.qn || 0) + 2 + (Math.random() < .5 ? 1 : 0)});
+  LEARN.help.forEach(clearTimeout); LEARN.help = []; [...$('rqAns').children].forEach(b=>{ b.disabled = true; });
+  const t = q.type, pics = [...$('rqPics').querySelectorAll('svg,.rq-e')], soon = bagPick('nsoon:' + lang, u.lnSoon), end = [u.thatsN(q.n), soon];
+  const why = t === 'cmp' ? [u.thatsN(v), q.big ? u.lnBigger : u.lnSmaller] : t === 'skip' ? [u.thatsN(v)] : [u.thatsN(v), v > q.n ? u.fewerN : u.moreN];
+  let m;
+  if(t === 'cmp'){ say([why, end], herV(null, {qpref: /-nums-q$/})); LEARN.help.push(setTimeout(()=>lnShow(q), 1400)); m = {t: 6}; }
+  else if(t === 'skip'){ const tiles = [...$('rqPics').querySelectorAll('.rq-tile')]; m = lnCountAlong(q, [], why, tiles, [...q.seq, q.n].map(String), end); LEARN.help.push(setTimeout(()=>{ const qt = $('rqPics').querySelector('.rq-tile.q'); if(qt && LEARN.q === q) qt.textContent = q.n; }, m.t*1000)); }
+  else if(t === 'miss') m = lnCountAlong(q, [], why, pics.filter(p=>p.classList.contains('ghost')), null, end);
+  else if(t === 'sub' || (t === 'story' && q.op === '-')) m = lnCountAlong(q, [], why, pics.filter(p=>!p.classList.contains('gone')), null, end);
+  else m = lnCountAlong(q, [], why, pics, null, end);
+  LEARN.help.push(setTimeout(()=>{ if(LEARN.q === q) lnClose(); }, (m.t + 4.5)*1000));
+  LEARN.nextT = RACE.t + 13 + m.t + Math.random()*3;
 }
 function learnStart(){
   lnClose(); clearTimeout(LEARN.zoomT); LEARN.mode = RACE.type; lrnStart(); ltStart(); LEARN.on = RACE.type === 'numbers' || RACE.type === 'words' || (RACE.type === 'letters' && lang === 'en');   // Word Launch ('beats') and Control Tower run in their own sections: no cards, the race never stops (the Letter Race: English only)
   LEARN.me = null; LEARN.spk = LEARN.lastSpk = LEARN.next = LEARN.force = LEARN.want = LEARN.pick = null; LEARN.lvl = lnLevel(); RACE.racers.forEach(r=>{ r.helped = 0; });
-  Object.assign(LEARN, {stars:0, tries:0, scale:1, streak:0, miss:0, nextT:LEARN.mode === 'words' ? 5.5 : 6, last:null, again:null}); WD.bag = null;   // first question once everyone is off the ground
+  Object.assign(LEARN, {stars:0, tries:0, scale:1, streak:0, miss:0, nextT:LEARN.mode === 'words' ? 5.5 : 6, last:null, again:null, firstN:0, redo:[], qn:0}); WD.bag = null;   // first question once everyone is off the ground
   const qv = n=>voPack(n + '-q');   // her question packs (she asks: herV)
   if(LEARN.on){ voPack(lang + '-learn'); if(LEARN.mode === 'numbers') qv(lang + '-nums'); /* (the Letter Race's letter packs load with each question: ltPacks) */ if(LEARN.mode === 'words'){ if(wdMode() === 'f') qv(lang + '-wf' + wdLevel()); else if(wdMode() === 'list') [...new Set(wdWords().map(w=>w.l))].forEach(L=>{ qv(L + '-words'); voPack(L + '-learn'); }); else qv(lang + '-words'); } }   // (her phrases are in words-q)
   twStart();   // the Control Tower race keeps its own state (section "control tower")
@@ -12215,7 +12338,7 @@ function learnFrame(dt){
   else if(!q.done){   // said once (owner, 2026-10-10: a re-ask on a timer talked over the player while he answered); "Say it again" replays it
     lnPleaFrame(q);   // and the plane pleads now and then (15, 40, 60 s of quiet)
     if(RACE.shot && RACE.shot.type === 'talk') RACE.nextCut = Math.max(RACE.nextCut, RACE.clock + .5); }                                // the plane that asked stays on screen, waiting
-  const goal = LEARN.q && !LEARN.q.done ? 0 : 1; LEARN.scale += (goal - LEARN.scale)*Math.min(1, dt*3);   // the race stops until the right answer
+  const goal = LEARN.q && (!LEARN.q.done || LEARN.q.miss !== undefined) ? 0 : 1; LEARN.scale += (goal - LEARN.scale)*Math.min(1, dt*3);   // the race stops until the right answer (and while a missed one is shown: q.miss)
   return LEARN.scale;
 }
 $('rqSay').addEventListener('click', ()=>{ audio(); const q = LEARN.q; if(q && q.type === 'letter') ltSpeak(q, false); else if(q && q.type === 'pair') lrnSpeak(q, false); else if(q && !q.w) say(lnSpeech(q), herV(null, {qpref: /-nums-q$/})); });   // (hers: she asks)   // (a Letter Race card: the letter, its sound, the question and the pictures again)
@@ -12232,6 +12355,15 @@ LC.kinds.push(...[["owls","🦉","owl","owls","búho","búhos","m"],["penguins",
 LC.lead.count.en.push(...["Count with me, buddy!","Can you count them?","Let's count together!","Point and count!","Look at all of these!","Ready? Let's count!","I see a bunch over there!","Count them one by one!","Ooh, look at that!","Up ahead, look!","Over on the left!","Over on the right!","Look out the side!","What a great spot!","Wow, look at them all!","Peek out the cockpit!","I spy something!","Count them as we fly!","Way down below!","Right by our wingtip!"]); LC.lead.count.es.push(...["¡Cuenta conmigo, amigo!","¿Puedes contarlos?","¡Contemos juntos!","¡Señala y cuenta!","¡Mira todo esto!","¿Listo? ¡A contar!","¡Veo un montón por allá!","¡Cuéntalos uno por uno!","¡Uy, mira eso!","¡Mira, más adelante!","¡Ahí a la izquierda!","¡Ahí a la derecha!","¡Mira por un lado!","¡Qué buen lugar!","¡Guau, míralos a todos!","¡Asómate por la cabina!","¡Veo, veo algo!","¡Cuéntalos mientras volamos!","¡Allá abajo!","¡Junto a la punta del ala!"]);
 LC.lead.add.en.push(...["And here come some more!","A few more flew in!","More are landing now!","Look, extra ones!","Some more just showed up!","More friends are here!","Here comes a second group!","Two groups now!","They brought their friends!","More coming in for a landing!"]); LC.lead.add.es.push(...["¡Y aquí vienen más!","¡Llegaron unos cuantos más!","¡Ya aterrizan más!","¡Mira, hay más!","¡Aparecieron unos más!","¡Llegaron más amigos!","¡Más amigos en camino!","¡Ahora hay dos grupos!","¡Trajeron a sus amigos!","¡Vienen más a aterrizar!"]);
 LC.words.en.push(...[["fun","🎉",1],["fuel","⛽",1],["phew","😮‍💨",1],["foal","🐎",1],["firetruck","🚒",2],["fishing","🎣",2],["fancy","🎩",2],["famous","⭐",2],["fiddle","🎻",2],["foggy","🌫️",2],["furry","🐻",2],["father","👨",2],["fajita","🌮",2],["falafel","🧆",2],["fifteen","1️⃣5️⃣",2],["forty","4️⃣0️⃣",2]]);
+/* More (2026-10-31, the owner: he knows them all from memory): 27 more things to count, 20 more counting and 10 more adding lead-ins per
+   language, and the take-away lead-ins (level 8) */
+LC.kinds.push(...[["kangaroos","🦘","kangaroo","kangaroos","canguro","canguros","m"],["koalas","🐨","koala","koalas","koala","koalas","m"],["flamingos","🦩","flamingo","flamingos","flamenco","flamencos","m"],["parrots","🦜","parrot","parrots","loro","loros","m"],["swans","🦢","swan","swans","cisne","cisnes","m"],["seals","🦭","seal","seals","foca","focas","f"],["otters","🦦","otter","otters","nutria","nutrias","f"],["sloths","🦥","sloth","sloths","perezoso","perezosos","m"],["hedgehogs","🦔","hedgehog","hedgehogs","erizo","erizos","m"],["turkeys","🦃","turkey","turkeys","pavo","pavos","m"],["roosters","🐓","rooster","roosters","gallo","gallos","m"],["squirrels","🐿️","squirrel","squirrels","ardilla","ardillas","f"],["ants","🐜","ant","ants","hormiga","hormigas","f"],["pineapples","🍍","pineapple","pineapples","piña","piñas","f"],["avocados","🥑","avocado","avocados","aguacate","aguacates","m"],["coconuts","🥥","coconut","coconuts","coco","cocos","m"],["tacos","🌮","taco","tacos","taco","tacos","m"],["peaches","🍑","peach","peaches","durazno","duraznos","m"],["kiwis","🥝","kiwi","kiwis","kiwi","kiwis","m"],["ambulances","🚑","ambulance","ambulances","ambulancia","ambulancias","f"],["taxis","🚕","taxi","taxis","taxi","taxis","m"],["canoes","🛶","canoe","canoes","canoa","canoas","f"],["anchors","⚓","anchor","anchors","ancla","anclas","f"],["compasses","🧭","compass","compasses","brújula","brújulas","f"],["volcanoes","🌋","volcano","volcanoes","volcán","volcanes","m"],["mountains","⛰️","mountain","mountains","montaña","montañas","f"],["shootingstars","🌠","shooting star","shooting stars","estrella fugaz","estrellas fugaces","f"]]);
+LC.lead.count.en.push(...["Look out the window!","Can you count these for me?","Quick, count them!","Spot them from the sky!","Let's count them on the way!","I see some down there!","Help me count these, co-pilot!","Count with your finger!","Look at the runway!","Look over by the tower!","How sharp are your eyes?","Count them nice and slow!","Look, there they are!","Wow, what a view!","Can you find them all?","Count before we fly past!","Look just ahead!","There's a group over there!","Let's count like pilots!","Eyes on the sky!"]);
+LC.lead.count.es.push(...["¡Mira por la ventana!","¿Me ayudas a contar estos?","¡Rápido, cuéntalos!","¡Míralos desde el cielo!","¡Contemos en el camino!","¡Veo algunos allá abajo!","¡Ayúdame a contar, copiloto!","¡Cuenta con tu dedito!","¡Mira la pista!","¡Mira junto a la torre!","¿Qué tan buenos son tus ojos?","¡Cuéntalos despacito!","¡Mira, ahí están!","¡Guau, qué vista!","¿Puedes encontrarlos todos?","¡Cuenta antes de pasarlos!","¡Mira justo adelante!","¡Hay un grupo por allá!","¡Contemos como pilotos!","¡Ojos al cielo!"]);
+LC.lead.add.en.push(...["Here come a few more!","More are flying in!","Look who just arrived!","Another group is here!","Even more are coming!","They called their friends!","More just touched down!","A new group joins in!","And then some more came!","Look, a second bunch!"]);
+LC.lead.add.es.push(...["¡Aquí vienen unos más!","¡Llegan más volando!","¡Mira quién acaba de llegar!","¡Llegó otro grupo!","¡Vienen todavía más!","¡Llamaron a sus amigos!","¡Aterrizaron unos más!","¡Se une un grupo nuevo!","¡Y luego llegaron más!","¡Mira, otro montón!"]);
+LC.lead.sub = {en:["Uh oh, some are flying away!","Watch closely!","Some are leaving!","Wave goodbye to some!","Look, a few are zooming off!","Some are going home!","Bye-bye, little ones!","Keep your eyes on them!","A few are taking off!","Some are heading out!"],
+  es:["¡Uy, algunos se van volando!","¡Mira con atención!","¡Algunos se van!","¡Diles adiós a algunos!","¡Mira, unos se van rapidito!","¡Algunos se van a casa!","¡Adiós, pequeñitos!","¡No les quites los ojos!","¡Unos cuantos despegan!","¡Algunos se marchan!"]};
 /* ================= word race: say practice words to boost your plane ================= */
 /* For speech practice (for example the words a speech therapist gives a child with apraxia). A grown-up keeps the
    list (typed, or picked from the picture words), and the list is saved and synced like a design. In the race a card
@@ -12567,11 +12699,17 @@ function lrnPairTap(q, s, bt){
 Object.assign(UI.en, {ltName:'Letter Race', ltHint:'Pick the picture that starts with the sound!',
   ltThis:L=>`This is ${L}.`, ltSounds:s=>`It sounds like ${s}.`, ltQ:L=>`Which word starts with ${L}?`, ltIs:(w, L)=>`${ltCap(w)} starts with ${L}!`, ltModel:(s, w)=>`${ltCap(s)}, ${s}, ${w}!`, ltOpt:w=>`${ltCap(w)}?`, ltThats:w=>`That's ${w}.`, ltStarts:L=>`It starts with ${L}.`,
   ltPraise:['Yes!', 'You got it!', 'Super!', 'You heard it!', 'Great listening!'], ltLevel:'Level',
-  ltLevels:['First letters', 'Trickier first letters', 'More letters and vowels', 'Sounds that are close'], ltCapsOnly:'Capitals only', ltCapsBoth:'Big and little letters'});
+  ltLevels:['First letters', 'Trickier first letters', 'More letters and vowels', 'Sounds that are close', 'Little letters', 'Two letters, one sound', 'Ending sounds', 'Middle sounds'], ltCapsOnly:'Capitals only', ltCapsBoth:'Big and little letters',
+  ltThese:L=>`These letters are ${L}.`, ltTogether:s=>`Together they say ${s}.`, ltEndQ:L=>`Which word ends with ${L}?`, ltEnds:(w, L)=>`${ltCap(w)} ends with ${L}!`, ltEndsW:L=>`It ends with ${L}.`, ltEndModel:(s, w)=>`${ltCap(w)}, ${s}, ${s}!`,
+  ltMidQ:s=>`Which word has ${s} in the middle?`, ltMidIs:(w, s)=>`${ltCap(w)} has ${s} in the middle!`, ltMidHas:s=>`It has ${s} in the middle.`, ltMidModel:(s, w)=>`${ltCap(w)}, ${s}, ${w}!`,
+  ltSoon:["We'll see that one again soon!", 'Good try! That one will come back.', "Let's try that one again later!"]});   // (2026-10-31: levels 5 to 8, and the one-try card's lines)
 Object.assign(UI.es, {ltName:'Carrera de letras', ltHint:'¡Elige el dibujo que empieza con el sonido!',
   ltThis:L=>`Esta es la ${L}.`, ltSounds:s=>`Suena así: ${s}.`, ltQ:L=>`¿Qué palabra empieza con ${L}?`, ltIs:(w, L)=>`¡${ltCap(w)} empieza con ${L}!`, ltModel:(s, w)=>`¡${ltCap(s)}, ${s}, ${w}!`, ltOpt:w=>`¿${ltCap(w)}?`, ltThats:w=>`Eso es ${w}.`, ltStarts:L=>`Empieza con ${L}.`,
   ltPraise:['¡Sí!', '¡Muy bien!', '¡Súper!', '¡Lo oíste!', '¡Qué bien escuchas!'], ltLevel:'Nivel',
-  ltLevels:['Primeras letras', 'Primeras letras, más difíciles', 'Más letras y vocales', 'Sonidos parecidos'], ltCapsOnly:'Solo mayúsculas', ltCapsBoth:'Mayúsculas y minúsculas'});
+  ltLevels:['Primeras letras', 'Primeras letras, más difíciles', 'Más letras y vocales', 'Sonidos parecidos', 'Letras pequeñas', 'Dos letras, un sonido', 'Sonidos finales', 'Sonidos del medio'], ltCapsOnly:'Solo mayúsculas', ltCapsBoth:'Mayúsculas y minúsculas',
+  ltThese:L=>`Estas letras son ${L}.`, ltTogether:s=>`Juntas suenan así: ${s}.`, ltEndQ:L=>`¿Qué palabra termina con ${L}?`, ltEnds:(w, L)=>`¡${ltCap(w)} termina con ${L}!`, ltEndsW:L=>`Termina con ${L}.`, ltEndModel:(s, w)=>`¡${ltCap(w)}, ${s}, ${s}!`,
+  ltMidQ:s=>`¿Qué palabra tiene ${s} en el medio?`, ltMidIs:(w, s)=>`¡${ltCap(w)} tiene ${s} en el medio!`, ltMidHas:s=>`Tiene ${s} en el medio.`, ltMidModel:(s, w)=>`¡${ltCap(w)}, ${s}, ${w}!`,
+  ltSoon:['¡Esa vuelve pronto!', '¡Buen intento! Esa va a volver.', '¡Lo intentamos otra vez más tarde!']});
 function ltCap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
 /* [letter, its sound as the plane says it (gen.py's LT_PH gives each spelling its phonemes: "buh" a short b and schwa, "mmm" a held m,
    "ă" the short a of apple), sound id (C and K share k: never two on one card), the level it comes in at, kind (c a sound you can
@@ -12609,43 +12747,131 @@ const LT_SVG = {igloo:'<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M5 4
   zigzag:'<svg viewBox="0 0 64 48" aria-hidden="true"><path d="M4 36L14 12L24 36L34 12L44 36L54 12L60 26" fill="none" stroke="#e63946" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   zipper:'<svg viewBox="0 0 48 64" aria-hidden="true"><path d="M11 2h26v60H11z" fill="#3a86ff" stroke="#1d3f7a" stroke-width="2"/><g fill="#e9eef2" stroke="#6c7884" stroke-width=".8">' + Array.from({length: 14}, (x, i)=>`<rect x="${i % 2 ? 24 : 18.5}" y="${3 + i*4.2}" width="5.5" height="3.2" rx="1"/>`).join('') + '</g><rect x="16" y="12" width="16" height="11" rx="4" fill="#cfd6dc" stroke="#4a5560" stroke-width="2"/><rect x="19" y="21" width="10" height="17" rx="5" fill="#cfd6dc" stroke="#4a5560" stroke-width="2"/><circle cx="24" cy="33" r="2.3" fill="#4a5560"/></svg>'};
 function ltPic(p){ const s = /^svg:/.test(p) && LT_SVG[p.slice(4)]; return s ? `<span class="pr-e lt-svg">${s}</span>` : `<span class="pr-e">${p}</span>`; }
-const LT = {lvl:1, n:0, next:null, log:[]};
-const ltLevel = ()=>Math.min(4, Math.max(1, +saveGet('hangar-letterlvl') || 1));
+/* More pictures for every letter (2026-10-31, the owner: "he's gone through all of them and recognizes them from memory"): about a
+   hundred and twenty new words, each a picture an emoji shows plainly; [word, picture, 1 when it starts with a blend, 1 when the
+   picture has another name] as in LT_DATA */
+const LT_MORE = {M:[['mango','🥭'],['mailbox','📫'],['motorcycle','🏍️'],['mermaid','🧜‍♀️'],['moose','🫎'],['medal','🏅'],['microscope','🔬'],['mountain','⛰️']],
+  S:[['seven','7️⃣'],['saxophone','🎷'],['sailboat','⛵'],['sunflower','🌻'],['sushi','🍣'],['satellite','🛰️'],['squirrel','🐿️',1],['scooter','🛴',1],['snowman','⛄',1],['skateboard','🛹',1],['swan','🦢',1]],
+  F:[['fairy','🧚'],['firetruck','🚒'],['football','🏈'],['fountain','⛲'],['fly','🪰',1],['fries','🍟',1],['frisbee','🥏',1],['flamingo','🦩',1]],
+  N:[['ninja','🥷'],['needle','🪡'],['notebook','📓'],['nail','💅',0,1]],
+  B:[['bat','🦇'],['bone','🦴'],['bug','🐛'],['butterfly','🦋'],['bucket','🪣'],['bagel','🥯'],['basket','🧺'],['boot','👢'],['bowl','🥣'],['broccoli','🥦',1],['bridge','🌉',1],['blueberries','🫐',1],['brick','🧱',1]],
+  T:[['taxi','🚕'],['tractor','🚜'],['teapot','🫖'],['toilet','🚽'],['telescope','🔭'],['tornado','🌪️'],['tulip','🌷'],['toothbrush','🪥'],['trumpet','🎺',1],['trophy','🏆',1]],
+  P:[['parrot','🦜'],['potato','🥔'],['piano','🎹'],['pineapple','🍍'],['parachute','🪂'],['pencil','✏️'],['peanut','🥜'],['present','🎁',1,1],['princess','👸',1]],
+  D:[['diamond','💎'],['dumpling','🥟'],['dart','🎯'],['desert','🏜️'],['dove','🕊️'],['dress','👗',1]],
+  C:[['candle','🕯️'],['canoe','🛶'],['coconut','🥥'],['comb','🪮'],['cucumber','🥒'],['coffee','☕'],['coat','🧥'],['cupcake','🧁'],['camera','📷'],['crown','👑',1],['crayon','🖍️',1],['crocodile','🐊',1]],
+  K:[['king','🤴'],['kimono','👘'],['kitten','🐈',0,1]],
+  G:[['garlic','🧄'],['ghost','👻'],['goose','🪿'],['girl','👧'],['globe','🌍',1]],
+  L:[['leopard','🐆'],['lizard','🦎'],['lobster','🦞'],['laptop','💻'],['llama','🦙'],['log','🪵'],['lips','👄'],['lettuce','🥬'],['letter','✉️',0,1]],
+  R:[['rabbit','🐰'],['rooster','🐓'],['rose','🌹'],['radio','📻'],['rhino','🦏'],['rice','🍚'],['rock','🪨'],['roller skate','🛼']],
+  A:[['avocado','🥑'],['alligator','🐊',0,1]],
+  E:[['envelope','✉️',0,1]],
+  H:[['hamburger','🍔'],['hedgehog','🦔'],['hamster','🐹'],['honey','🍯'],['hot dog','🌭'],['hook','🪝']],
+  V:[['volleyball','🏐']],
+  W:[['whale','🐳'],['wheel','🛞'],['wing','🪽'],['wave','🌊'],['wizard','🧙']]};
+Object.entries(LT_MORE).forEach(([L, a])=>{ const d = LT_DATA.find(x=>x[0] === L); if(d) a.forEach(w=>{ if(!d[5].some(x=>x[0] === w[0])) d[5].push(w); }); });
+/* Higher levels (2026-10-31, the owner: "We should have higher levels of difficulty. He's maxing out at all of them"):
+   5 little letters: the card shows the small letter alone and one picture starts with its look-alike (b and d, p and b, m and w, n and h);
+   6 two letters, one sound: SH, CH and TH, the other pictures start with the first letter's own sound (S, C, T), so he must hear the pair;
+   7 ending sounds: "Which word ends with T?", the letter lands on the last letter;
+   8 middle sounds: the short vowel inside a three-sound word, "Which word has ă in the middle?".
+   Each card of a new level can also be an easier kind (a review), so the levels mix. Entries as LT_DATA, plus [6]: {say: how the
+   letters are named, pk: the letter group pack its lines ride in (the published site is at its file cap: no new packs)} */
+const LT_LOOK = {b:'d', d:'b', p:'b', m:'w', w:'m', n:'h', h:'n'};   // level 5: letters that look alike in small print
+const LT_DIG = [
+  ['SH','shh','sh',6,'c',[['ship','🚢'],['shell','🐚'],['shark','🦈'],['sheep','🐑'],['shirt','👕'],['shower','🚿'],['shorts','🩳'],['shoe','👟',0,1],['shield','🛡️']],{say:'S H', pk:'lt3', of:'S'}],
+  ['CH','chuh','ch',6,'s',[['cheese','🧀'],['chair','🪑'],['cherry','🍒'],['chick','🐥'],['chicken','🐔'],['chocolate','🍫'],['church','⛪'],['chopsticks','🥢'],['chipmunk','🐿️',0,1]],{say:'C H', pk:'lt3', of:'C'}],
+  ['TH','thh','th',6,'c',[['thumb','👍'],['three','3️⃣'],['thermometer','🌡️'],['thread','🧵',1],['thunder','⛈️',0,1]],{say:'T H', pk:'lt3', of:'T'}]];
+const LT_END = [
+  ['T','tuh','t',7,'s',[['cat','🐱'],['hat','🎩'],['bat','🦇'],['nut','🌰'],['boat','⛵'],['goat','🐐'],['rocket','🚀'],['carrot','🥕'],['robot','🤖'],['coat','🧥'],['jet','🛩️']],{pk:'lt4'}],
+  ['N','nnn','n',7,'c',[['sun','☀️'],['moon','🌙'],['pen','🖊️'],['van','🚐'],['lion','🦁'],['train','🚂'],['ten','🔟'],['spoon','🥄'],['crown','👑'],['chicken','🐔'],['pumpkin','🎃'],['penguin','🐧']],{pk:'lt4'}],
+  ['P','puh','p',7,'s',[['map','🗺️'],['cap','🧢'],['ship','🚢'],['sheep','🐑'],['soap','🧼'],['lollipop','🍭'],['jeep','🚙',0,1]],{pk:'lt4'}],
+  ['G','guh','g',7,'s',[['pig','🐷'],['dog','🐶'],['bug','🐛'],['frog','🐸'],['flag','🚩'],['egg','🥚'],['bag','🎒'],['log','🪵']],{pk:'lt4'}],
+  ['M','mmm','m',7,'c',[['drum','🥁'],['broom','🧹'],['worm','🪱'],['arm','💪'],['ice cream','🍦']],{pk:'lt4'}],
+  ['D','duh','d',7,'s',[['bed','🛏️'],['bird','🐦'],['cloud','☁️'],['hand','✋'],['bread','🍞'],['sled','🛷'],['salad','🥗']],{pk:'lt4'}],
+  ['L','lll','l',7,'c',[['ball','⚽'],['bell','🔔'],['owl','🦉'],['snail','🐌'],['seal','🦭'],['girl','👧'],['pencil','✏️'],['camel','🐫'],['shell','🐚']],{pk:'lt4'}],
+  ['K','kuh','k',7,'s',[['duck','🦆'],['sock','🧦'],['book','📖'],['rock','🪨'],['clock','🕐'],['truck','🚚'],['fork','🍴'],['milk','🥛']],{pk:'lt4'}],
+  ['S','sss','s',7,'c',[['bus','🚌'],['cactus','🌵'],['octopus','🐙'],['walrus','🦭',0,1],['dress','👗']],{pk:'lt4'}],
+  ['X','ks','x',7,'s',[['fox','🦊'],['box','📦'],['six','6️⃣'],['ax','🪓']],{pk:'lt4'}]];
+const LT_MID = [
+  ['A','ă','a',8,'v',[['cat','🐱'],['hat','🎩'],['bat','🦇'],['bag','🎒'],['map','🗺️'],['van','🚐'],['cap','🧢']],{pk:'lt5'}],
+  ['E','ĕ','e',8,'v',[['bed','🛏️'],['web','🕸️'],['pen','🖊️'],['ten','🔟'],['leg','🦵'],['jet','🛩️'],['net','🥅',0,1]],{pk:'lt5'}],
+  ['I','ĭ','i',8,'v',[['pig','🐷'],['six','6️⃣'],['fish','🐟'],['lips','👄'],['ship','🚢'],['milk','🥛'],['pin','📌',0,1]],{pk:'lt5'}],
+  ['O','ŏ','o',8,'v',[['dog','🐶'],['fox','🦊'],['box','📦'],['sock','🧦'],['clock','🕐'],['frog','🐸'],['log','🪵'],['rock','🪨']],{pk:'lt5'}],
+  ['U','ŭ','u',8,'v',[['bus','🚌'],['sun','☀️'],['bug','🐛'],['nut','🌰'],['duck','🦆'],['drum','🥁'],['truck','🚚'],['cup','☕',0,1]],{pk:'lt5'}]];
+const LT = {lvl:1, n:0, next:null, log:[], again:[]};
+const LT_TOP = 8;   // levels 1 to 8 (5 to 8 since 2026-10-31)
+const ltLevel = ()=>Math.min(LT_TOP, Math.max(1, +saveGet('hangar-letterlvl') || 1));
 const ltCaps = ()=>saveGet('hangar-lettercaps') !== '0';   // 2026-10-20 (owner: "the lowercase is confusing him"): capitals only is the default; '0' brings the lowercase back
 const ltOn = ()=>LEARN.on && LEARN.mode === 'letters';
-function ltStart(){ LT.lvl = ltLevel(); LT.n = 0; LT.next = null; LT.log = []; ltFlyClear(); }
+function ltStart(){ LT.lvl = ltLevel(); LT.n = 0; LT.next = null; LT.log = []; LT.again = []; ltFlyClear(); }
+/* which kind of card a level makes: its own most of the time, an easier kind now and then (first: the first sound, dig: two letters
+   with one sound, end: the ending sound, mid: the middle vowel) */
+function ltKind(lv){ const r = Math.random();
+  if(lv === 6) return r < .6 ? 'dig' : 'first';
+  if(lv === 7) return r < .6 ? 'end' : r < .8 ? 'dig' : 'first';
+  if(lv === 8) return r < .55 ? 'mid' : r < .8 ? 'end' : r < .9 ? 'dig' : 'first';
+  return 'first'; }
+const ltSet = k=>k === 'dig' ? LT_DIG : k === 'end' ? LT_END : k === 'mid' ? LT_MID : LT_DATA;
+/* a word he missed comes back two or three cards later with new pictures beside it (spaced repeat): his second real chance */
+function ltAgainDue(){ const i = LT.again.findIndex(a=>a.due <= LT.n + 1); return i < 0 ? null : LT.again.splice(i, 1)[0]; }
 /* a card: the letter from its bag (every letter of the level once before any comes back, never the sound just asked), its word from the
    letter's bag (levels 1 and 2: no blends); the other pictures are other sounds (never two with one sound), at level 1 a different kind
-   of sound, up to level 3 never a close one (nor another short vowel on a vowel's card), at level 4 the close one when the letter has one;
-   never a picture he may call otherwise */
+   of sound, up to level 3 never a close one (nor another short vowel on a vowel's card), at level 4 and up the close one when the letter
+   has one, at level 5 and up the look-alike letter's when it has one; never a picture he may call otherwise */
 function ltMake(prev){
-  const lv = LT.lvl, n = 3, wordOf = (d, any)=>bagPick('lt:w:' + d[0], d[5], w=>w[0], w=>(lv >= 3 || !w[2]) && (any || !w[3]));
-  const d = bagPick('lt:letter', LT_DATA, x=>x[0], x=>x[3] <= lv && (!prev || x[2] !== prev.sid)), opts = [{d, w: wordOf(d, true)}], used = new Set([d[2]]);
-  const pool = lnShuffle(LT_DATA.filter(x=>x[3] <= lv && x[2] !== d[2]));
-  if(lv >= 4 && LT_CLOSE[d[2]]){ const c = pool.find(x=>x[2] === LT_CLOSE[d[2]]); if(c){ opts.push({d: c, w: wordOf(c)}); used.add(c[2]); } }
-  const ok = x=>!used.has(x[2]) && (lv >= 4 || (LT_CLOSE[d[2]] !== x[2] && (d[4] !== 'v' || x[4] !== 'v'))) && (lv > 1 || x[4] !== d[4]);   // (below level 4 a vowel's card has no other vowel: short o and u, e and i are close too)
-  for(const x of pool){ if(opts.length >= n) break; if(ok(x)){ opts.push({d: x, w: wordOf(x)}); used.add(x[2]); } }
-  lnShuffle(opts);
-  return {type:'letter', L:'en', ch:d[0], snd:d[1], sid:d[2], lv, opts, right: opts.findIndex(o=>o.d === d), tries:0, done:false, t0:RACE.clock, nag:false};
+  const lv = LT.lvl, ag = ltAgainDue(); if(ag) return ltCard(ag.kind, ag.d, ag.w, lv, true);
+  const kind = ltKind(lv);
+  if(kind !== 'first'){ const set = ltSet(kind), d = bagPick('lt:' + kind, set, x=>x[0], x=>!prev || x[2] !== prev.sid);
+    return ltCard(kind, d, bagPick('lt:' + kind + ':w:' + d[0], d[5], w=>w[0]), lv); }
+  const fl = Math.min(lv, 4), d = bagPick('lt:letter', LT_DATA, x=>x[0], x=>x[3] <= fl && (!prev || x[2] !== prev.sid));
+  return ltCard('first', d, bagPick('lt:w:' + d[0], d[5], w=>w[0], w=>fl >= 3 || !w[2]), lv);
 }
-/* the card: the letter big (upper and lower case) and the pictures, each with its word under it */
+function ltCard(kind, d, w, lv, again){
+  const n = 3, opts = [{d, w}], used = new Set([d[2]]), words = new Set([w[0]]), add = (x, ww)=>{ if(!ww || words.has(ww[0])) return false; opts.push({d: x, w: ww}); used.add(x[2]); words.add(ww[0]); return true; };
+  const other = (x, blendOk)=>{ const pool = x[5].filter(ww=>!ww[3] && !words.has(ww[0]) && (blendOk || !ww[2])); return pool.length ? bagPick((kind === 'first' ? 'lt:w:' : 'lt:' + kind + ':w:') + x[0], x[5], ww=>ww[0], ww=>pool.includes(ww)) : null; };
+  if(kind === 'first'){ const fl = Math.min(lv, 4), wordOf = x=>other(x, fl >= 3), pool = lnShuffle(LT_DATA.filter(x=>x[3] <= fl && x[2] !== d[2]));
+    if(lv >= 5 && LT_LOOK[d[2]]){ const c = pool.find(x=>x[2] === LT_LOOK[d[2]]); if(c) add(c, wordOf(c)); }   // a look-alike in small print (b and d)
+    if(fl >= 4 && LT_CLOSE[d[2]] && opts.length < n){ const c = pool.find(x=>x[2] === LT_CLOSE[d[2]] && !used.has(x[2])); if(c) add(c, wordOf(c)); }
+    const ok = x=>!used.has(x[2]) && (fl >= 4 || (LT_CLOSE[d[2]] !== x[2] && (d[4] !== 'v' || x[4] !== 'v'))) && (fl > 1 || x[4] !== d[4]);   // (below level 4 a vowel's card has no other vowel: short o and u, e and i are close too)
+    for(const x of pool){ if(opts.length >= n) break; if(ok(x)) add(x, wordOf(x)); } }
+  else if(kind === 'dig'){   // the first letter's own sound (S for SH: "sun"), then another pair's word
+    const of = LT_DATA.find(x=>x[0] === d[6].of); if(of) add(of, other(of, false));
+    for(const x of lnShuffle(LT_DIG.filter(x=>x !== d))){ if(opts.length >= n) break; add(x, other(x, true)); } }
+  else for(const x of lnShuffle(ltSet(kind).filter(x=>x[2] !== d[2]))){ if(opts.length >= n) break; add(x, other(x, true)); }   // other endings, other middle vowels
+  for(const x of lnShuffle(LT_DATA.filter(x=>!used.has(x[2]) && x[3] <= 4))){ if(opts.length >= n) break; add(x, other(x, true)); }   // (a set that ran short: any letter)
+  lnShuffle(opts);
+  return {type:'letter', kind, L:'en', ch:d[0], name: (d[6] && d[6].say) || d[0], snd:d[1], sid:d[2], lv, small: kind === 'first' && lv >= 5, again: !!again, opts, right: opts.findIndex(o=>o.d === d), tries:0, done:false, live:false, t0:RACE.clock, nag:false};
+}
+/* where the flying letter lands in a word: the first letter (two for SH, CH, TH), the last one, or the middle vowel */
+function ltMark(kind, w){ if(kind === 'dig') return [0, 2]; if(kind === 'end'){ const i = w.length - 1; return [i, i + 1]; }
+  if(kind === 'mid'){ const m = /[aeiou]/.exec(w.slice(1)); const i = m ? m.index + 1 : 1; return [i, i + 1]; } return [0, 1]; }
+/* the lines a card says, by its kind: [the letter, its sound, the question], the praise for a word, the reason for a wrong pick, the model */
+function ltLinesOf(q){ const u = UI.en, k = q.kind;
+  const ask = k === 'dig' ? [u.ltThese(q.name), u.ltTogether(q.snd), u.ltQ(q.snd)] : [u.ltThis(q.ch), u.ltSounds(q.snd), k === 'end' ? u.ltEndQ(q.ch) : k === 'mid' ? u.ltMidQ(q.snd) : u.ltQ(q.ch)];
+  const is = w=>k === 'dig' ? u.ltIs(w, q.snd) : k === 'end' ? u.ltEnds(w, q.ch) : k === 'mid' ? u.ltMidIs(w, q.snd) : u.ltIs(w, q.ch);
+  const why = o=>k === 'end' ? u.ltEndsW(o.d[0]) : k === 'mid' ? u.ltMidHas(o.d[1]) : u.ltStarts((o.d[6] && o.d[6].say) || o.d[0]);
+  const model = w=>k === 'end' ? u.ltEndModel(q.snd, w) : k === 'mid' ? u.ltMidModel(q.snd, w) : u.ltModel(q.snd, w);
+  return {ask, is, why, model}; }
+/* the card: the letter big (upper and lower case; level 5's small letters alone) and the pictures, each with its word under it */
 function ltRender(q){
-  const u = UI.en, ans = $('rqAns'), pics = $('rqPics');
-  $('rqText').textContent = q.bubble = u.ltQ(q.ch); pics.hidden = false; pics.classList.remove('many');
-  const caps = ltCaps();   // capitals only: the card shows the capital alone and the words are written in capitals (speech does not change)
-  ltFlyClear(); pics.innerHTML = `<b class="lt-big${caps ? ' caps' : ''}"><span class="lt-cap">${q.ch}</span>${caps ? '' : `<i>${q.ch.toLowerCase()}</i>`}</b>`;
-  ans.innerHTML = ''; ans.className = 'rq-ans pair lt' + (q.opts.length > 2 ? ' three' : '') + (caps ? ' caps' : '');
-  q.opts.forEach((o, i)=>{ const bt = document.createElement('button'), w = o.w[0], shown = caps ? w.toUpperCase() : w; bt.innerHTML = `${ltPic(o.w[1])}<span class="pr-w${w.length > 9 ? ' longer' : w.length > 6 ? ' long' : ''}"><b class="fl">${escHTML(shown.charAt(0))}</b>${escHTML(shown.slice(1))}</span>`;
+  const u = UI.en, ans = $('rqAns'), pics = $('rqPics'), k = q.kind || 'first', L = ltLinesOf(q);
+  $('rqText').textContent = q.bubble = L.ask[2]; pics.hidden = false; pics.classList.remove('many');
+  const caps = !q.small && ltCaps(), big = q.small ? q.ch.toLowerCase() : q.ch;   // capitals only: the card shows the capital alone and the words are written in capitals (speech does not change); small letters: the small letter alone, words in small letters
+  ltFlyClear(); pics.innerHTML = `<b class="lt-big${caps || q.small ? ' caps' : ''}${q.small ? ' small' : ''}${k !== 'first' ? ' k-' + k : ''}"><span class="lt-cap">${big}</span>${caps || q.small ? '' : `<i>${q.ch.toLowerCase()}</i>`}</b>`;
+  ans.innerHTML = ''; ans.className = 'rq-ans pair lt' + (q.opts.length > 2 ? ' three' : '') + (caps ? ' caps' : '') + (q.live ? '' : ' wait');
+  q.opts.forEach((o, i)=>{ const bt = document.createElement('button'), w = o.w[0], shown = caps ? w.toUpperCase() : w, [a, b] = ltMark(k, w);
+    bt.innerHTML = `${ltPic(o.w[1])}<span class="pr-w${w.length > 9 ? ' longer' : w.length > 6 ? ' long' : ''}">${escHTML(shown.slice(0, a))}<b class="fl">${escHTML(shown.slice(a, b))}</b>${escHTML(shown.slice(b))}</span>`;
     bt.setAttribute('aria-label', w); bt.addEventListener('click', ()=>ltTap(q, i, bt)); ans.appendChild(bt); });
-  $('rqSay').setAttribute('aria-label', u.sayAgain); $('rqSay').querySelector('.rq-sayt').textContent = u.sayAgain;
+  $('rqSay').setAttribute('aria-label', u.sayAgain); $('rqSay').querySelector('.rq-sayt').textContent = u.sayAgain; lnTrail();
 }
 const ltVoice = ask=>askV(LEARN.spk, ask || [], 'en', {qpref: /-lt\d-q$/});   // she asks (2026-10-17); ask: the plane's own line first
 /* the plane asks: (its ask line) the letter, its sound, the question, then each picture while it lights up (lrnSayAt: the lights follow
-   the recording). Said once; "Say it again" says it all again without the ask line. */
+   the recording). Said once; "Say it again" says it all again without the ask line. The pictures can be tapped once it has all been
+   said (lnLive: a short listening beat). */
 function ltSpeak(q, first){
-  const u = UI.en, ask = first ? talkLine(LEARN.spk, 'ask', 'en') : [], g = [ask, u.ltThis(q.ch), u.ltSounds(q.snd), u.ltQ(q.ch), ...q.opts.map(o=>u.ltOpt(o.w[0]))], m = {1: d=>ltLight(q, 'big', d)};
+  const u = UI.en, ask = first ? talkLine(LEARN.spk, 'ask', 'en') : [], g = [ask, ...ltLinesOf(q).ask, ...q.opts.map(o=>u.ltOpt(o.w[0]))], m = {1: d=>ltLight(q, 'big', d)};
   q.opts.forEach((o, i)=>{ m[4 + i] = d=>ltLight(q, i, d, i === q.opts.length - 1); });
-  return lrnSayAt(g, ltVoice(ask), m, q);
+  const p = lrnSayAt(g, ltVoice(ask), m, q); lnLiveAfter(q, p); return p;
 }
 function ltLight(q, i, d, last){ if(LEARN.q !== q || q.done) return; const big = $('rqPics').querySelector('.lt-big'), bs = [...$('rqAns').children];
   if(big) big.classList.toggle('lit', i === 'big'); bs.forEach((b, j)=>b.classList.toggle('lit', j === i));
@@ -12655,9 +12881,10 @@ function ltUnlight(){ const big = $('rqPics').querySelector('.lt-big'); if(big) 
 /* the question is picked with the plane, 4 s ahead (learnFrame), so its letters' packs are loading while the plane comes on */
 /* the letters' lines are packed by group, not one pack a letter (2026-10-16: one pack a letter was 46 files, past what the test build may
    hold): lt1 the first letters (M S F N B T P), lt3 the next consonants, lt4 the last ones, lt5 the short vowels. lt1 is about 30 MB
-   decoded, as much as the number race's nums pack */
-const ltPk = d=>'lt' + (d[4] === 'v' ? 5 : d[3]);
-function ltPacks(q){ [...new Set(q.opts.map(o=>ltPk(o.d)))].forEach(p=>voPack('en-' + p + '-q')); }   // her letter packs (she asks)
+   decoded, as much as the number race's nums pack. The higher levels' lines ride in these packs too (d[6].pk): SH, CH and TH in lt3,
+   the ending sounds in lt4, the middle vowels in lt5 */
+const ltPk = d=>(d[6] && d[6].pk) || 'lt' + (d[4] === 'v' ? 5 : d[3]);
+function ltPacks(q){ [...new Set(q.opts.map(o=>ltPk(o.d)).concat(ltPk(q.opts[q.right].d)))].forEach(p=>voPack('en-' + p + '-q')); }   // her letter packs (she asks)
 function ltPre(){ LT.next = ltMake(LEARN.last); ltPacks(LT.next); }
 function ltAsk(){
   const q = LEARN.q = LT.next || ltMake(LEARN.last); LT.next = null; LEARN.last = q; q.t0 = RACE.clock; q.n = ++LT.n;
@@ -12667,7 +12894,7 @@ function ltAsk(){
 }
 /* levels: three right first picks in a row move up (the count is saved: hangar-letterrun), two questions missed first in a row move down */
 function ltScore(first){ let run = +saveGet('hangar-letterrun') || 0;
-  if(first){ run++; LEARN.miss = 0; if(run >= 3 && LT.lvl < 4){ LT.lvl++; run = 0; saveSet('hangar-letterlvl', String(LT.lvl)); } }
+  if(first){ run++; LEARN.miss = 0; if(run >= 3 && LT.lvl < LT_TOP){ LT.lvl++; run = 0; saveSet('hangar-letterlvl', String(LT.lvl)); } }
   else { run = 0; if(++LEARN.miss >= 2 && LT.lvl > 1){ LT.lvl--; LEARN.miss = 0; saveSet('hangar-letterlvl', String(LT.lvl)); } }
   saveSet('hangar-letterrun', String(run)); }
 /* The big letter flies to the word he picked (2026-10-20, owner: "when they get it wrong or when they get it right, the letter moves down and
@@ -12700,42 +12927,63 @@ function ltFlyBack(){   // wrong: home again, ready for the next try
   return ltFlyMove(h, 1).then(()=>{ if(tok !== LTF.tok) return; ltFlyClear(); }); }
 function ltFlyInfo(){ const el = LTF.el, a = $('rqAns'), fl = LTF.i >= 0 && a && a.children[LTF.i] ? a.children[LTF.i].querySelector('.fl') : null, rr = x=>x ? (b=>({x: Math.round(b.left), y: Math.round(b.top), w: Math.round(b.width), h: Math.round(b.height)}))(x.getBoundingClientRect()) : null;
   return {state: LTF.state, i: LTF.i, ok: LTF.ok, letter: el ? el.textContent : null, cls: el ? el.className : null, flier: rr(el), target: rr(fl), targetText: fl ? fl.textContent : null, targetCls: fl ? fl.className : null, home: LTF.home ? {x: Math.round(LTF.home.left), y: Math.round(LTF.home.top), w: Math.round(LTF.home.width), h: Math.round(LTF.home.height)} : null, cap: rr($('rqPics').querySelector('.lt-cap'))}; }
+/* from where it landed (a wrong pick) on to the right word, where it locks on */
+function ltFlyOn(bt){ const fl = bt.querySelector('.fl'); if(!fl || !LTF.el || !LTF.home) return Promise.resolve();
+  const t = fl.getBoundingClientRect(), fs = parseFloat(getComputedStyle(fl).fontSize), size = Math.max(20, fs*1.12), tok = LTF.tok; LTF.i = [...$('rqAns').children].indexOf(bt); LTF.ok = true; LTF.el.classList.remove('no');
+  [...$('rqAns').querySelectorAll('.fl')].forEach(f=>f.classList.remove('miss', 'hl'));
+  return ltFlyMove(t, size/LTF.home.height).then(()=>{ if(tok !== LTF.tok) return; LTF.state = 'locked'; LTF.el.classList.add('ok'); fl.classList.add('under', 'lock', 'hl'); }); }
+/* One try a card (2026-10-31, the owner: "I think he's just pressing each one until he gets the right one. I want ways he still tries,
+   but doesn't just keep hitting one until he gets the right answer"). The pictures wake up once the question has been said (lnLive);
+   a tap before that does nothing. A right first pick: the boost, the chime, the praise and a star on the card's trail (lnTrail).
+   A wrong pick ends the card kindly: the letter lands on the picked word, she says what it was ("That's pig. It starts with P."), the
+   right picture lights up and the letter flies on to it, she models it ("Lion starts with L! Lll, lll, lion!") and says it will come
+   back; no boost, no lost places, and that word returns two or three cards later with new pictures beside it (LT.again). */
 function ltTap(q, i, bt){
-  if(LEARN.q !== q || q.done || bt.disabled || q.fly) return; audio(); const u = UI.en, R = q.opts[q.right], O = q.opts[i];
+  if(LEARN.q !== q || q.done || bt.disabled || q.fly) return;
+  if(!q.live) return lnNotYet(bt);   // still listening: the pictures are not awake yet
+  audio(); const u = UI.en, R = q.opts[q.right], O = q.opts[i], L = ltLinesOf(q);
   ltUnlight(); const lands = ltFlyOut(q, bt, i === q.right), tok = LTF.tok;
   if(i === q.right){   // right: the letter locks on with a glow, the chime, the boost (as a right answer in the number race), the praise naming the word and the letter, the thanks
-    q.done = true; LEARN.stars++; if(q.tries === 0) ltScore(true);
-    const r = LEARN.spk; lnBoost(q.tries === 0 ? .06 : .045);
+    q.done = true; LEARN.stars++; ltScore(true); lnFirst();
+    const r = LEARN.spk; lnBoost(.06);
     const z = $('rZoom'); z.textContent = u.zoom; z.classList.remove('pop'); void z.offsetWidth; z.classList.add('pop');
     LEARN.help.forEach(clearTimeout); LEARN.help = [setTimeout(()=>{ if(LEARN.q === q && !LT.hold) lnClose(); }, 2400)];   // (LT.hold: tests, the card stays for a picture until released) (the letter's flight and its glow first)
     lands.then(()=>{ if(tok !== LTF.tok || LEARN.q !== q) return; bt.classList.add('yes'); sfx.chime(); LTF.state = 'locked'; if(LTF.el) LTF.el.classList.add('ok'); const f = bt.querySelector('.fl'); if(f) f.classList.add('lock', 'hl'); });
-    LTF.tm.push(setTimeout(()=>{ if(LEARN.q === q) lnThanks(r, [bagPick('lt:praise', u.ltPraise), u.ltIs(R.w[0], q.ch)]); }, FLY_MS*.7));   // the praise names the word as the letter lands
+    LTF.tm.push(setTimeout(()=>{ if(LEARN.q === q) lnThanks(r, [bagPick('lt:praise', u.ltPraise), L.is(R.w[0])]); }, FLY_MS*.7));   // the praise names the word as the letter lands
     LEARN.nextT = RACE.t + 17 + Math.random()*4;
     return; }
-  if(q.tries++ === 0) ltScore(false);   // wrong: first the letter lands on the wrong word's first letter, then she says what he picked, it greys out, the letter goes home
-  bt.disabled = true; q.pT = 0; q.fly = true; LEARN.help.forEach(clearTimeout); LEARN.help = [];
+  q.done = true; q.miss = i; q.tries = 1; ltScore(false); LEARN.firstRow = 0;   // wrong: the card ends here, kindly
+  LT.again = LT.again.filter(a=>a.w[0] !== R.w[0]); LT.again.push({kind: q.kind || 'first', d: R.d, w: R.w, due: LT.n + 2 + (Math.random() < .5 ? 1 : 0)});
+  q.pT = 0; q.fly = true; LEARN.help.forEach(clearTimeout); LEARN.help = []; const rb = $('rqAns').children[q.right];
+  [...$('rqAns').children].forEach(b=>{ b.disabled = true; });
   (async ()=>{ await lands; if(tok !== LTF.tok || LEARN.q !== q) return;
     bt.classList.add('no'); tone(240, .22, 'sine', .14, 190); if(LTF.el) LTF.el.classList.add('no'); LTF.state = 'wrong';
-    const open = [...$('rqAns').children].filter(b=>!b.disabled); if(open.length === 1) open[0].classList.add('hint');   // the right one glows only when it is the last one left
-    const f = bt.querySelector('.fl'); if(f) f.classList.add('hl');   // the picked word's first letter lights up while she says what it is and what it starts with
-    await say([u.ltThats(O.w[0]), u.ltStarts(O.d[0])], ltVoice()); if(tok !== LTF.tok || LEARN.q !== q) return;
-    await ltWait(Math.min(7000, Math.max(1100, (VO.wall || 0) - performance.now() + 450))); while(LT.hold && tok === LTF.tok && LEARN.q === q) await ltWait(150); if(tok !== LTF.tok || LEARN.q !== q) return;   // (the letter stays until she has finished; LT.hold: a test keeps it there to look)
-    await ltFlyBack(); if(LEARN.q === q) q.fly = false; })();
+    const f = bt.querySelector('.fl'); if(f) f.classList.add('hl');   // the picked word's letter lights up while she says what it is
+    await say([u.ltThats(O.w[0]), L.why(O)], ltVoice()); if(tok !== LTF.tok || LEARN.q !== q) return;
+    await ltWait(Math.min(7000, Math.max(900, (VO.wall || 0) - performance.now() + 300))); if(tok !== LTF.tok || LEARN.q !== q) return;
+    rb.classList.add('show'); await ltFlyOn(rb); if(tok !== LTF.tok || LEARN.q !== q) return;   // the right one lights up and the letter lands on it
+    await say([L.is(R.w[0]), L.model(R.w[0]), bagPick('lt:soon', u.ltSoon)], ltVoice()); if(tok !== LTF.tok || LEARN.q !== q) return;
+    await ltWait(Math.min(9000, Math.max(1200, (VO.wall || 0) - performance.now() + 500))); while(LT.hold && tok === LTF.tok && LEARN.q === q) await ltWait(150); if(tok !== LTF.tok || LEARN.q !== q) return;   // (LT.hold: a test keeps it there to look)
+    q.fly = false; lnClose(); LEARN.nextT = RACE.t + 9 + Math.random()*3; })();
 }
 /* the race setup: the level (the grown-up can set it; a new level starts its count again) */
 function renderLettersSetup(){
   const box = $('rsLetters'), on = RACE.type === 'letters' && lang === 'en'; if(box.hidden === on) box.hidden = !on; if(!on) return;
   const u = UI.en, lv = ltLevel();
-  box.innerHTML = `<div class="rsw-lv lt-lv">${[1, 2, 3, 4].map(n=>`<button data-lv="${n}" aria-pressed="${n === lv}">${n}</button>`).join('')}</div><div class="rsw-row"><span class="rsw-lvname">${u.ltLevel} ${lv}: ${u.ltLevels[lv - 1]}</span></div><button class="rsw-tg" id="rsLtCaps" aria-pressed="${ltCaps()}"><b>${ltCaps() ? '&#10003;' : ''}</b><span>${u.ltCapsOnly}</span></button>`;
+  box.innerHTML = `<div class="rsw-lv lt-lv many">${Array.from({length: LT_TOP}, (x, i)=>i + 1).map(n=>`<button data-lv="${n}" aria-pressed="${n === lv}">${n}</button>`).join('')}</div><div class="rsw-row"><span class="rsw-lvname">${u.ltLevel} ${lv}: ${u.ltLevels[lv - 1]}</span></div><button class="rsw-tg" id="rsLtCaps" aria-pressed="${ltCaps()}"><b>${ltCaps() ? '&#10003;' : ''}</b><span>${u.ltCapsOnly}</span></button>`;
   $('rsLtCaps').addEventListener('click', ()=>{ saveSet('hangar-lettercaps', ltCaps() ? '0' : '1'); sfx.pop(); say(ltCaps() ? u.ltCapsOnly : u.ltCapsBoth, {force:true, L:'en'}); renderLettersSetup(); });   // (its spoken label: what it is now)
   [...box.querySelectorAll('[data-lv]')].forEach(b=>b.addEventListener('click', ()=>{ saveSet('hangar-letterlvl', b.dataset.lv); saveSet('hangar-letterrun', '0'); sfx.pop(); say(u.ltLevels[+b.dataset.lv - 1], {force:true, L:'en'}); renderLettersSetup(); }));
 }
 /* every line this race can say (voAllLines), English only for now: each letter group's pack lt1, lt3, lt4, lt5 (ltPk: each letter's name,
-   sound and question, and for each word the option, "Ball starts with B!" and "Buh, buh, ball!"), the same in a man's voice (-m); the race's name, hint
-   and level names; the praise openers in every plane voice (ltTalk, through voAllLines' talk) */
+   sound and question, and for each word the option, "Ball starts with B!" and the model "Buh, buh, ball!"), the race's name, hint
+   and level names; the praise openers in every plane voice (ltTalk, through voAllLines' talk). Her copy (-q) also has what she says about a
+   wrong pick ("That's pig." and "It starts with P.", in the picked word's letter group) and "We'll see that one again soon!" */
 function ltLines(L, add){ if(L === 'es'){ add('ui', [UI.es.ltCapsOnly, UI.es.ltCapsBoth]); return; } if(L !== 'en') return; const u = UI.en;   // (the capitals switch's spoken labels; the Letter Race itself is English only so far)
   LT_DATA.forEach(d=>{ const a = [u.ltThis(d[0]), u.ltSounds(d[1]), u.ltQ(d[0])]; d[5].forEach(w=>a.push(u.ltOpt(w[0]), u.ltIs(w[0], d[0])));
-    const pk = ltPk(d); add(pk, a); add(pk + '-q', a); add(pk + '-q', [u.ltStarts(d[0]), ...d[5].map(w=>u.ltThats(w[0]))]); });   // (and her copy: she asks, herV; 2026-10-20: and what she says about a wrong pick, "That's pig." and "It starts with P.", in the picked word's letter group; the model line "Buh, buh, ball!" is no longer said)
+    const pk = ltPk(d); add(pk, a); add(pk + '-q', a); add(pk + '-q', [u.ltStarts(d[0]), ...d[5].map(w=>u.ltThats(w[0])), ...d[5].map(w=>u.ltModel(d[1], w[0]))]); });
+  [['dig', LT_DIG], ['end', LT_END], ['mid', LT_MID]].forEach(([k, set])=>set.forEach(d=>{ const q = {kind: k, ch: d[0], name: (d[6] && d[6].say) || d[0], snd: d[1]}, X = ltLinesOf(q), pk = ltPk(d) + '-q';
+    add(pk, X.ask); add(pk, X.why({d})); d[5].forEach(w=>add(pk, [u.ltOpt(w[0]), u.ltThats(w[0]), X.is(w[0]), X.model(w[0])])); }));
+  ['lt1', 'lt3', 'lt4', 'lt5'].forEach(p=>add(p + '-q', u.ltSoon));
   add('learn', [u.ltName, u.ltHint]); add('ui', [...u.ltLevels, u.ltCapsOnly, u.ltCapsBoth]); }
 const ltTalk = L=>L === 'en' ? UI.en.ltPraise : [];
 
@@ -18027,7 +18275,7 @@ if(window.__hangar) Object.assign(window.__hangar, {
   letter: ()=>{ const q = LEARN.q && LEARN.q.type === 'letter' ? LEARN.q : null, big = $('rqPics').querySelector('.lt-big');
     return {on: ltOn(), lvl: LT.lvl, saved: saveGet('hangar-letterlvl'), run: +saveGet('hangar-letterrun') || 0, n: LT.n, stars: LEARN.stars, scale: +LEARN.scale.toFixed(2), nextT: +LEARN.nextT.toFixed(2),
       me: LEARN.spk && LEARN.spk.c.def.id, boost: LEARN.spk ? Math.round(LEARN.spk.boostT) : 0, log: LT.log.slice(), card: !$('rQ').hidden,
-      q: q && {n: q.n, ch: q.ch, snd: q.snd, sid: q.sid, lv: q.lv, right: q.right, tries: q.tries, done: q.done, bubble: q.bubble, opts: q.opts.map(o=>({l: o.d[0], sid: o.d[2], kind: o.d[4], w: o.w[0], pic: o.w[1]}))},
+      q: q && {n: q.n, ch: q.ch, snd: q.snd, sid: q.sid, lv: q.lv, kind: q.kind, small: q.small, again: q.again, live: q.live, miss: q.miss, right: q.right, tries: q.tries, done: q.done, bubble: q.bubble, opts: q.opts.map(o=>({l: o.d[0], sid: o.d[2], kind: o.d[4], w: o.w[0], pic: o.w[1]}))},
       btns: [...$('rqAns').children].map(b=>({w: b.getAttribute('aria-label'), txt: (b.querySelector('.pr-w') || b).textContent, cls: b.className, dis: b.disabled})), big: big ? big.className : null, bigText: big ? big.textContent : null, caps: ltCaps(), fly: ltFlyInfo(), busy: q ? !!q.fly : false}; },
   storyNag: ()=>stNag(),   // tests: the 20 s nag now
   letterAnswer: right=>{ const q = LEARN.q; if(!q || q.type !== 'letter' || q.done) return false; const bs = [...$('rqAns').children], bt = right ? bs[q.right] : bs.find((b, i)=>i !== q.right && !b.disabled); if(!bt) return false; bt.click(); return true; },
@@ -18037,8 +18285,9 @@ if(window.__hangar) Object.assign(window.__hangar, {
   letterData: ()=>LT_DATA.map(d=>({l: d[0], snd: d[1], sid: d[2], lv: d[3], kind: d[4], words: d[5].map(w=>({w: w[0], pic: w[1], blend: !!w[2], only: !!w[3], svg: /^svg:/.test(w[1]) ? !!LT_SVG[w[1].slice(4)] : null}))})),
   letterClose: ()=>LT_CLOSE, raceTypeOf: ()=>raceTypeSaved(), ltNames: L=>({name: UI[L].ltName, hint: UI[L].ltHint, levels: UI[L].ltLevels}),
   cmSaid: since=>(VO.cmSaid || []).filter(x=>x.t >= (since || 0)).map(x=>({t: Math.round(x.t), who: x.who, kind: x.kind, u: x.u})),   // tests: the commentary said since a wall-clock time
-  letterSim: (lv, k)=>{ const keep = LT.lvl, out = []; LT.lvl = lv; let prev = null; for(let i = 0; i < k; i++){ const q = ltMake(prev); prev = q; out.push({ch: q.ch, sid: q.sid, right: q.right, opts: q.opts.map(o=>({l: o.d[0], sid: o.d[2], kind: o.d[4], lv: o.d[3], w: o.w[0], blend: !!o.w[2], only: !!o.w[3]}))}); } LT.lvl = keep; return out; },   // the cards a level makes, without a race
-  letterSay: ()=>{ const q = LEARN.q; if(!q || q.type !== 'letter') return null; const u = UI.en; return {ask: [u.ltThis(q.ch), u.ltSounds(q.snd), u.ltQ(q.ch)], opts: q.opts.map(o=>u.ltOpt(o.w[0])), is: u.ltIs(q.opts[q.right].w[0], q.ch), praise: u.ltPraise, thats: q.opts.map(o=>[u.ltThats(o.w[0]), u.ltStarts(o.d[0])])}; }   // the lines this card says
+  letterSim: (lv, k)=>{ const keep = LT.lvl, out = []; LT.lvl = lv; let prev = null; for(let i = 0; i < k; i++){ const q = ltMake(prev); prev = q; out.push({kind: q.kind, small: q.small, ch: q.ch, sid: q.sid, right: q.right, opts: q.opts.map(o=>({l: o.d[0], sid: o.d[2], kind: o.d[4], lv: o.d[3], w: o.w[0], blend: !!o.w[2], only: !!o.w[3]}))}); } LT.lvl = keep; return out; },   // the cards a level makes, without a race
+  letterSay: ()=>{ const q = LEARN.q; if(!q || q.type !== 'letter') return null; const u = UI.en, X = ltLinesOf(q); return {ask: X.ask, opts: q.opts.map(o=>u.ltOpt(o.w[0])), is: X.is(q.opts[q.right].w[0]), model: X.model(q.opts[q.right].w[0]), praise: u.ltPraise, thats: q.opts.map(o=>[u.ltThats(o.w[0]), X.why(o)])}; },   // the lines this card says
+  letterAgain: ()=>LT.again.map(a=>({kind: a.kind, w: a.w[0], due: a.due})), letterLive: ()=>{ const q = LEARN.q; if(q && q.type === 'letter') lnLive(q); return !!q; },
 });
 /* tools/test/bristles.mjs: Bristles, the kid's block plane (2026-10-16), and any plane's meshes, paint, propeller and lines */
 if(window.__hangar) Object.assign(window.__hangar, {
