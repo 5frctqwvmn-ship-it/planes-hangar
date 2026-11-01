@@ -3743,6 +3743,11 @@ function herLines(L, P, add){ const u = UI[L], cp = (from, to)=>(P[from] || []).
   STORIES.stories.forEach(s=>s.pages.forEach(p=>{ if(!p.q) return; add('story-q', p.q.ask[L]); add('story-q', p.q.right.label[L]); p.q.wrong.forEach(o=>add('story-q', o.why[L])); }));   // (2026-10-20: the question, the right label for the praise, and why each wrong pick is wrong; the page line and the wrong labels are no longer said)
   add('story-q', [u.stRetell, ...u.stParts, ...u.praise]); }
 /* every line the game can say, grouped into sound packs (used to make the recordings) */
+/* 2026-10-31 (the site's size cap): lines no code path says any more were taken out of the packs, the lines that stay cut and joined
+   frame for frame (no re-encode): the narrator's copies of the questions she asks (nums, lt1 to lt5 but "Ball starts with B!", which the
+   plane's praise still says; wf4 to wf6 but words a grown-up may type in My words), the planes' copies of lines only she says now (the
+   counting and adding lead-ins, the F cards' prompts and follow-ups, "Let's count together.", "Your turn!", the cues, the numbers) and
+   each plane's "try again" lines (retry: a question has one try). This list still names them: a missing one is not a gap. */
 function voAllLines(){
   const keep = lang, out = {};
   ['en','es'].forEach(L=>{ lang = L; const u = UI[L], P = {};
@@ -11522,7 +11527,7 @@ const INK_SPOT = [[-.7, .6], [.75, .65], [0, .85], [-.9, .05], [.95, .15], [-.4,
 const INK_TSPOT = [[-.3, .55], [.35, .62], [-.35, -.5], [.4, -.58], [0, .72], [-.1, -.72], [.15, .4]];
 function inkAround(k, out, rad, tab){ const I = INK, TB = tab || INK_SPOT, sp = TB[k % TB.length], sz = I.r.c.size*(rad || 1); inkCamAxes();
   return out.set(I.mid.x + (I.cr.x*sp[0] + I.cu.x*sp[1])*sz, I.mid.y + (I.cr.y*sp[0] + I.cu.y*sp[1])*sz, I.mid.z + (I.cr.z*sp[0] + I.cu.z*sp[1])*sz); }
-const INK_PAL = {party: ['#ffd23f', '#ff6b9d', '#35b8ff', '#7ee081', '#ffffff'], rainbow: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff'], gold: ['#fff6b8', '#ffd740', '#ffffff', '#ffb300']};   // (Dusty's stars)
+const INK_PAL = {party: ['#ffd23f', '#ff6b9d', '#35b8ff', '#7ee081', '#ffffff'], rainbow: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff'], gold: ['#fff6b8', '#ffd740', '#ffffff', '#ffb300'], navy: ['#1d3557', '#ffffff', '#d62828', '#4ea8de']};   // (Dusty's stars)
 /* a stamp of a tap: round the plane (the screen's right and up, in the frame), each tap in another place; colours as hex */
 function inkShow(shape, k, pal, scale, o){ inkAround(k, _ikA, 1); inkStamp(shape, _ikA.x, _ikA.y, _ikA.z, scale, pal, o); }
 /* sparks at the plane (the race's own fxBurst: no new pool) */
