@@ -11276,13 +11276,13 @@ Object.assign(WM_MOVES, {alpha: (o, u, A, D)=>{ const e = shEz(Math.min(1, u*2.5
 const SHW = {at: -1};
 /* ---- Angel's friends (owner, 2026-11-01): the Blue Angels fly in to join him. Five copies of his own model (piv.clone(): new nodes only, the geometry
    and materials are his, so nothing is built and nothing is freed but the nodes), posed each frame off his root in his frame without his roll (a tap's
-   roll is his alone): the diamond (Angel the lead, two wingmen, the slot low behind him) and the two solos wide behind. slot: [ahead, up, right] in
+   roll is his alone): the diamond (Angel the lead, two wingmen, the slot low behind him) and the two solos beside them, all flying wing to wing (owner: tight, like the real team). slot: [ahead, up, right] in
    sizes of the plane; each slides in from behind, below and wider, a little later than the one before, banking into its place. In the last step all
    six blast off together (zoom: far ahead and up, faster and faster, burners lit, a big whoosh), an offset outside the plan, so the camera stays put
    and they leave the picture. Their smoke: a trail each in the smoke mesh (shSmoke; its capacity has room for them). */
-const SHF = {slot: [[-.8, -.1, -.72], [-.8, -.1, .72], [-1.6, -.24, 0], [-2.45, .1, -1.45], [-2.45, .1, 1.45]], g: [], tr: [], acc: 0, r: null, zt: -1, boom: false,
+const SHF = {slot: [[-.5, -.04, -.42], [-.5, -.04, .42], [-.95, -.1, 0], [-1.0, -.02, -.85], [-1.0, -.02, .85]], g: [], tr: [], acc: 0, r: null, zt: -1, boom: false,
   join: [.15, 2.5, .14], zoom: [.25, 1.7, 55, 14]};   // join: [start s, length s, each one's delay s]; zoom: [s into the last step, length s, sizes ahead, sizes up]
-const SHF_REACH = [[.55, -.8, -.1, -.72], [.55, -.8, -.1, .72], [.55, -1.6, -.24, 0], [.55, -2.45, .1, -1.45], [.55, -2.45, .1, 1.45]];   // the diamond and the solos, for the camera's fit (wpPlan)
+const SHF_REACH = [[.55, -.5, -.04, -.42], [.55, -.5, -.04, .42], [.55, -.95, -.1, 0], [.55, -1.0, -.02, -.85], [.55, -1.0, -.02, .85]];   // the diamond and the solos, for the camera's fit (wpPlan)
 const _shE = new T.Euler(0, 0, 0, 'YZX'), _shV = V(0,0,0), _shfF = V(0,0,0);
 function shMake(r){ const F = SHF; shEnd(); F.r = r; const src = r.piv || r.root.children[0]; if(!src) return;
   F.slot.forEach(()=>{ const g = new T.Group(); g.rotation.order = 'YZX'; g.add(src.clone()); g.name = 'shFriend'; rScene.add(g); F.g.push(g);
