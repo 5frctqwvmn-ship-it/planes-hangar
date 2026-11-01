@@ -7798,8 +7798,13 @@ function buildCarrier(group, deckY, water){
   const cyl = (r0, r1, h2, mat, x, y, z, rx, rz)=>{ const m = new T.Mesh(new T.CylinderGeometry(r0, r1, h2, 14), mat); m.position.set(x, y, z); if(rx) m.rotation.x = rx; if(rz) m.rotation.z = rz; parts.push(m); return m; };
   // hull: a long body with a pointed bow, a black boot-top at the waterline and red below it
   const hullPts = s=>[[stern, -84*s], [stern, 84*s], [bow - 280, 84*s], [bow - 130, 62*s], [bow - 30, 20*s], [bow + 2*s, 0], [bow - 30, -20*s], [bow - 130, -62*s], [bow - 280, -84*s]];
-  const ix = stern + 520, iz = 104, hcx = (stern + bow + 2)/2, hb = skCarrierBag(L + 2, 168, 40, deckY - water, {deck:false, isS:1, isX:ix - hcx, isZ:iz});   // a lofted hull with its painted side and the island (ship skins): one mesh
-  { const m = new T.Mesh(skGeo(hb.bag), skGroupMat(group)); m.position.set(hcx, water, 0); m.castShadow = m.receiveShadow = true; m.name = 'hull'; g.add(m); }
+  const ix = stern + 520, iz = 104, hcx = (stern + bow + 2)/2, hb = SHIP_CLASSIC ? null : skCarrierBag(L + 2, 168, 40, deckY - water, {deck:false, isS:1, isX:ix - hcx, isZ:iz});   // a lofted hull with its painted side and the island (ship skins): one mesh
+  if(SHIP_CLASSIC){   // ?classic=ships: the old prism hull, box island and hangar openings
+  prism(hullPts(1), water - 40, deckY - 18, grey); prism(hullPts(1.012), water - 2, water + 5, black); prism(hullPts(1.006), water - 40, water - 2, red);
+  box(150, 64, 38, grey, ix, deckY + 32, iz); box(110, 30, 44, grey, ix + 10, deckY + 79, iz); box(112, 7, 46, glass, ix + 10, deckY + 83, iz);
+  box(70, 16, 34, grey, ix - 10, deckY + 102, iz); cyl(2.6, 3.2, 74, dark, ix - 5, deckY + 147, iz); box(2, 2, 46, dark, ix - 5, deckY + 162, iz); cyl(5, 6, 14, dark, ix + 40, deckY + 115, iz);
+  [stern + 160, stern + 380, stern + 700, stern + 1000].forEach(x=>box(90, 22, 1.4, black, x, deckY - 34, 84.6));
+  } else { const m = new T.Mesh(skGeo(hb.bag), skGroupMat(group)); m.position.set(hcx, water, 0); m.castShadow = m.receiveShadow = true; m.name = 'hull'; g.add(m); }
   // the flight deck overhangs the hull: straight to starboard, the angled landing deck bulges out to port
   const deckPts = [[stern - 12, -112], [stern - 12, 120], [bow - 430, 130], [bow - 160, 104], [bow - 40, 60], [bow + 6, 30], [bow + 6, -30], [bow - 70, -72], [bow - 320, -114], [stern + 660, -120], [stern + 470, -172], [stern + 110, -156]];
   prism(deckPts.map(([x, z])=>[x + Math.sign(bow - 200 - x)*0, z*.96]), deckY - 22, deckY - 6, dark);   // the galleries under the deck edge
@@ -7908,6 +7913,22 @@ function courseLandmarks(C, X){
   }
   if(id === 'armada' || id === 'carrier'){
     const grey = rMat('#8d969e', {roughness:.55, metalness:.3}), dark = rMat('#4c545b', {roughness:.6, metalness:.3}), deckM = rMat('#5a6066', {roughness:.8}), line = rMat('#f2f2f2', {roughness:.6});
+    function shipOld_static(){   // ?classic=ships: the course's own escorts and the Armada carrier as boxes, as they were
+    if(id === 'carrier'){ const fl = [];   // the escorts: two steaming beside the carrier and three along the course, merged into a few draw calls
+      const frig = (x, z, a)=>{ const g = new T.Group(); g.add(M(new T.BoxGeometry(300, 32, 44), grey, 0, 10, 0)); g.add(M(new T.BoxGeometry(80, 28, 34), dark, -20, 40, 0)); g.add(M(new T.CylinderGeometry(2.5, 2.5, 50, 8), dark, -10, 78, 0)); g.add(M(new T.BoxGeometry(24, 4, 6), dark, -10, 96, 0));
+        g.rotation.y = a; g.position.set(x, water - 6, z); g.updateMatrixWorld(true); fl.push(...g.children); };
+      [[-1000, 600, .1], [300, -620, -.08], [-1700, -400, .05]].forEach(([x, z, a])=>frig(R_FRONT + x, z, a));
+      for(const u of [.2, .5, .72]){ const f = beside(u, 320, y=>y < water - 10); if(f) frig(f.x, f.z, Math.atan2(-f.tg.z, f.tg.x) + (Math.random() - .5)*.4); }
+      const fg = new T.Group(); mergeByMat(fl).forEach(m=>fg.add(m)); add(fg, 'ship'); }
+    const cv = id === 'armada' ? beside(.35, 420, y=>y < water - 10) : null; if(cv){ const g = new T.Group();   // the carrier: a long flat deck on a hull, the island tower on one side
+      const hull = M(new T.BoxGeometry(800, 50, 140), grey, 0, 18, 0); g.add(hull); g.add(M(new T.BoxGeometry(820, 6, 170), deckM, 0, 46, 0)); g.add(M(new T.BoxGeometry(760, .6, 4), line, 0, 49.4, 0));
+      g.add(M(new T.BoxGeometry(70, 50, 30), dark, 120, 74, 62)); g.add(M(new T.CylinderGeometry(3, 3, 60, 8), dark, 120, 128, 62)); g.add(M(new T.BoxGeometry(30, 6, 30), grey, 120, 160, 62));
+      g.rotation.y = Math.atan2(-cv.tg.z, cv.tg.x); g.position.set(cv.x, water - 8, cv.z); add(g, 'ship'); }
+    if(id === 'armada') for(const u of [.15, .55, .75]){ const f = beside(u, 300, y=>y < water - 10); if(!f) continue; const g = new T.Group();
+      g.add(M(new T.BoxGeometry(300, 32, 44), grey, 0, 10, 0)); g.add(M(new T.BoxGeometry(80, 28, 34), dark, -20, 40, 0)); g.add(M(new T.CylinderGeometry(2.5, 2.5, 50, 8), dark, -10, 78, 0)); g.add(M(new T.BoxGeometry(24, 4, 6), dark, -10, 96, 0));
+      g.rotation.y = Math.atan2(-f.tg.z, f.tg.x) + (Math.random() - .5)*.4; g.position.set(f.x, water - 6, f.z); add(g, 'ship'); }
+    }
+    if(SHIP_CLASSIC) shipOld_static(); else {
     const navy = new LBag().uv(), dsh = lfWarshipBag('destroyer', true).hull, frig = (x, z, a)=>navy.stamp(dsh, x, water, z, a, 1.3);   // the escorts: destroyers with painted skins (ship skins), all in one geometry
     const navyMesh = ()=>{ if(!navy.P.length) return; const g = new T.Group(); g.add(new T.Mesh(skGeo(navy), skGroupMat(group))); add(g, 'ships'); g.children[0].castShadow = false; };
     if(id === 'carrier'){ [[-1000, 600, .1], [300, -620, -.08], [-1700, -400, .05]].forEach(([x, z, a])=>frig(R_FRONT + x, z, a));
@@ -7917,6 +7938,7 @@ function courseLandmarks(C, X){
       g.rotation.y = Math.atan2(-cv.tg.z, cv.tg.x); g.position.set(cv.x, water - 8, cv.z); add(g, 'ship'); m.castShadow = false; }
     if(id === 'armada') for(const u of [.15, .55, .75]){ const f = beside(u, 300, y=>y < water - 10); if(f) frig(f.x, f.z, Math.atan2(-f.tg.z, f.tg.x) + (Math.random() - .5)*.4); }
     navyMesh();
+    }
     const buoys = [], tops = []; for(let k = 0; k < 14; k++){ const b = beside(k/14, 120, y=>y < water - 4); if(!b) continue; buoys.push({x: b.x, y: water + 6, z: b.z, sx: 14, sy: 22, sz: 14}); tops.push({x: b.x, y: water + 26, z: b.z, sx: 9, sy: 18, sz: 9}); }
     inst(new T.CylinderGeometry(1, 1, 1, 16), rMat('#d62828', {roughness:.5}), buoys, 'buoys'); inst(new T.ConeGeometry(1, 1, 16), rMat('#f4f4f4', {roughness:.4, emissive:'#fff2b0', emissiveIntensity:.5}), tops, 'buoys');
   }
@@ -8157,7 +8179,7 @@ function lfShipBag(kind){ const b = new LBag();
     b.add('cyl', '#3a4147', -38, 34, 0, 5, 20, 5); b.add('cyl6', '#3a4147', 0, 46, 0, 1.2, 40, 1.2); b.add('box', '#aeb6bd', 0, 80, 0, 14, 1.5, 3); b.add('sph', '#7c858d', 62, 18, 0, 9, 6, 9); b.add('cyl6', '#3a4147', 70, 22, 0, 1.2, 22, 1.2, 0, 0, -Math.PI/2); b.add('box', '#5a6066', -85, 18, 0, 36, 1, 26); b.add('sph', '#e8353a', -85, 19, 0, 1.4, .2, 1.4); }
   return b; }
 /* ships circling an anchor: list = [{x, z, R, ph, w, s}], kind 'frigate' | 'cruise' | 'fireboat'; each with a wake and, for a fireboat, water jets */
-function lfShips(X, kind, list, o){ o = o || {}; const wl = X.wl, n = list.length; if(!n) return; const ws = kind === 'frigate' ? lfWarshipBag('destroyer', true) : null, sb = ws ? ws.hull : lfShipBag(kind), wb = new LBag(), len = kind === 'cruise' ? 300 : kind === 'fireboat' ? 90 : 220; wb.wake(len*1.5, len*.12, len*.34, 6);
+function lfShips(X, kind, list, o){ o = o || {}; const wl = X.wl, n = list.length; if(!n) return; const ws = kind === 'frigate' && !SHIP_CLASSIC ? lfWarshipBag('destroyer', true) : null, sb = ws ? ws.hull : lfShipBag(kind), wb = new LBag(), len = kind === 'cruise' ? 300 : kind === 'fireboat' ? 90 : 220; wb.wake(len*1.5, len*.12, len*.34, 6);
   const pose = (i, t, out)=>{ const s = list[i], a = s.ph + t*s.w, h = a + (s.w > 0 ? Math.PI/2 : -Math.PI/2); out.x = s.x + Math.cos(a)*s.R; out.z = s.z + Math.sin(a)*s.R; out.h = h; out.y = wl - 3 + Math.sin(t*.8 + i*2)*.7; out.s = s.s; return out; }, sp = {x:0, y:0, z:0, h:0, s:1};
   const region = [list[0].x, wl, list[0].z, o.region || 7000];
   lfAnim(wb, n, (i, t, m)=>{ pose(i, t, sp); lfPut(m, sp.x - Math.cos(sp.h)*len*.45*sp.s, wl + .6, sp.z - Math.sin(sp.h)*len*.45*sp.s, -sp.h, 0, 0, sp.s, 1, sp.s); }, region, {name:'wakes', mat:LF.matA, f:4200});
@@ -8816,7 +8838,7 @@ function lfGunTurret(b, x, y, z, s, ry, big){ const g = '#6e767f', d = '#4c535b'
   lfLathe(b, [[0, 0], [7.2*s, 0], [7.2*s, 1.6*s], [6.4*s, 2*s], [0, 2*s]], d, x, y, z, 1, 1, 1, 0, 0, 0, 14); lfRBox(b, g, x, y + 2*s, z, 12*s, 6.4*s, 10*s, ry, 1.6*s); lfRBox(b, '#7e868f', x, y + 2*s, z, 8*s, 7.6*s, 8*s, ry, 1.2*s);
   const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o); for(const o of big ? [-1.8, 1.8] : [0]){ b.beam('cyl6', d, ...at(5*s, 6*s, o*s), ...at(17*s, 6.4*s, o*s), .9*s, .75*s); b.beam('cyl6', '#2a2e33', ...at(17*s, 6.4*s, o*s), ...at(19*s, 6.5*s, o*s), 1.05*s, 1.05*s); } }
 /* a warship, bow along +x, waterline at y = 0; {hull, wake} bags. kind: 'destroyer' or 'cruiser' */
-function lfWarshipBag(kind, lo){ const big = kind === 'cruiser', len = big ? 310 : 236, beam = big ? 40 : 31, hf = lfHullFns(len, beam, 11, big ? 15 : 13, {bowAt:.62, bowP:2.0}), b = new LBag(), wk = new LBag();
+function lfWarshipBag(kind, lo){ if(SHIP_CLASSIC) return shipOld_lfWarshipBag(kind); const big = kind === 'cruiser', len = big ? 310 : 236, beam = big ? 40 : 31, hf = lfHullFns(len, beam, 11, big ? 15 : 13, {bowAt:.62, bowP:2.0}), b = new LBag(), wk = new LBag();
   const gray = '#8d959d';
   b.uv(skHullUV(hf, SK_ROWS.war[0], SK_ROWS.war[1], 24, 11)); b.geom(lfHullGeo(hf, {N:lo ? 24 : 40, rake:len*.06}), (x, y, z, nx, ny)=>ny > .72 ? '#847b6c' : '#ffffff', 0, 0, 0); b.uv(null); const h0 = b.P.length/3;   // the hull's plating, numbers and boot-top are painted (ship skins)
   const at = (a, h, o)=>lfAt(0, 0, 0, 0, a, h, o), F = s=>hf.F(s), fy = a=>F((a + len/2)/len);
@@ -8845,6 +8867,45 @@ function lfWarshipBag(kind, lo){ const big = kind === 'cruiser', len = big ? 310
   const bw = beam*.75; for(const sg of [-1, 1]){ const P = [[len/2 + 6, 0], [len*.15, sg*bw*.55], [-len*.35, sg*bw*.85], [-len/2, sg*bw*.38]]; wk.tri(P, '#f4f8fa'); }
   const tail = [[-len/2, -beam*.3], [-len/2, beam*.3], [-len/2 - 340, beam*1.5], [-len/2 - 340, -beam*1.5]]; wk.quadW(tail, '#d6eaf2');
   skAO(b, h0, fy(0), fy(0) + 46, .3); return {hull:b, wake:wk, len, beam}; }
+/* the owner keeps old assets for progress videos: ?classic=ships (or ?classic=all) draws the ships as they were before the ship skins (2026-11-01); the old builders below are only run when asked */
+const SHIP_CLASSIC = /[?&]classic=[^&]*\b(ships|all)\b/.test(location.search);
+function shipOld_lfWarshipBag(kind){ const big = kind === 'cruiser', len = big ? 310 : 236, beam = big ? 40 : 31, hf = lfHullFns(len, beam, 11, big ? 15 : 13, {bowAt:.62, bowP:2.0}), b = new LBag(), wk = new LBag();
+  const gray = '#8d959d';
+  b.geom(lfHullGeo(hf, {N:26, rake:len*.06}), (x, y, z, nx, ny)=>y < -.2 ? '#8e2c25' : y < 1.4 ? '#e6e2d8' : ny > .7 ? '#847b6c' : gray, 0, 0, 0);
+  const at = (a, h, o)=>lfAt(0, 0, 0, 0, a, h, o), F = s=>hf.F(s), fy = a=>F((a + len/2)/len);
+  /* guns: two forward (the second raised), one aft */
+  lfGunTurret(b, len*.27, fy(len*.27), 0, 1.15, 0, true); lfRBox(b, '#7a828b', len*.15, fy(len*.15), 0, 20, 3.6, 17, 0, 1); lfGunTurret(b, len*.15, fy(len*.15) + 3.6, 0, 1.15, 0, true);
+  lfGunTurret(b, -len*.33, fy(-len*.33), 0, 1.0, Math.PI, true); if(big) lfGunTurret(b, -len*.22, fy(-len*.22), 0, 1.0, Math.PI, true);
+  /* deckhouse in layers, bridge with its windows, wings */
+  const x0 = len*.02, y0 = fy(x0); lfRBox(b, '#aeb5bc', x0, y0, 0, 62, 10, 21, 0, 1.6); lfRBox(b, '#9ea6ae', x0 + 4, y0 + 10, 0, 34, 8, 16, 0, 1.4); lfRBox(b, '#b6bdc4', x0 + 8, y0 + 18, 0, 20, 6, 12.5, 0, 1.2);
+  lfRBox(b, '#2d3a48', x0 + 18.2, y0 + 19.2, 0, 2, 3.2, 12.8, 0, .4); lfRBox(b, '#2d3a48', x0 + 14.6, y0 + 11.6, 0, 2, 3, 15.6, 0, .4); [-1, 1].forEach(sg=>{ lfRBox(b, '#9ea6ae', x0 + 12, y0 + 18.4, sg*9.4, 7, 1.2, 5, 0, .5); b.add('box', '#2d3a48', x0 + 12, y0 + 19.6, sg*12, 5, 2.2, .4); });
+  [-1, 1].forEach(sg=>{ b.add('box', '#2d3a48', x0 - 14, y0 + 4.6, sg*10.6, 12, 3, .4); b.add('box', '#2d3a48', x0 - 6, y0 + 13, sg*8.1, 10, 3, .4); });
+  lfRBox(b, '#c8ced4', x0 + 6, y0 + 24, 0, 8, 2.4, 8, 0, .8);
+  /* mast with a yard, a radar dish and lights; a second mast on the big ship */
+  b.beam('cyl6', '#8b9298', x0 + 4, y0 + 26, 0, x0 + 1, y0 + 62, 0, 1.4, .6); b.add('box', '#8b9298', x0 + 2.4, y0 + 48, 0, .7, .7, 24); b.add('sph', '#ff4a3a', x0 + .6, y0 + 63, 0, 1);
+  lfLathe(b, [[0, 0], [5, .4], [5.6, 1.4], [0, 1]], '#d7dce1', x0 + 4, y0 + 34, 0, 1, 1, 1, 0, 0, -.5, 12); b.beam('cyl6', '#8b9298', x0 + 4, y0 + 30, 0, x0 + 4, y0 + 34, 0, .9, .9);
+  b.add('box', '#cfd4d9', x0 + 5, y0 + 42, 0, .6, 4.6, 6.4); b.add('box', '#e8eef2', x0 - 12, y0 + 24, 0, 6, .6, 6);
+  /* funnels, raked, with black caps */
+  for(const fx of big ? [-30, -52] : [-28, -48]){ const yy = fy(x0 + fx); lfLathe(b, [[0, 0], [6.4, 0], [6, 14], [5.2, 22], [5.4, 22.6], [5.4, 24], [0, 24]], (x, y)=>y > 19 ? '#25282c' : '#9aa1a8', x0 + fx, yy + 8, 0, 1, 1, 1, 0, 0, .14, 14); lfRBox(b, '#9aa1a8', x0 + fx, yy, 0, 13, 8, 16, 0, 1.2); }
+  /* lifeboats on davits, both sides */
+  [-1, 1].forEach(sg=>[x0 - 36, x0 - 22].forEach(lx=>{ const yy = fy(lx) + 7; lfLathe(b, [[0, 0], [2.4, .4], [3, 1.6], [2.4, 3], [0, 3.2]], '#f08a1c', lx, yy, sg*(hf.w((lx + len/2)/len) - 3.4), 2.6, 1, 1, 0, 0, 1.5708, 10); b.beam('cyl6', '#4a5058', lx - 3, yy - 2, sg*(hf.w((lx + len/2)/len) - 3), lx - 3, yy + 3, sg*(hf.w((lx + len/2)/len) - 5), .35, .35); }));
+  /* aft deck: helipad ring, depth charge racks, ensign staff; foredeck: anchor winch */
+  const ax = -len*.43; lfLathe(b, [[0, 0], [8.6, 0], [8.6, .6], [0, .6]], '#7d8590', ax + 10, fy(ax) + .2, 0, 1, 1, 1, 0, 0, 0, 16); b.add('box', '#e8e4da', ax + 10, fy(ax) + .9, 0, 1, .2, 7); b.add('box', '#e8e4da', ax + 10, fy(ax) + .9, 0, 7, .2, 1);
+  b.beam('cyl6', '#cfd4d9', -len/2 + 6, fy(-len/2 + 6), 0, -len/2 + 6, fy(-len/2 + 6) + 18, 0, .5, .35); b.add('box', '#d9402e', -len/2 + 6, fy(-len/2 + 6) + 14, 3, .3, 4, 6); lfLathe(b, [[0, 0], [2, 0], [2, 2.4], [0, 2.4]], '#4a5058', len*.4, fy(len*.4), 0, 1, 1, 1, 0, 0, 0, 8);
+  lfRails(b, hf, .06, .34, '#cfd4d9'); lfRails(b, hf, .56, .8, '#cfd4d9');
+  /* bow wave and a long wake, flat on the water */
+  const bw = beam*.75; for(const sg of [-1, 1]){ const P = [[len/2 + 6, 0], [len*.15, sg*bw*.55], [-len*.35, sg*bw*.85], [-len/2, sg*bw*.38]]; wk.tri(P, '#f4f8fa'); }
+  const tail = [[-len/2, -beam*.3], [-len/2, beam*.3], [-len/2 - 340, beam*1.5], [-len/2 - 340, -beam*1.5]]; wk.quadW(tail, '#d6eaf2');
+  return {hull:b, wake:wk, len, beam}; }
+function shipOld_lfYachtBag(len, hullCol, stripe, sailCol){ const b = new LBag(), wk = new LBag(), s = len/52, hf = lfHullFns(len, 13*s, 5*s, 5.2*s, {bowAt:.66, bowP:1.7});
+  b.geom(lfHullGeo(hf, {N:20, rake:len*.07}), (x, y, z, nx, ny)=>y < -.3*s ? '#a82f2a' : y < 1.2*s ? stripe : ny > .7 ? '#c9a06a' : hullCol, 0, 0, 0);
+  lfRBox(b, '#e8e4da', -len*.06, 5.1*s, 0, len*.26, 3.1*s, 6.4*s, 0, .8*s); lfRBox(b, '#2f475c', -len*.06, 6.1*s, 3.2*s, len*.16, 1.1*s, .3, 0, .2); lfRBox(b, '#2f475c', -len*.06, 6.1*s, -3.2*s, len*.16, 1.1*s, .3, 0, .2);
+  b.add('box', '#c9a06a', -len*.32, 5.2*s, 0, len*.12, .5*s, 7*s); b.beam('cyl6', '#cfd6dc', len*.1, 5*s, 0, len*.1, 58*s, 0, .55*s, .35*s); b.beam('cyl6', '#cfd6dc', len*.1, 12*s, 0, -len*.3, 11*s, 0, .3*s, .25*s); b.beam('cyl6', '#cfd6dc', len*.1, 55*s, 0, len*.46, 6*s, 0, .12*s, .12*s);
+  const sail = (x0, y0, h, w, col, bulge)=>{ const sh = new T.Shape(); sh.moveTo(0, 0); sh.lineTo(0, h); sh.quadraticCurveTo(w*bulge, h*.42, w, 0); sh.quadraticCurveTo(w*.5, -h*.03, 0, 0); const g = new T.ExtrudeGeometry(sh, {depth:.5*s, bevelEnabled:false, curveSegments:6}); g.translate(0, 0, -.25*s);
+    b.geom(g, (x, y, z, nx, ny, nz)=>col, x0, y0, 0, 1, 1, 1, 0, 0, 0); };
+  sail(len*.1 - .4, 12.4*s, 43*s, -len*.4, sailCol, .55); sail(len*.1 + .6, 6*s, 47*s, len*.34, '#ffffff', .45); b.add('prism', '#e8353a', len*.1, 58*s, 0, 6*s, 4*s, .3, 0, 0, Math.PI/2);
+  const bw = 6.5*s; wk.tri([[len*.5 + 3, 0], [len*.18, bw*.8], [-len*.3, bw*1.3], [-len*.5, bw*.5]], '#f4f8fa'); wk.tri([[len*.5 + 3, 0], [len*.18, -bw*.8], [-len*.3, -bw*1.3], [-len*.5, -bw*.5]], '#f4f8fa'); wk.quadW([[-len*.5, -bw*.4], [-len*.5, bw*.4], [-len*1.7, bw*2.6], [-len*1.7, -bw*2.6]], '#d6eaf2');
+  return {hull:b, wake:wk, len}; }
 /* flat patches of foam on the water (y = 0 in the bag's own frame; x, z points) */
 LBag.prototype.tri = function(P, col){ const c = lfCol(col); [[P[0], P[1], P[2]], [P[0], P[2], P[3]]].forEach(t=>t.forEach(q=>{ this.P.push(q[0], 1.6, q[1]); this.N.push(0, 1, 0); this.C.push(c.r, c.g, c.b); })); return this; };
 LBag.prototype.quadW = function(P, col){ const c = lfCol(col); [[P[0], P[1], P[2]], [P[0], P[2], P[3]]].forEach(t=>t.forEach(q=>{ this.P.push(q[0], 1.5, q[1]); this.N.push(0, 1, 0); this.C.push(c.r, c.g, c.b); })); return this; };
@@ -9254,7 +9315,7 @@ function lfCragBag(r, h, cols, snow, seed){ seed = seed || 1; const b = new LBag
   g.computeVertexNormals(); const cl = cols || ['#7f7a74', '#9a948c', '#6c6862'];
   b.geom(g, (x, y, z, nx, ny)=>snow && ny > .45 ? '#f4f8fb' : cl[Math.floor(((y + 1)*2.2 + Math.abs(nx)*2) % cl.length)], 0, 0, 0, r, h, r); return b; }
 /* a small sailing yacht, bow +x, waterline 0: lofted hull, cabin, mast, two curved sails, a pennant and a wake */
-function lfYachtBag(len, hullCol, stripe, sailCol){ const b = new LBag(), wk = new LBag(), s = len/52, hf = lfHullFns(len, 13*s, 5*s, 5.2*s, {bowAt:.66, bowP:1.7}), F = q=>hf.F(q), at = x=>(x + len/2)/len;
+function lfYachtBag(len, hullCol, stripe, sailCol){ if(SHIP_CLASSIC) return shipOld_lfYachtBag(len, hullCol, stripe, sailCol); const b = new LBag(), wk = new LBag(), s = len/52, hf = lfHullFns(len, 13*s, 5*s, 5.2*s, {bowAt:.66, bowP:1.7}), F = q=>hf.F(q), at = x=>(x + len/2)/len;
   /* the hull: smooth and lofted, its topsides painted (windows, a gold pinstripe, waterline grime) over the boat's own colours (ship skins) */
   b.uv(skHullUV(hf, SK_ROWS.yacht, SK_ROWS.yacht, 5.2*s*1.55, 5*s)); b.geom(lfHullGeo(hf, {N:34, rake:len*.07}), (x, y, z, nx, ny)=>ny > .72 ? '#c9a06a' : y < -.3*s ? '#ffffff' : y < 1.2*s ? stripe : hullCol, 0, 0, 0); b.uv(null); const h0 = b.P.length/3;
   /* the cabin with raked ends and its windows, the cockpit and a wheel, a toe rail */
@@ -9317,7 +9378,7 @@ function lfNavyScenes(X, o){ const {H, wl} = X, gb = new LBag(), hull = new LBag
   (o.ships || []).forEach((s, k)=>put(s.kind, s, k));
   (o.buoys || []).forEach((u, k)=>{ [-1, 1].forEach(sd=>{ const c = lfSpot(X, u, sd, 95, 112, {sea:true, deep:8, kr:24, span:300, gap:30}); if(c) bg.stamp(buoy, c.x, wl, c.z, c.r*6, 1); }); });
   (o.gates || []).forEach((u, k)=>lfFlagGate(X, gb, u, k));
-  hull.stamp(bg, 0, 0, 0, 0, 1); hull.mesh(lfSkinMat(), 'navy3', 4800); if(gb.P.length) gb.mesh(null, 'flaggates', 4800); if(wake.P.length) wake.mesh(LF.matG, 'wakes3', 4800);
+  hull.stamp(bg, 0, 0, 0, 0, 1); hull.mesh(SHIP_CLASSIC ? null : lfSkinMat(), 'navy3', 4800); if(gb.P.length) gb.mesh(null, 'flaggates', 4800); if(wake.P.length) wake.mesh(LF.matG, 'wakes3', 4800);
   lfGrandstand(X, {wood:'#8d959d', roof:'#e8353a', roof2:'#ffffff', trim:'#e8eef2', stone:'#6b7480'}, 120); }
 LIFE2.armada = X=>lfNavyScenes(X, {ships:[{kind:'cruiser', u:.2}, {kind:'destroyer', u:.46, sd:1}, {kind:'sub', u:.68, sd:-1, kr:100}, {kind:'destroyer', u:.86, sd:-1, rev:true}], buoys:[.33], gates:[.27, .6]});
 LIFE2.carrier = X=>lfNavyScenes(X, {ships:[{kind:'destroyer', u:.17, sd:1}, {kind:'cruiser', u:.5}, {kind:'destroyer', u:.8, sd:-1, rev:true}], buoys:[.35, .72], gates:[.3, .64]});
@@ -9453,7 +9514,7 @@ LIFE2.coast = X=>{
     [[-34, 26, 0], [-36, -26, 1], [40, 24, 2]].forEach(([a, o, i])=>{ const p = lfAt(c.x, c.y, c.z, c.fy, a, 0, o), g = H(p[0], p[2]); if(g > wl + 1.5) bag.stamp(pal[i], p[0], g - .5, p[2], c.r*6 + a, 1); }); LF.sites.push(['hero-cottages', c.x, c.y, c.z, Math.cos(c.fy), -Math.sin(c.fy), 200, 22]); };
   addYacht(.1, -1, 0); addCottages(.2, 1); addYacht(.38, 1, 1); addYacht(.62, -1, 2); addCottages(.78, -1);
   lfArchSpot(X, gb, .3, {hw:150, rise:70, lift:46, colf:(x, y, z)=>['#8c8479', '#a69c8c', '#757068'][((Math.floor(y*.07 + 9) % 3) + 3) % 3], sea:true, name:'hero-seaarch', maxDrop:300}); lfArchSpot(X, gb, .7, {hw:150, rise:70, lift:46, colf:(x, y, z)=>['#8c8479', '#a69c8c', '#757068'][((Math.floor(y*.07 + 9) % 3) + 3) % 3], sea:true, name:'hero-seaarch', maxDrop:300});
-  bag.mesh(null, 'coast3', 5200); if(gb.P.length) gb.mesh(null, 'coastarches3', 5200); if(boat.P.length) boat.mesh(lfSkinMat(), 'yachts3', 5200); if(wake.P.length) wake.mesh(LF.matG, 'yachtwakes3', 5200);
+  bag.mesh(null, 'coast3', 5200); if(gb.P.length) gb.mesh(null, 'coastarches3', 5200); if(boat.P.length) boat.mesh(SHIP_CLASSIC ? null : lfSkinMat(), 'yachts3', 5200); if(wake.P.length) wake.mesh(LF.matG, 'yachtwakes3', 5200);
   lfGrandstand(X, {wood:'#e8e4da', roof:'#2f9fe0', roof2:'#ffffff', trim:'#ffffff', stone:'#c9b99a'}, 130); };
 
 /* ===== third pass, Glacier Bay Speedway: two ice arches, faceted crystal clusters, ice boulders, an igloo with a penguin party, the finish grandstand ===== */
