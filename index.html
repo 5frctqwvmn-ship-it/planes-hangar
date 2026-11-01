@@ -1131,7 +1131,7 @@ async function svInit(){
     const [db, user] = await Promise.all([C.use('db'), C.use('user')]);
     const uid = db && user ? await user.id() : null;
     if(!uid){ SV.st = 'off'; return; }
-    SV.db = db; SV.base = 'data/users/' + uid + '/'; setTimeout(()=>{ try{ crSend(); }catch(e){} }, 3000);
+    SV.db = db; SV.base = 'data/users/' + uid + '/'; setTimeout(()=>{ try{ crSend(); pgSend(); }catch(e){} }, 3000);
     const snap = await svTry(()=>svDoc('save').get()), body = snap && snap.exists ? snap.data() : null;
     if(body && body.v !== 1){ SV.st = 'off'; SV.db = null; return; }   // saved by a newer version of the game: leave it alone
     const ck = body && body.keys && typeof body.keys === 'object' ? body.keys : {};
@@ -4196,6 +4196,21 @@ window.addEventListener('error', e=>errNote((e.message || 'error') + (e.lineno ?
 window.addEventListener('unhandledrejection', e=>{ const r = e.reason; if(r === 0 || r == null) return; errNote('async: ' + (r.message || r) + ' ' + ((r.stack || '').split('\n')[1] || '').trim().slice(-40)); });
 /* iPhones drop the WebGL context when graphics memory runs out; three.js keeps the scene and draws it again on restore */
 canvas.addEventListener('webglcontextlost', e=>{ e.preventDefault(); ERR.lost++; errNote('graphics reset ' + ERR.lost); try{ crCrumb('graphics lost'); crReport('gfxlost', 'graphics reset ' + ERR.lost); }catch(e2){} ctxCheck(); }, false);
+/* ---- play progress (owner, 2026-11-01: "track his progress, what he plays, what he gets right, what he gets wrong"). Each answer in the learning
+   games (number race, Letter Race, Say it!, Word Launch) is a line: the game, the level, the question (its plain fields), what he picked, right or
+   not, which try, and how long he took; each race is a line when it starts and when it ends. One db doc per session in the shared collection
+   'progress' (Claude reads it), written at most every 20 s and when the page hides; without a db (GitHub Pages) the sessions wait in localStorage. */
+const PG = {sid: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), t0: Date.now(), ev: [], dirty: false, at: 0}, PG_Q = 'hangar-pgq';
+function pgQ(q){ const o = {}; if(!q) return o; for(const k in q){ const v = q[k]; if((typeof v === 'number' && isFinite(v)) || (typeof v === 'string' && v.length < 60)) o[k] = typeof v === 'number' ? Math.round(v*100)/100 : v; if(Object.keys(o).length >= 14) break; } return o; }
+function pgLog(g, o){ try{ PG.ev.push(Object.assign({g, s: Math.round((Date.now() - PG.t0)/1000), lang}, o)); if(PG.ev.length > 600) PG.ev.shift(); PG.dirty = true; pgSave(); }catch(e){} }
+function pgSave(force){ if(!PG.dirty) return; const now = Date.now(); if(!force && now - PG.at < 20000) return; PG.at = now; PG.dirty = false;
+  const doc = {sid: PG.sid, start: new Date(PG.t0).toISOString(), last: new Date(now).toISOString(), ev: PG.ev};
+  let q = []; try{ q = JSON.parse(localStorage.getItem(PG_Q) || '[]'); }catch(e){} q = q.filter(d=>d.sid !== PG.sid); q.push(doc); while(q.length > 30) q.shift();
+  try{ localStorage.setItem(PG_Q, JSON.stringify(q)); }catch(e){} pgSend(); }
+async function pgSend(){ if(!SV.db || PG.busy) return; let q = []; try{ q = JSON.parse(localStorage.getItem(PG_Q) || '[]'); }catch(e){} if(!q.length) return; PG.busy = true;
+  try{ for(const d of q.slice()){ await SV.db.doc('progress/' + d.start.replace(/[^0-9]/g, '').slice(0, 14) + '-' + d.sid).set(d); if(d.sid !== PG.sid){ q = q.filter(x=>x.sid !== d.sid); localStorage.setItem(PG_Q, JSON.stringify(q)); } } }catch(e){}
+  PG.busy = false; }
+setInterval(()=>pgSave(), 20000); addEventListener('pagehide', ()=>pgSave(true)); document.addEventListener('visibilitychange', ()=>{ if(document.hidden) pgSave(true); });
 /* ---- crash reports (owner, 2026-11-01: "so the crash reports go to you automatically"). A trail of what the game was doing (CRP.crumbs: a line each time
    the screen, race, game or plane count changes, plus every error) and a snapshot of memory are kept in localStorage every 4 s. An iPhone that kills the
    tab for memory gives no event, so the next load looks: the last session never closed cleanly (pagehide) and was in front when it stopped -> a 'crash'
@@ -4210,7 +4225,7 @@ function crMem(){ const o = {}; try{ const m = renderer.info.memory, r = rendere
   return o; }
 function crState(){ const o = {}; try{ o.mode = app.dataset.mode; o.plane = cur && cur.def.id; o.race = RACE.phase; o.type = RACE.type || ''; o.course = RACE.course; o.n = (RACE.racers || []).length; o.sc = !!(SC && SC.on); o.lang = lang; }catch(e){} return o; }
 function crCrumb(what){ const d = Math.round((Date.now() - CRP.t0)/1000); CRP.crumbs.push(d + 's ' + String(what).slice(0, 140)); if(CRP.crumbs.length > 40) CRP.crumbs.shift(); }
-function crBeat(){ const st = crState(), sig = JSON.stringify(st);
+function crBeat(){ const st = crState(), sig = JSON.stringify(st); if(st.race !== CRP.race){ if(st.race === 'intro') pgLog('race', {type: st.type, course: st.course, n: st.n, plane: st.plane}); else if(st.race === 'results') pgLog('raceEnd', {type: st.type}); CRP.race = st.race; }
   if(sig !== CRP.sig){ CRP.sig = sig; crCrumb(Object.entries(st).filter(([k, v])=>v !== '' && v != null && v !== false).map(([k, v])=>k + '=' + v).join(' ') + ' ' + JSON.stringify(crMem())); }
   crPut(CR_K, {sid: CRP.sid, t: Date.now(), t0: CRP.t0, clean: false, hidden: document.hidden, crumbs: CRP.crumbs, st, mem: crMem(), ua: navigator.userAgent.slice(0, 160), ver: document.title}); }
 function crReport(kind, msg, extra){ if(CRP.sent >= 5 && kind !== 'crash') return; CRP.sent++;
@@ -12950,7 +12965,7 @@ function lnClose(){ LEARN.help.forEach(clearTimeout); LEARN.help = []; LEARN.q =
 /* The listening beat (2026-10-31, the owner: no tapping each answer until one is right): the answers stay asleep (faded, .wait) until the
    question has been said, then fade in; a tap before that does nothing but a tiny wiggle. lnLiveAfter(q, p): p is say()'s promise; once it
    has started the line, the buttons wake when the voice ends (and in 12 s at most, if no voice plays). */
-function lnLive(q){ if(!q || q.live) return; q.live = true; const ans = $('rqAns'); if(LEARN.q === q && ans) ans.classList.remove('wait'); }
+function lnLive(q){ if(!q || q.live) return; q.live = true; q.pgT = performance.now(); const ans = $('rqAns'); if(LEARN.q === q && ans) ans.classList.remove('wait'); }
 function lnLiveAfter(q, p){ const t0 = performance.now(); LEARN.help.push(setTimeout(()=>lnLive(q), 12000));
   Promise.resolve(p).then(()=>{ const poll = ()=>{ if(LEARN.q !== q || q.live) return; if(!wlTalking() || performance.now() - t0 > 12000) return lnLive(q); LEARN.help.push(setTimeout(poll, 120)); }; LEARN.help.push(setTimeout(poll, 250)); }); }
 function lnNotYet(bt){ bt.classList.remove('nudge'); void bt.offsetWidth; bt.classList.add('nudge'); }
@@ -12990,6 +13005,7 @@ function lnThanks(r, pre){ say([pre || [], talkLine(r, 'thanks')], lnVoice()); n
 function lnAnswer(v, bt){
   const q = LEARN.q; if(!q || q.done || bt.disabled) return;
   if(!q.live) return lnNotYet(bt);   // still listening: the answers are not awake yet
+  q.pgN = (q.pgN || 0) + 1; pgLog('num', {lvl: LEARN.lvl, q: pgQ(q), pick: v, ok: v === q.n, try: q.pgN, ms: q.pgT ? Math.round(performance.now() - q.pgT) : null});
   audio(); const u = UI[lang];
   if(v === q.n){
     q.done = true; bt.classList.add('yes'); sfx.chime(); const z = $('rZoom'); LEARN.help.forEach(clearTimeout);
@@ -13166,7 +13182,7 @@ function wdAsk(){
 }
 function wdAnswer(clear){
   const q = LEARN.q; if(!q || q.done || !q.w || q.type === 'pair') return; audio(); const u = UI[lang];
-  q.done = true; wdCount(q.w, clear); LEARN.tries++; if(clear) LEARN.stars++;
+  q.done = true; wdCount(q.w, clear); LEARN.tries++; if(clear) LEARN.stars++; pgLog('say', {word: q.w.w, wl: q.w.l, lvl: q.w.lv || 0, ok: !!clear});
   (clear ? $('rwClear') : $('rwTry')).classList.add('yes'); sfx.chime();
   let up = false, n = 0; if(clear && q.w.lv){ n = (+saveGet('hangar-wordclr') || 0) + 1; const lv = wdLevel();   // three clear F sounds: the next level
     if(n >= 3 && lv < WD_TOP){ saveSet('hangar-wordlvl', String(lv + 1)); saveSet('hangar-wordclr', '0'); up = true; } else saveSet('hangar-wordclr', String(n)); }
@@ -13675,6 +13691,7 @@ function ltTap(q, i, bt){
   if(LEARN.q !== q || q.done || bt.disabled || q.fly) return;
   if(!q.live) return lnNotYet(bt);   // still listening: the pictures are not awake yet
   audio(); const u = UI.en, R = q.opts[q.right], O = q.opts[i], L = ltLinesOf(q);
+  q.pgN = (q.pgN || 0) + 1; pgLog('letter', {lvl: LT.lvl, kind: q.kind, right: R && (R.d || R.w), pick: O && (O.d || O.w), word: pgQ(R).w || '', ok: i === q.right, try: q.pgN, ms: q.pgT ? Math.round(performance.now() - q.pgT) : null});
   ltUnlight(); const lands = ltFlyOut(q, bt, i === q.right), tok = LTF.tok;
   if(i === q.right){   // right: the letter locks on with a glow, the chime, the boost (as a right answer in the number race), the praise naming the word and the letter, the thanks
     q.done = true; LEARN.stars++; ltScore(true); lnFirst();
@@ -14081,6 +14098,7 @@ function wlRelease(m, star, why, said){
    tap of the gold ring was a clean launch and nothing could move the level down, so three moments raised it and he reached level 5
    (9 sentences) in his fourth race. A grown-up's tap still gets the star and the practice log; the level stays where it is set. */
 function wlScore(m, star, why){
+  pgLog('launch', {item: m.x && m.x.w, phrase: !!m.phrase, ok: !!star, jolts: m.jolts || 0, why: why || ''});
   wdCount({w: m.x.w, l:'en'}, star, m.phrase ? 0 : m.jolts);
   if(star && m.jolts === 0 && why !== 'rec') return false;
   if(star && m.jolts === 0){ const n = (+saveGet('hangar-beatclr') || 0) + 1, lv = wlLvl();
