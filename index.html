@@ -7810,11 +7810,12 @@ function buildCarrier(group, deckY, water){
   prism(deckPts.map(([x, z])=>[x + Math.sign(bow - 200 - x)*0, z*.96]), deckY - 22, deckY - 6, dark);   // the galleries under the deck edge
   // island on the starboard edge, aft of the parking rows: a tall block, the bridge with its windows, a mast and a radar
   // a few jets parked along the starboard edge at the stern, wings folded up (generic shapes, no markings)
-  [0, 1, 2, 3].forEach(k=>{ const x = stern + 70 + k*62, z = 98, a = .7;
+  const jetOld_carrierJets = ()=>[0, 1, 2, 3].forEach(k=>{ const x = stern + 70 + k*62, z = 98, a = .7;
     const fus = new T.Mesh(new T.CylinderGeometry(2.6, 1.6, 52, 10), grey); fus.rotation.z = Math.PI/2; fus.rotation.y = a; fus.position.set(x, deckY + 6, z); parts.push(fus);
     const nose = new T.Mesh(new T.ConeGeometry(2.6, 9, 10), grey); nose.rotation.z = -Math.PI/2; nose.rotation.y = a; nose.position.set(x + Math.cos(a)*30, deckY + 6, z - Math.sin(a)*30); parts.push(nose);
     box(22, 1.2, 18, grey, x - Math.cos(a)*4, deckY + 5.4, z + Math.sin(a)*4, a); box(9, 12, 1.2, grey, x - Math.cos(a)*20, deckY + 12, z + Math.sin(a)*20, a);
     box(5, 1.2, 1.2, black, x, deckY + 1.2, z); });
+  if(SHIP_CLASSIC) jetOld_carrierJets();   // ?classic=ships: these four toy jets; otherwise Hornets are parked by LIFE.carrier (lfDeckJets)
   // deck-edge elevators (lowered a little) and the hangar openings in the hull side
   box(70, 5, 46, dark, stern + 260, deckY - 9, 150); box(70, 5, 46, dark, stern + 860, deckY - 9, 150);
   // arresting wires across the landing deck (the deck crew are the ground-crew vehicles of the course life: gcCrowd)
@@ -8724,7 +8725,33 @@ LIFE.lookout = X=>{
 };
 /* ===== course life: Ocean Armada Run and Carrier Launch (warships steaming with wakes and funnel smoke, helicopters on plane guard, jets parked and deck crew at work on the carriers, a spinning radar, a yellow submarine,
    bobbing buoys with blinking lights, bursts of colourful flares, dolphins, whales, gulls; on the Carrier Launch deck: chasing edge lights, steam, tractors) ===== */
-function lfJetBag(b, x, y, z, ry, s){ const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o);
+/* parked jets (2026-11-01, the owner: "use the game's own jet models on the carrier decks"): the Hornet (models/f18-city.json, its light copy) and the Super Hornet (its own
+   builder, cityData), baked once each into one static geometry, in navy grey, no faces, outer wings folded up; every parked jet is an instance of it (two draw calls for the deck).
+   list = [[id, x, y, z, yaw, scale]] in world feet, y the deck. The jets appear once the model is ready (the Hornet's file is fetched); a course already left by then is skipped. */
+function djBake(d){
+  const L = d.lods[0], b0 = d.box[0], b1 = d.box[1], n = L.n, u8 = s=>Uint8Array.from(atob(s), c=>c.charCodeAt(0)), q = new Int16Array(u8(L.p).buffer), col = u8(L.c), kd = u8(L.k), F = 3.28084;
+  const P = new Float32Array(n*9); for(let i = 0; i < n*9; i++){ const a = i % 3; P[i] = ((q[i] + 32767)/65534*(b1[a] - b0[a]) + b0[a])*F; }
+  const hg = d.span/2*.58*F; let y0 = 0, yn = 0; for(let f = 0; f < n; f++) if(kd[f] === 2){ const z = Math.abs(P[f*9 + 2] + P[f*9 + 5] + P[f*9 + 8])/3; if(Math.abs(z - hg) < 1.6*F){ y0 += (P[f*9 + 1] + P[f*9 + 4] + P[f*9 + 7])/3; yn++; } } y0 = yn ? y0/yn : 0;
+  const cs = Math.cos(1.4), sn = Math.sin(1.4), pos = new Float32Array(n*9), nor = new Float32Array(n*9), cl = new Float32Array(n*9), cx = (b0[0] + b1[0])/2*F, e = new T.Color(), A = V(0, 0, 0), B = V(0, 0, 0), C = V(0, 0, 0);
+  let ymin = 1e9; for(let f = 0; f < n; f++){ const o = f*9, sgn = P[o + 2] + P[o + 5] + P[o + 8] < 0 ? -1 : 1;
+    if(kd[f] === 2 && Math.abs(P[o + 2] + P[o + 5] + P[o + 8])/3 > hg) for(let v = 0; v < 3; v++){ const u = Math.max(0, Math.abs(P[o + v*3 + 2]) - hg), w = P[o + v*3 + 1] - y0; P[o + v*3 + 2] = sgn*(hg + u*cs - w*sn); P[o + v*3 + 1] = y0 + u*sn + w*cs; }
+    for(let v = 0; v < 3; v++){ P[o + v*3] -= cx; ymin = Math.min(ymin, P[o + v*3 + 1]); } }
+  for(let f = 0; f < n; f++){ const o = f*9; for(let v = 0; v < 3; v++){ pos[o + v*3] = P[o + v*3]; pos[o + v*3 + 1] = P[o + v*3 + 1] - ymin; pos[o + v*3 + 2] = P[o + v*3 + 2]; }
+    A.fromArray(pos, o); B.fromArray(pos, o + 3); C.fromArray(pos, o + 6); B.sub(A); C.sub(A); B.cross(C).normalize(); if(!isFinite(B.x)) B.set(0, 1, 0);
+    const r = col[f*3]/255, g = col[f*3 + 1]/255, b = col[f*3 + 2]/255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), lum = .3*r + .59*g + .11*b;   // navy grey: paint becomes grey, the dark parts stay dark
+    const k = kd[f] === 5 ? .13 : (mx - mn > .3 ? .92 : Math.min(1, .25 + lum)), br = .36, bg = .40, bb = .45;   // (a canopy is a dark glass)
+    e.setRGB(Math.min(1, br*k*(kd[f] === 5 ? 1.2 : 1)), Math.min(1, bg*k), Math.min(1, bb*k*(kd[f] === 5 ? 1.5 : 1))).convertSRGBToLinear();
+    for(let v = 0; v < 3; v++){ nor[o + v*3] = B.x; nor[o + v*3 + 1] = B.y; nor[o + v*3 + 2] = B.z; cl[o + v*3] = e.r; cl[o + v*3 + 1] = e.g; cl[o + v*3 + 2] = e.b; } }
+  const g = new T.BufferGeometry(); g.setAttribute('position', new T.BufferAttribute(pos, 3)); g.setAttribute('normal', new T.BufferAttribute(nor, 3)); g.setAttribute('color', new T.BufferAttribute(cl, 3)); return g; }
+function lfDeckJets(list, at){
+  const R = {g:LF.g, K:LF.K, geos:LF.geos, regs:LF.regs, mat:lfMat('std', {side:T.DoubleSide, roughness:.6, metalness:.2})}, ids = [...new Set(list.map(j=>j[0]))];
+  Promise.all(ids.map(id=>cityData(id).catch(()=>null))).then(ds=>{
+    if(!R.K.life || R.K.life.g !== R.g) return;   // the course was left before the models came
+    ids.forEach((id, i)=>{ const d = ds[i]; if(!d) return; const geo = djBake(d), mine = list.filter(j=>j[0] === id), m4 = new T.Matrix4(), c = V(at[0], at[1], at[2]);
+      geo.boundingSphere = new T.Sphere(c, 700); R.geos.push(geo);
+      const im = new T.InstancedMesh(geo, R.mat, mine.length); im.name = 'deckjets'; mine.forEach((j, k)=>{ lfPut(m4, j[1], j[2], j[3], j[4], 0, 0, j[5], j[5], j[5]); im.setMatrixAt(k, m4); }); im.instanceMatrix.needsUpdate = true;
+      R.g.add(im); const en = {o:im, c, r:700, f:1e9, lod:0, fl:false}; R.K.cull.push(en); R.regs.push(en); }); }).catch(e=>console.warn('deck jets', e)); }
+function jetOld_lfJetBag(b, x, y, z, ry, s){   // the old toy jet: only built with ?classic=ships (or =all); the course now parks copies of the game's own Hornets (lfDeckJets) const at = (a, h, o)=>lfAt(x, y, z, ry, a, h, o);
   b.add('cyl', '#9aa3ab', ...at(-14*s, 4*s, 0), 2.6*s, 30*s, 2.6*s, ry, 0, -Math.PI/2); b.add('cone6', '#9aa3ab', ...at(16*s, 4*s, 0), 2.6*s, 9*s, 2.6*s, ry, 0, -Math.PI/2); b.add('sph', '#2f6fb0', ...at(6*s, 6*s, 0), 5*s, 1.9*s, 1.7*s, ry);
   [-1, 1].forEach(o=>{ b.add('box', '#aab2ba', ...at(-4*s, 3.6*s, o*8*s), 9*s, .6*s, 11*s, ry + o*.5, 0, 0); b.add('box', '#aab2ba', ...at(-12*s, 5*s, o*2.6*s), 6*s, 5*s, .5*s, ry, o*.3, 0); b.add('box', '#e8353a', ...at(-4*s, 4.1*s, o*11*s), 4*s, .3*s, 4*s, ry); }); }
 function lfCrewBag(){ const b = new LBag(); b.add('cyl6', '#ffffff', 0, 2.4, 0, 1.4, 4.4, 1.4); b.add('sph', '#f2c9a0', 0, 8, 0, 1.4, 1.4, 1.4); b.add('sph', '#ffffff', 0, 8.8, 0, 1.55, 1.1, 1.55); [-1, 1].forEach(o=>b.add('box', '#2a3a5a', 0, 0, o*.6, 1.1, 3, 1)); b.beam('cyl6', '#f2c9a0', 0, 6, 1.3, 1.6, 8.4, 2.4, .35, .3); return b; }
@@ -8750,7 +8777,8 @@ LIFE.armada = X=>{
   K.group.children.forEach(o=>{ if(o.name === 'ship' && o.isGroup){ const sz = new T.Box3().setFromObject(o).getSize(V(0, 0, 0)); if(sz.x > 600 || sz.z > 600) car = o; } });
   lfFleet(X, {frigates:0, buoys:0});
   if(car){ const th = car.rotation.y, W = (lx, ly, lz)=>car.localToWorld(V(lx, ly, lz)); X.site('carrier', car.position.x, car.position.y + 90, car.position.z, Math.cos(th), -Math.sin(th));
-    [-300, -230, -160, -90, -20, 50].forEach((lx, i)=>{ const q = W(lx, 49.4, i % 2 ? -34 : -4); lfJetBag(st, q.x, q.y, q.z, th + (i % 2 ? .5 : -.4), 1.4); });
+    if(SHIP_CLASSIC) [-300, -230, -160, -90, -20, 50].forEach((lx, i)=>{ const q = W(lx, 49.4, i % 2 ? -34 : -4); jetOld_lfJetBag(st, q.x, q.y, q.z, th + (i % 2 ? .5 : -.4), 1.4); });
+    else lfDeckJets([-300, -230, -160, -90, -20, 50].map((lx, i)=>{ const q = W(lx, 49.4, i % 2 ? -34 : -4); return [i % 3 === 2 ? 'superhornet' : 'f18', q.x, q.y + .3, q.z, th + (i % 2 ? .5 : -.4), 1.15]; }), [car.position.x, car.position.y + 60, car.position.z]);
     const cr = lfCrewBag(), pos = [[-250, 42], [-120, 38], [20, -50], [-60, 44], [150, -30], [-200, -60]].map(([a, b])=>W(a, 49.4, b));
     lfAnim(cr, pos.length, (i, t, m)=>{ const q = pos[i]; lfPut(m, q.x + Math.cos(t*.6 + i*2)*7, q.y + Math.abs(Math.sin(t*4 + i))*.5, q.z + Math.sin(t*.6 + i*2)*7, -(t*.6 + i*2) - 1.57, 0, Math.sin(t*4 + i)*.08, 1.6, 1.6, 1.6); }, [car.position.x, car.position.y + 49, car.position.z, 520], {name:'deckcrew', tint:['#f4c20d', '#3d9b4a', '#c8382e', '#f4f4f4', '#f4c20d', '#2f7fe0'], f:3400});
     const rb = new LBag(); rb.add('box', '#cfd4d9', 0, 0, 0, 32, 1.6, 5); rb.add('cyl6', '#cfd4d9', 0, -3, 0, 1.4, 4, 1.4); rb.add('sph', '#e8353a', 16, .8, 0, 1.6); const rp = W(120, 164, 62); lfSpin(rb, rp.x, rp.y, rp.z, 0, 'y', 1.8, null, 'radar', 5200);
@@ -8761,6 +8789,7 @@ LIFE.armada = X=>{
 LIFE.carrier = X=>{
   const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832, dk = K.C.deck || 62, bow = CARRIER.bow, stern = CARRIER.stern, L = bow - stern;
   lfFleet(X, {frigates:0, buoys:0, dmin:350, dmax:1400});
+  if(!SHIP_CLASSIC) lfDeckJets([0, 1, 2, 3].map(k=>[k === 2 ? 'superhornet' : 'f18', stern + 70 + k*62, dk + .3, 98, .55 + (k % 2)*.2, 1]), [stern + 190, dk, 98]);   // parked Hornets on the starboard edge, wings folded (the old toy jets: buildCarrier, ?classic=ships)
   /* the flight deck at work: the ground crew parked along the deck edges and by the island, cheering (gcCrowd), tractors, a radar turning on the island, steam, running lights */
   { const S = 2.0, sb = Math.PI/2 - .25, pt = -Math.PI/2 + .25;
     gcCrowd([['fire', bow - 215, 96, sb], ['fork', bow - 268, 104, sb], ['cat', bow - 330, 112, sb], ['fuel', stern + 660, 112, sb + .2], ['bag', stern + 395, 96, sb], ['tug', stern + 335, 92, sb],
