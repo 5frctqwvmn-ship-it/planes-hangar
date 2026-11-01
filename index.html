@@ -100,7 +100,8 @@
   .app:not([data-mode="field"]) .fieldui{display:none}
   .app[data-mode="field"] .controls, .app[data-mode="field"] .info, .app[data-mode="field"] #tags, .app[data-mode="field"] #pickBtn, .app[data-mode="field"] .buildsheet, .app[data-mode="field"] .studio{display:none}
   .fieldui{position:absolute;inset:0;pointer-events:none;z-index:3}
-  .ftag{position:absolute;transform:translate(-50%,0);background:rgba(255,255,255,.92);color:#1c2426;font:800 12px var(--body);padding:3px 9px;border-radius:999px;box-shadow:0 2px 8px rgba(0,0,0,.22);white-space:nowrap;transition:opacity .2s}
+  .ftag{position:absolute;transform:translate(-50%,0);background:rgba(255,255,255,.7);color:#1c2426;font:700 10px/1.2 var(--body);padding:1px 6px;border-radius:999px;white-space:nowrap;pointer-events:none;transition:opacity .2s}
+  .ftag.big{left:50%!important;top:auto!important;bottom:calc(env(safe-area-inset-bottom) + 110px);background:#fff;font:900 26px var(--display);padding:8px 22px;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:2}   /* the tapped plane's name, big (2026-11-01) */
   .fhead{position:absolute;left:50%;top:calc(env(safe-area-inset-top) + 76px);transform:translateX(-50%);background:var(--mustard);color:#1c2426;font:900 21px var(--display);padding:10px 24px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.25);white-space:nowrap}
   .fload{position:absolute;left:50%;bottom:calc(env(safe-area-inset-bottom) + 22px);transform:translateX(-50%);background:rgba(28,36,38,.82);color:#fff;font:700 13px var(--body);padding:7px 15px;border-radius:999px;white-space:nowrap}
   .flist{position:absolute;right:14px;bottom:calc(env(safe-area-inset-bottom) + 14px);pointer-events:auto}
@@ -15101,14 +15102,53 @@ $('rtCoachOk').addEventListener('click', twCoachClose);
    (fieldShoot) and keeps it (hangar-fsnap-<id>, this device only). Tap one: it hops, says its name, the camera moves
    in, and the hangar opens with the full 3D plane and the Paint tools. The view is fixed so the pictures line up. */
 const FIELD = {on:false, group:null, planes:{}, meta:null, cam:{az:0, el:.92, fit:0}, zoom:1, swoop:null, tags:{}, openAfter:null, busy:false};
-const FIELD_ROWS = [['cap10','geebee','longez','aerocar'], ['stearman','dh88','p51d','f4u'], ['dromader','dromaderf','bonanza','f18'], ['aw139','albatross','skycrane','c119']];
-FIELD_ROWS.push(['shuttle','beluga','concorde']);   // 2026-10-10: the two biggest at the far end
-FIELD_ROWS[2].push('superhornet');   // 2026-10-31: Angel just after his Hornet cousins, Echo & Bravo
-FIELD_ROWS.unshift(['bristles']);   // 2026-10-16: the littlest in front (the others each move one slot along)
-const FIELD_C = V(1650, 0, 430), FIELD_DX = 84, FIELD_DZ = 78, FIELD_TOY = 52;   // on the runway (centre line z = 430, 130 ft wide)
+/* 2026-11-01 (owner: "cluttered on the runway ... make it look more like an airport"): the planes park on an apron beside the
+   runway, in rows of stands with painted lines; the helicopters on helipads; the three biggest at the terminal gates at the back */
+const FIELD_ROWS = [['bristles','cap10','geebee','longez'], ['aerocar','stearman','bonanza','p51d'], ['dh88','f4u','dromader','dromaderf'],
+  ['f18','superhornet','albatross','c119'], ['aw139','skycrane','ozzie'], ['shuttle','beluga','concorde']];   // front (near the camera) to back. Row 4: helipads (Ozzie's pad waits for him)
+const FIELD_RX = [1850, 1745, 1640, 1535, 1425, 1290], FIELD_PADS = 4, FIELD_BIG = 5;   // each row's x (the runway runs along x, centre line z = 430)
+const FIELD_RZ = [[250,178,106,34], [250,178,106,34], [250,178,106,34], [262,190,112,26], [250,142,34], [262,140,8]];
+const FIELD_C = V(1570, 0, 148), FIELD_TOY = 52;
+const FIELD_AP = {x0:1170, x1:1920, z0:-40, z1:364};   // the apron (and the taxiway along the runway edge, z 300..364)
+const FIELD_SLOTS = FIELD_ROWS.flatMap((row, r)=>row.map((id, k)=>V(FIELD_RX[r], 0, FIELD_RZ[r][k])));
 const SHOT = {scene:null, cam:null, rt:null, fov:24, px:768, out:384};
-function fieldSlotAt(i){ const n = FIELD_ROWS.flat().length, rows = Math.ceil(n/2), r = Math.floor(i/2), k = i % 2;
-  return V(FIELD_C.x + ((rows - 1)/2 - r)*FIELD_DX, 0, FIELD_C.z + (k - .5)*FIELD_DZ); }
+function fieldSlotAt(i){ return FIELD_SLOTS[i] || FIELD_SLOTS[0]; }
+const fieldRowOf = i=>{ let n = 0; for(let r = 0; r < FIELD_ROWS.length; r++){ n += FIELD_ROWS[r].length; if(i < n) return r; } return 0; };
+/* the airport around them, cheap: one painted apron (one canvas), a terminal, a tower, a hangar (a few boxes and cylinders) */
+function fieldScenery(){
+  const A = FIELD_AP, W = 1024, H = 512, sx = W/(A.x1 - A.x0), sz = H/(A.z1 - A.z0), u = x=>(x - A.x0)*sx, v = z=>(z - A.z0)*sz;
+  const tex = apTex(W, H, (g)=>{
+    g.fillStyle = '#8f8d87'; g.fillRect(0, 0, W, H);
+    for(let i = 0; i < 2600; i++){ g.fillStyle = Math.random() < .5 ? 'rgba(0,0,0,.05)' : 'rgba(255,255,255,.07)'; g.fillRect(Math.random()*W, Math.random()*H, 2 + Math.random()*5, 2 + Math.random()*5); }
+    g.strokeStyle = 'rgba(70,70,64,.22)'; g.lineWidth = 1; for(let x = A.x0; x < A.x1; x += 25){ g.beginPath(); g.moveTo(u(x), 0); g.lineTo(u(x), v(300)); g.stroke(); }
+    for(let z = A.z0; z < 300; z += 25){ g.beginPath(); g.moveTo(0, v(z)); g.lineTo(W, v(z)); g.stroke(); }
+    g.fillStyle = '#4a4d50'; g.fillRect(0, v(300), W, H - v(300));   // the taxiway, along the runway
+    const yl = (x0, z0, x1, z1, w)=>{ g.strokeStyle = '#f2c230'; g.lineWidth = w || 2.4; g.beginPath(); g.moveTo(u(x0), v(z0)); g.lineTo(u(x1), v(z1)); g.stroke(); };
+    yl(A.x0, 332, A.x1, 332, 3);
+    FIELD_ROWS.forEach((row, r)=>{ const x = FIELD_RX[r], big = r === FIELD_BIG, pad = r === FIELD_PADS, h = big ? 70 : 44;
+      if(!big) yl(x + 56, 0, x + 56, 332);   // a taxilane in front of each row, out to the taxiway
+      row.forEach((id, k)=>{ const z = FIELD_RZ[r][k];
+        if(pad){ g.fillStyle = '#4c5459'; g.beginPath(); g.ellipse(u(x), v(z), 31*sx, 31*sz, 0, 0, Math.PI*2); g.fill();
+          g.strokeStyle = '#ffffff'; g.lineWidth = 2.5; g.beginPath(); g.ellipse(u(x), v(z), 26*sx, 26*sz, 0, 0, Math.PI*2); g.stroke();
+          g.save(); g.translate(u(x), v(z)); g.rotate(-Math.PI/2); g.fillStyle = '#ffffff'; g.font = '900 30px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('H', 0, 1); g.restore(); return; }
+        yl(x - h, z, x + 56, z); yl(x + h*.72, z - 14, x + h*.72, z + 14, 3.5);   // lead-in line and stop bar
+        g.strokeStyle = 'rgba(255,255,255,.85)'; g.lineWidth = 1.6; const hw = big ? (k === 1 ? 70 : 50) : 33; g.strokeRect(u(x - h), v(z - hw), u(x + h) - u(x - h), v(z + hw) - v(z - hw));
+        g.save(); g.translate(u(x + h - 9), v(z - hw + 9)); g.rotate(-Math.PI/2); g.fillStyle = '#ffffff'; g.font = '800 13px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(r*4 + k + 1), 0, 0); g.restore(); }); });
+  });
+  const ap = new T.Mesh(new T.PlaneGeometry(A.x1 - A.x0, A.z1 - A.z0), stdMat({map:tex, roughness:.9, color:'#a9a9a9'}));
+  ap.rotation.x = -Math.PI/2; ap.position.set((A.x0 + A.x1)/2, .08, (A.z0 + A.z1)/2); ap.receiveShadow = true;
+  const box = new T.BoxGeometry(1, 1, 1), wall = stdMat({color:'#e8e2d4', roughness:.8}), roof = stdMat({color:'#8d969c', roughness:.7}), glass = stdMat({color:'#4f7f9c', roughness:.15, metalness:.5});
+  const winT = apTex(256, 32, (g, w, h)=>{ g.fillStyle = '#e8e2d4'; g.fillRect(0, 0, w, h); g.fillStyle = '#4f7f9c'; g.fillRect(0, 8, w, 15); g.fillStyle = '#e8e2d4'; for(let i = 0; i < w; i += 16) g.fillRect(i, 8, 2, 15); });
+  const winM = stdMat({map:winT, roughness:.4});
+  const blk = (x, y, z, w, h, d, m)=>{ const b = new T.Mesh(box, m); b.scale.set(w, h, d); b.position.set(x, y + h/2, z); return b; };
+  const term = blk(1135, 0, 130, 50, 30, 290, [winM, wall, roof, wall, wall, wall]);   // the terminal, its windows to the apron
+  const tower = new T.Group(), shaft = new T.Mesh(new T.CylinderGeometry(5, 7, 92, 12), wall); shaft.position.y = 46;
+  const cab = new T.Mesh(new T.CylinderGeometry(13, 10, 12, 8), glass); cab.position.y = 98; const cap = blk(0, 104, 0, 28, 3, 28, roof);
+  tower.add(shaft, cab, cap); tower.position.set(1150, 0, 330);
+  const hang = blk(1240, 0, -95, 90, 36, 80, [stdMat({color:'#cfd5da', roughness:.6, metalness:.3}), wall, roof, wall, wall, wall]);   // a hangar on the far side, door to the apron
+  const door = blk(1286, 0, -95, 1, 28, 64, stdMat({color:'#5d666d', roughness:.6}));
+  const g = new T.Group(); g.name = 'fieldScenery'; g.add(ap, term, tower, hang, door); return g;
+}
 const fieldToy = size=>Math.max(.7, Math.min(2.2, FIELD_TOY/Math.max(1, size)));
 /* take the picture: the plane alone, lit like the field, from the field camera's height, on a clear background */
 function shotInit(){ if(SHOT.scene) return; const s = SHOT.scene = new T.Scene(); s.environment = scene.environment;
@@ -15153,7 +15193,7 @@ const FIELD_SNAP_V = 8;   // 2: Hornet-style eyes and glass (2026-10-02); 3: smi
 const fieldSnapSaved = id=>{ try{ const s = saveGet('hangar-fsnap-' + id), j = s ? JSON.parse(s) : null; return j && j.v === FIELD_SNAP_V ? j : null; }catch(e){ return null; } };
 const fieldCustom = id=>['livery','draw','face','faceplace2','stk','look','glass','eyejoin'].some(k=>saveGet(`hangar-${k}-${id}`) !== null) || gfxAny(id);   // (graphics: section "graphics")
 async function fieldBuild(){
-  if(!FIELD.group){ FIELD.group = new T.Group(); FIELD.group.name = 'field'; scene.add(FIELD.group); }
+  if(!FIELD.group){ FIELD.group = new T.Group(); FIELD.group.name = 'field'; FIELD.group.add(fieldScenery()); scene.add(FIELD.group); }
   if(!FIELD.meta){ try{ FIELD.meta = await (await fetch('models/field/meta.json')).json(); }catch(e){ FIELD.meta = {}; } }
   FIELD_ROWS.flat().forEach(id=>{ if(FIELD.planes[id]) return; const own = fieldSnapSaved(id), m = FIELD.meta[id];
     fieldSprite(id, own || (m ? Object.assign({u:'models/field/' + id + '.webp'}, m) : null)); });
@@ -15192,9 +15232,10 @@ function fieldFade(){ const f = $('fieldFade'); f.classList.remove('on'); void f
 function fieldCamPos(dist, out){ const el = FIELD.cam.el; return out.set(FIELD_C.x + dist*Math.cos(el), FIELD_C.y + dist*Math.sin(el), FIELD_C.z); }
 const _fc = V(0, 0, 0), _ft = V(0, 0, 0), _fp = V(0, 0, 0);
 function fieldFit(){   // the nearest distance that keeps every parking spot on screen, with room for the name tags and the header
-  const gy = FIELD.group.position.y, pts = []; FIELD_ROWS.flat().forEach((id, i)=>{ const q = fieldSlotAt(i); [[-30, -32], [30, 32], [-30, 32], [30, -32]].forEach(([dx, dz])=>pts.push(V(q.x + dx, gy, q.z + dz))); });
+  const gy = FIELD.group.position.y, pts = []; FIELD_ROWS.flat().forEach((id, i)=>{ const q = fieldSlotAt(i), r = fieldRowOf(i), w = r === FIELD_BIG ? 52 : 32; [[-30, -w], [36, w], [-30, w], [36, -w]].forEach(([dx, dz])=>pts.push(V(q.x + dx, gy, q.z + dz))); });
+  pts.push(V(FIELD_RX[0] + 36, gy, 318));   // the taxiway on the left (the runway just beyond)
   for(let d = 380; d < 4000; d += 30){ fieldCamPos(d, camera.position); camera.position.y += gy; camera.lookAt(_ft.copy(FIELD_C).setY(gy + 16)); camera.updateMatrixWorld(true);
-    if(pts.every(p=>{ _fp.copy(p).project(camera); return Math.abs(_fp.x) < .94 && _fp.y > -.86 && _fp.y < .66; })) return d; }
+    if(pts.every(p=>{ _fp.copy(p).project(camera); return Math.abs(_fp.x) < .98 && _fp.y > -.8 && _fp.y < .62; })) return d; }
   return 4000; }
 function fieldFrame(dt, now){
   const gy = AP.group ? AP.group.position.y + .02 : 0; if(FIELD.group) FIELD.group.position.y = gy;
@@ -15214,21 +15255,21 @@ function fieldFrame(dt, now){
   const W2 = stage.clientWidth, H2 = stage.clientHeight;
   Object.values(FIELD.planes).forEach(p=>{ const h = (now - p.hop)/700, up = h >= 0 && h < 1 ? Math.sin(h*Math.PI)*p.S*.12 : 0;   // the tapped plane hops
     p.spr.position.copy(p.spr.userData.base); p.spr.position.y += up; p.spr.quaternion.copy(camera.quaternion);                   // a picture always faces the camera
-    const el = FIELD.tags[p.def.id]; if(!el) return; _fp.copy(p.shadow.position).setY(gy).project(camera);
-    const on = !S && _fp.z < 1; el.style.opacity = on ? 1 : 0; if(on){ el.style.left = ((_fp.x + 1)/2*W2) + 'px'; el.style.top = ((1 - _fp.y)/2*H2 + 8) + 'px'; } });
+    const el = FIELD.tags[p.def.id]; if(!el) return; if(S){ const me = S.id === p.def.id; el.classList.toggle('big', me); el.style.opacity = me ? 1 : 0; return; }
+    el.classList.remove('big'); _fp.copy(p.shadow.position).setY(gy); _fp.x += Math.min(30, p.snap.size*p.k*.36); _fp.project(camera);   // just under the plane's nose
+    const on = _fp.z < 1; el.style.opacity = on ? 1 : 0; if(on){ el.style.left = ((_fp.x + 1)/2*W2) + 'px'; el.style.top = ((1 - _fp.y)/2*H2 + 1) + 'px'; } });
   renderer.render(scene, camera);
 }
 function fieldTap(x, y){
   if(FIELD.swoop) return; const r = canvas.getBoundingClientRect(), W2 = r.width, H2 = r.height, gy = FIELD.group.position.y; let best = null, bd = 1e9;
   Object.values(FIELD.planes).forEach(p=>{ const c = _fp.copy(p.spr.userData.base); c.y += gy; c.project(camera); if(c.z > 1) return;
     const sx = (c.x + 1)/2*W2 + r.left, sy = (1 - c.y)/2*H2 + r.top;
-    _fc.copy(p.spr.userData.base).setY(gy + p.spr.userData.base.y).addScaledVector(V(0, 0, 1), p.snap.size*p.k/2*(TWIN[p.def.id] ? 1.3 : 1)).project(camera); const rad = Math.max(44, Math.abs((_fc.x - c.x)/2*W2)*1.1);   // (Ned & Zed: a tap on either)
+    _fc.copy(p.spr.userData.base).setY(gy + p.spr.userData.base.y).addScaledVector(V(0, 0, 1), p.snap.size*p.k/2*(TWIN[p.def.id] ? 1.3 : 1)).project(camera); const rad = Math.max(50, Math.abs((_fc.x - c.x)/2*W2)*1.25);   // (Ned & Zed: a tap on either)
     const d = Math.hypot(x - sx, y - sy)/rad; if(d < 1 && d < bd){ bd = d; best = p; } });
   if(!best) return;
   const p = best, now = performance.now(), ctr = p.spr.userData.base.clone(); ctr.y += gy; p.hop = now; sfx.pop(); say(sayName(p.def));
   const dir = camera.position.clone().sub(ctr).normalize(), to = ctr.clone().addScaledVector(dir, p.S*2.1);   // straight in along the view, so the picture stays true
   FIELD.swoop = {id:p.def.id, t0:now + 450, p0:camera.position.clone(), p1:to, l0:_ft.clone(), l1:ctr, done:false};
-  Object.values(FIELD.tags).forEach(el=>el.style.opacity = 0);
 }
 /* ================= airport: hangar interior, apron, taxiway, runway and a photo sky ================= */
 /* Units are feet. The parked plane sits at the origin facing +x, toward the open hangar door. */
@@ -19064,6 +19105,8 @@ if(window.__hangar) Object.assign(window.__hangar, {
   winMoveRec: on=>{ WM.recOn = !!on; WM.rec = on ? wmRecNew() : null; return WM.recOn; },
   winMoveAt: t=>{ if(!WM.on) return null; WM.t = t; WM.ei = 0; while(WM.ei < WM.ev.length && WM.ev[WM.ei][0] < t) WM.ei++; return WM.t; },   // tests: jump the routine's clock (its events before t are skipped)
   shEval: src=>eval(src),   // tests (Angel, 2026-10-31): the game's own state by name, for the checks of a new plane (its build steps, gear, show, copies)
+  fieldPts: ()=>{ const r = canvas.getBoundingClientRect(), o = {}; Object.values(FIELD.planes).forEach(p=>{ const c = p.spr.userData.base.clone(); c.y += FIELD.group.position.y; c.project(camera); o[p.def.id] = {x: (c.x + 1)/2*r.width + r.left, y: (1 - c.y)/2*r.height + r.top}; }); return o; },
+  fieldSwoop: ()=>FIELD.swoop ? FIELD.swoop.id : null, fieldReset: ()=>{ FIELD.swoop = null; },   // tests: where each plane is on screen, which one a tap picked
   winMoveEval: f=>f({WM, WM_CAM, WM_FIT, WIN_MOVE, RACE, rCourse, rCam, rPylons, FT, FL, FLR, SMOKE, DD, DDR, DD_HATCH, crSolid, ddGround, CARRIER, renderer, rScene, T}),   // probes and tuning
   flareInfo: ()=>{ const F = FL, M = F.mesh; let on = 0, inS = 0; const hn = M ? M.geometry.instanceCount : 0, city = !!(rCourse && rCourse.city); if(rCam) rCam.updateMatrixWorld();   // Echo & Bravo's flares now: how many, on screen, in a building
     for(let i = 0; i < hn; i++){ _flP.fromArray(F.hp, i*3); if(city && crSolid(_flP.x/FT, _flP.y/FT, _flP.z/FT) && F.ha[i*2 + 1] > .3) inS++; if(rCam){ _flP.project(rCam); if(_flP.z < 1 && Math.abs(_flP.x) <= 1 && Math.abs(_flP.y) <= 1) on++; } }
