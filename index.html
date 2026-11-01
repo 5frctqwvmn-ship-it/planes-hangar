@@ -9501,7 +9501,7 @@ function raceTags(){
 const V_UP = V(0,1,0);
 const SMOKE = {mesh:null, per:64, life:3.6, gap:.07, cols:['#ffffff','#e63946','#4ea8de','#fcbf49','#8ac926','#ff70a6']};
 function smokeInit(){
-  if(SMOKE.mesh) return SMOKE.mesh; const cap = SMOKE.cap = SMOKE.per*8 + FX.n + FLR.tn + DDR.mn + INK.n, g = new T.InstancedBufferGeometry();   // eight racers' trails (2026-10-12), the sparks, Echo & Bravo's flare trails (FLR), Lil' Dipper's mist (DDR)
+  if(SMOKE.mesh) return SMOKE.mesh; const cap = SMOKE.cap = SMOKE.per*8 + FX.n + FLR.tn + DDR.mn + INK.n + SHF.slot.length*SMOKE.per, g = new T.InstancedBufferGeometry();   // eight racers' trails (2026-10-12), the sparks, Echo & Bravo's flare trails (FLR), Lil' Dipper's mist (DDR)
   g.setAttribute('position', new T.Float32BufferAttribute([-.5,-.5,0, .5,-.5,0, .5,.5,0, -.5,.5,0], 3));
   g.setAttribute('uv', new T.Float32BufferAttribute([0,0, 1,0, 1,1, 0,1], 2)); g.setIndex([0,1,2, 0,2,3]);
   SMOKE.p = new Float32Array(cap*3); SMOKE.a = new Float32Array(cap*2); SMOKE.c = new Float32Array(cap*3);
@@ -9550,7 +9550,7 @@ function smokeFrame(){
   for(let k = 0; k < FX.n && n < cap; k++){ const age = RACE.clock - FX.born[k]; if(age < 0 || age > FX.life[k]) continue; const f = age/FX.life[k], dr = 1 - f*.45;   // sparks and fireworks
     SMOKE.p[n*3] = FX.pos[k*3] + FX.vel[k*3]*age*dr; SMOKE.p[n*3+1] = FX.pos[k*3+1] + FX.vel[k*3+1]*age*dr - FX.g[k]*age*age; SMOKE.p[n*3+2] = FX.pos[k*3+2] + FX.vel[k*3+2]*age*dr;
     SMOKE.a[n*2] = FX.size[k]*(1 - f*.4); SMOKE.a[n*2+1] = Math.min(1, (1 - f)*1.4); SMOKE.c[n*3] = FX.col[k*3]; SMOKE.c[n*3+1] = FX.col[k*3+1]; SMOKE.c[n*3+2] = FX.col[k*3+2]; n++; }
-  n = flSmoke(n, cap); n = ddSmoke(n, cap); n = inkSmoke(n, cap);   // Echo & Bravo's flare trails, Lil' Dipper's mist, the dances' ink (section "win moves")
+  n = flSmoke(n, cap); n = ddSmoke(n, cap); n = inkSmoke(n, cap); n = shSmoke(n, cap);   // Echo & Bravo's flare trails, Lil' Dipper's mist, the dances' ink (section "win moves")
   M.geometry.instanceCount = n; if(n){ SMOKE.ap.needsUpdate = SMOKE.aa.needsUpdate = SMOKE.ac.needsUpdate = true; }
 }
 /* ================= race excitement: boost rings, lap banners, photo finish, fireworks ================= */
@@ -11040,7 +11040,7 @@ Object.assign(UI.en, {showOpen: 'Open up!'}); Object.assign(UI.es, {showOpen: 'Â
 const WM = {r: null, run: -1, id: '', at: 0, t: 0, len: 0, on: false, done: true, pend: null, steps: null, t0: null, carry: null, ev: null, ei: 0,
   k: 1, lift: 0, tw: false, why: '', cam: 'q', side: 1, S: 28, D: 0, bc: V(0,0,0), cd: V(0,0,0), yawC: 0, A: V(0,0,0), ctr: V(0,0,0), band: [0, 844, 844], ms: 0, nearN: 0, rec: null, recOn: false, log: []};
 const WM_LEAD = 1, WM_GAP = .5, WM_N = 36, WM_UP = .6, WM_DOWN = .9, WM_SETTLE = .9;   // lead: s after the finish when the blimp does not call it; gap: s from its end to the show's doors; N: samples for the plan; up, down: the safety climb's ramps (s); settle: s to come back to the racing line after a climb
-const WM_CAM = {car: [72, 15], show: [42, 14], q: [50, 12], front: [28, 10], side: [78, 8], rear: [140, 15], fl: [125, 4], drop: [42, 9], city: [16, 12]};   // the camera, degrees: round from the nose toward the routine's side, and up (Sky City: down its avenue, which is only 68 m wide; fl: Echo & Bravo's flares, from behind and low, the fan against the sky; drop: Lil' Dipper's water drop, from her side so the curtain shows face on)
+const WM_CAM = {dia: [112, 24], car: [72, 15], show: [42, 14], q: [50, 12], front: [28, 10], side: [78, 8], rear: [140, 15], fl: [125, 4], drop: [42, 9], city: [16, 12]};   // the camera, degrees: round from the nose toward the routine's side, and up (Sky City: down its avenue, which is only 68 m wide; fl: Echo & Bravo's flares, from behind and low, the fan against the sky; drop: Lil' Dipper's water drop, from her side so the curtain shows face on)
 const WM_FIT = {drop: .76, car: .8, show: .82};   // a camera's distance, times: Lil' Dipper's drop is fitted a little closer than the box asks (the plane big on a phone; the curtain's far end is at the box's edge)
 const wmEnv = u=>shEz(Math.min(1, u*5))*shEz(Math.min(1, (1 - u)*5));   // in and out softly
 /* the moves: o += the move at u (0 to 1) of its step. Offsets in sizes of the plane (o.f ahead, o.u up, o.s to its right), angles in radians
@@ -11274,7 +11274,38 @@ Object.assign(WM_MOVES, {
    smoke is his race trail (smokeFrame, def.smokeCol), his "Smoke on!" one of his own lines (PLANE_TRICK, said only when recorded: bbTalk). */
 Object.assign(WM_MOVES, {alpha: (o, u, A, D)=>{ const e = shEz(Math.min(1, u*2.5))*shEz(Math.min(1, (1 - u)*2.5)); o.pitch += A*e; o.f -= (D == null ? .9 : D)*shEz(u); o.u += .05*e; o.roll += .1*Math.sin(4*Math.PI*u)*e; }});
 const SHW = {at: -1};
-function shFrame(r, o){ if(SHW.at !== WM.at){ SHW.at = WM.at; bbTalk(r, 'smoke'); } if(o.glow) r.glowT = Math.max(r.glowT || 0, 1.3); }   // how far into space the sky is (0 to 1), from a to b over its step
+/* ---- Angel's friends (owner, 2026-11-01): the Blue Angels fly in to join him. Five copies of his own model (piv.clone(): new nodes only, the geometry
+   and materials are his, so nothing is built and nothing is freed but the nodes), posed each frame off his root in his frame without his roll (a tap's
+   roll is his alone): the diamond (Angel the lead, two wingmen, the slot low behind him) and the two solos wide behind. slot: [ahead, up, right] in
+   sizes of the plane; each slides in from behind, below and wider, a little later than the one before, banking into its place. In the last step all
+   six blast off together (zoom: far ahead and up, faster and faster, burners lit, a big whoosh), an offset outside the plan, so the camera stays put
+   and they leave the picture. Their smoke: a trail each in the smoke mesh (shSmoke; its capacity has room for them). */
+const SHF = {slot: [[-.8, -.1, -.72], [-.8, -.1, .72], [-1.6, -.24, 0], [-2.45, .1, -1.45], [-2.45, .1, 1.45]], g: [], tr: [], acc: 0, r: null, zt: -1, boom: false,
+  join: [.15, 2.5, .14], zoom: [.25, 1.7, 55, 14]};   // join: [start s, length s, each one's delay s]; zoom: [s into the last step, length s, sizes ahead, sizes up]
+const SHF_REACH = [[.55, -.8, -.1, -.72], [.55, -.8, -.1, .72], [.55, -1.6, -.24, 0], [.55, -2.45, .1, -1.45], [.55, -2.45, .1, 1.45]];   // the diamond and the solos, for the camera's fit (wpPlan)
+const _shE = new T.Euler(0, 0, 0, 'YZX'), _shV = V(0,0,0), _shfF = V(0,0,0);
+function shMake(r){ const F = SHF; shEnd(); F.r = r; const src = r.piv || r.root.children[0]; if(!src) return;
+  F.slot.forEach(()=>{ const g = new T.Group(); g.rotation.order = 'YZX'; g.add(src.clone()); g.name = 'shFriend'; rScene.add(g); F.g.push(g);
+    F.tr.push({pos: new Float32Array(SMOKE.per*3), born: new Float32Array(SMOKE.per).fill(-99), head: 0}); });
+  F.acc = 0; F.zt = WM.t0 && WM.t0.length > 2 ? WM.t0[2] + F.zoom[0] : WM.len - 2; F.boom = false; }
+function shEnd(){ const F = SHF; F.g.forEach(g=>{ if(g.parent) g.parent.remove(g); g.clear(); }); F.g = []; F.tr = []; F.r = null; }   // (the nodes only: the geometry and the materials are Angel's own)
+function shFriends(r){ const F = SHF, W = WM, t = W.t, sz = r.c.size*(rCourse && rCourse.city ? .75 : 1), J = F.join, Z = F.zoom;
+  const ze = Math.min(1, Math.max(0, (t - F.zt)/Z[1])), zd = ze*ze*ze;
+  if(ze > 0){ if(!F.boom){ F.boom = true; if(!WL.m){ noiseHit(160, 2800, 1.7, .34, .7); noiseHit(500, 5000, .9, .18, 1.2); tone(55, 1.5, 'sawtooth', .07, 240); } }   // the whoosh, and the burners' roar rising
+    _shE.set(0, r.root.rotation.y, r.root.rotation.z); _shV.set(Z[2]*zd*sz, Z[3]*zd*sz, 0).applyEuler(_shE); r.root.position.add(_shV); r.P.copy(r.root.position); r.root.rotation.z += .25*shEz(ze*3); r.glowT = Math.max(r.glowT || 0, 1.3); }
+  _shE.set(0, r.root.rotation.y, r.root.rotation.z);
+  F.g.forEach((g, i)=>{ const s = F.slot[i], p = shEz((t - J[0] - J[2]*i)/J[1]), q = 1 - p;
+    _shV.set((s[0] - 7*q)*sz, (s[1] - 1.3*q)*sz, s[2]*(1 + 1.4*q)*sz).applyEuler(_shE).add(r.root.position); g.position.copy(_shV);
+    g.rotation.set(-Math.sign(s[2])*.4*Math.sin(Math.PI*p), _shE.y, _shE.z); g.visible = true; });
+  const per = SMOKE.per; F.acc += RACE.dtR || 0;   // their trails, puffs as the racers' (smokeFrame)
+  while(F.acc >= SMOKE.gap){ F.acc -= SMOKE.gap; F.g.forEach((g, i)=>{ const T2 = F.tr[i], k = T2.head; T2.head = (k + 1) % per; T2.born[k] = RACE.t - F.acc;
+    _shfF.set(1, 0, 0).applyQuaternion(g.quaternion); _shV.copy(g.position).addScaledVector(_shfF, -r.c.size*.5); T2.pos[k*3] = _shV.x; T2.pos[k*3 + 1] = _shV.y; T2.pos[k*3 + 2] = _shV.z; }); } }
+function shSmoke(n, cap){ const F = SHF; if(!F.r || !F.tr.length) return n; const t = RACE.t, per = SMOKE.per, base = Math.max(5, F.r.c.size*.22)*1.6*(rCourse && rCourse.city ? .6 : 1), col = F.r.smk ? F.r.smk.col : null; if(!col) return n;
+  for(let i = 0; i < F.tr.length; i++){ const S = F.tr[i]; for(let k = 0; k < per && n < cap; k++){ const age = t - S.born[k]; if(age < 0 || age > SMOKE.life) continue; const f = age/SMOKE.life;
+    SMOKE.p[n*3] = S.pos[k*3]; SMOKE.p[n*3+1] = S.pos[k*3+1] + age*3; SMOKE.p[n*3+2] = S.pos[k*3+2];
+    SMOKE.a[n*2] = base*(1 + age*1.3); SMOKE.a[n*2+1] = (rCourse && rCourse.city ? .36 : .85)*Math.pow(1 - f, 1.4); SMOKE.c[n*3] = col.r; SMOKE.c[n*3+1] = col.g; SMOKE.c[n*3+2] = col.b; n++; } }
+  return n; }
+function shFrame(r, o){ if(SHW.at !== WM.at){ SHW.at = WM.at; bbTalk(r, 'smoke'); shMake(r); } if(o.glow) r.glowT = Math.max(r.glowT || 0, 1.3); if(SHF.r === r) shFriends(r); }
 /* ---- El Chupacabra's maracas (owner, 2026-10-25): a second win show for the Gee Bee, WIN_MOVE.geebee2, taking turns with his Cuban eight. He slows to a
    strut (little hops), two big painted maracas pop out beside the cockpit and he shakes them in rhythm, wiggling his wings, with a rattle "shk-shk" (noise bursts,
    as the other sfx) and a sparkle of music notes; he says one of two playful lines of his own (PLANE_TRICK, 'maracas'; original words that only nod to an old
@@ -11995,7 +12026,7 @@ const WIN_MOVE = {
   bristles:  {cam: 'front', tap: 'clack', ov: 'hop', s: [[1.0, ['hop', .2, 2]], [BB_APART.len + .15, ['apart'], ['wag', .1, 1]], [1.5, ['roll', 1, 1], ['fx', 'stars', .05]], [.8, ['hop', .3, 1], ['fx', 'stars', .5]]]},   // Bristles: two little hops, then its own trick: it comes apart into its blocks and snaps back together (bbApart), a ta-da roll and one big hop                                                                      // Endeavour: a slow roll like a launch's roll program (then its bay opens)
   concorde:  {cam: 'q', tap: 'reheat', ov: 'wag', settle: 2.0, s: [[2.2, ['dash', 2.2, .12], ['fx', 'puff', .02], ['fx', 'cone', .3]], [2.3, ['climb', 3.4, .95], ['fx', 'boom', .05]]]},   // Concorde 1, the sonic boom: a super fast low pass, a cone of vapour at its wings and a soft ring in the air, then a steep climb
   concorde2: {cam: 'q', tap: 'reheat', ov: 'wag', settle: 1.8, s: [[3.0, ['climb', 4.2, 1.1], ['space', 0, 1]], [1.6, ['space', 1, 0]]]},   // Concorde 2, the edge of space: a steep climb, the sky deepens to black and stars with the Earth's curve below, level off, the sky comes back
-  superhornet: {cam: 'q', tap: 'reheat', ov: 'roll', settle: 2.2, cs: [[1.8, ['alpha', .32, .45]], [2.6, ['roll', 1, 1], ['rise', .3]]], s: [[2.8, ['alpha', .6, .9]], [3.8, ['climb', 3.0, 1.42], ['roll', 2, 1]]]},   // Angel, the Blue Angels' solo: "Smoke on!", a slow high-alpha pass (nose high, wings rocking a little), then a vertical climbing roll, two rolls straight up with his burners lit, all in a white smoke trail (shFrame; Sky City: a gentler pass and one roll)
+  superhornet: {cam: 'dia', tap: 'reheat', ov: 'wag', reach: SHF_REACH, rh: .15, cs: [[2.6, ['rise', .35]], [2.0], [2.2, ['rise', -.35]]], s: [[2.6, ['rise', .6]], [2.0], [2.2, ['rise', -.6]]]},   // Angel, the Blue Angels' lead (owner, 2026-11-01): "Smoke on!", he climbs and his friends, five more Super Hornets in the team's paint, fly in to join him: the diamond (two wingmen and the slot) and the two solos; they hold it a beat in white smoke, then all six blast off out of the picture together with a big whoosh (shFrame, SHF)
   _:         {cam: 'q', s: [[1.6, ['roll', 1, 1]], [1.6, ['wag', .4, 2]]]}};                                                            // anything without its own
 /* the bursts: colours, and [count, speed ft/s, size (of the plane's size), life s, fall] (fxBurst) */
 const WM_FX = {puff: ['#ffffff', '#e8eef2'], dust: ['#f3e3a0', '#fff6d6', '#e9d38a'], splash: ['#bfe6ff', '#ffffff', '#7cc8f0'], boom: ['#ffffff', '#dff3ff'], stars: ['#ffd740', '#ff5252', '#40c4ff', '#69f0ae', '#e040fb', '#ffffff']};
@@ -12029,7 +12060,7 @@ function wmArm(r, bw, id, side){   // id: this routine (no turn taken); side: th
     k: 1, lift: 0, tw: !!r.c.pair, why: '', on: false, done: false, pend: null, t: 0, ei: 0, rec: W.recOn ? wmRecNew() : null});
   const lead = Math.max(bw || 0, WM_LEAD); W.at = RACE.clock + lead; r.wm = true; return lead + W.len; }
 const wmHold = w=>!!w && WM.r === w && !WM.done && WM.run === RACE.run;   // armed or flying: the results shot and the cheer wait (raceFrame, celebrate)
-function wmStop(){ const W = WM; if(W.r){ W.r.wm = false; wmPylons(W.r, false); bbApartRest(W.r.c); } csEnd(); W.r = null; W.on = false; W.done = true; W.pend = null; W.pyl = null; flStop(); ddStop(); mcEnd(); gsEnd(true); inkStop(); }   // (flStop: Echo & Bravo's flares gone too; inkStop: the dances' puffs, toys and props)
+function wmStop(){ const W = WM; if(W.r){ W.r.wm = false; wmPylons(W.r, false); bbApartRest(W.r.c); } csEnd(); W.r = null; W.on = false; W.done = true; W.pend = null; W.pyl = null; flStop(); ddStop(); mcEnd(); gsEnd(true); inkStop(); shEnd(); }   // (flStop: Echo & Bravo's flares gone too; inkStop: the dances' puffs, toys and props)
 const wmLiftK = t=>shEz(t/WM_UP)*(1 - shEz((t - (WM.len - WM_DOWN))/WM_DOWN));
 /* the routine at time t: its offset in the path frame in feet (o.f ahead, o.u up, o.s to the right) and its extra angles */
 function wmEval(t, o){
@@ -12149,7 +12180,7 @@ function wmPose(r, dt){
   if(W.dd != null) ddPose(r, W.t - W.dd);   // Lil' Dipper: her hatch and its water (ddFrame pours it)
   inkPen(r, dt); inkPropPose(r, dt);   // the dances: the pen's puffs, the beam and the trophy
   if(W.rec) wmRecFrame(r); }
-function wmFinish(r){ const W = WM; W.on = false; W.done = true; r.wm = false; wmPylons(r, false); bbApartRest(r.c); ddEnd(); csEnd(); mcEnd(); gsEnd(); inkFinish(); const L = W.log[W.log.length - 1]; if(L){ L.wall1 = performance.now(); L.t = +W.t.toFixed(2); }
+function wmFinish(r){ const W = WM; W.on = false; W.done = true; r.wm = false; wmPylons(r, false); bbApartRest(r.c); ddEnd(); csEnd(); mcEnd(); gsEnd(); inkFinish(); shEnd(); const L = W.log[W.log.length - 1]; if(L){ L.wall1 = performance.now(); L.t = +W.t.toFixed(2); }
   if(RACE.shot && RACE.shot.type === 'winMove'){ if(r.finished !== null) newShot('results', r); else RACE.nextCut = RACE.clock; }   // (the debug hook's routine in the middle of a race: back to the usual shots)
   if(r.finished !== null && W.run === RACE.run){ const sh = SHOW.c === r.c && SHOW.ctx === 'race' ? WM_GAP + (SHOW_REVEAL[r.c.def.id] || 0) : 0;   // the card's wall-clock limit (celebrate) counts again from now: the routine runs on the
     RACE.winEnd = Math.max(RACE.winEnd || 0, performance.now() + ((RACE.winCap || 12) + sh)*1000); }   // race's clock, which slow frames stretch (dt is capped), so a limit counted from the finish could cut it and the cheer
