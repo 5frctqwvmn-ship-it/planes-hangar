@@ -8747,7 +8747,7 @@ LIFE.carrier = X=>{
   const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832, dk = K.C.deck || 62, bow = CARRIER.bow, stern = CARRIER.stern, L = bow - stern;
   lfFleet(X, {frigates:0, buoys:0, dmin:350, dmax:1400});
   /* the flight deck at work: the ground crew parked along the deck edges and by the island, cheering (gcCrowd), tractors, a radar turning on the island, steam, running lights */
-  { const S = 1.5, sb = Math.PI/2 - .35, pt = -Math.PI/2 + .35;
+  { const S = 2.0, sb = Math.PI/2 - .25, pt = -Math.PI/2 + .25;
     gcCrowd([['fire', bow - 215, 96, sb], ['fork', bow - 268, 104, sb], ['cat', bow - 330, 112, sb], ['fuel', stern + 660, 112, sb + .2], ['bag', stern + 395, 96, sb], ['tug', stern + 335, 92, sb],
       ['fuel', bow - 235, -84, pt], ['tug', bow - 290, -92, pt], ['fork', bow - 340, -100, pt], ['bag', stern + 760, -106, pt]].map(([k, x, z, ry])=>({k, x, y:dk, z, ry, s:S})), [stern + L/2, dk, 0, L*.6], {f:3600}); }
   { const tb = lfTractorBag(); lfAnim(tb, 2, (i, t, m)=>{ const f = .5 - .5*Math.cos(t*.22 + i*2), x = stern + 300 + i*60 + f*380, dir = Math.sin(t*.22 + i*2) > 0 ? 0 : Math.PI; lfPut(m, x, dk, -100 - i*10, dir, 0, 0, 1.6, 1.6, 1.6); }, [stern + L/2, dk, 0, L*.6], {name:'tractors', f:3600}); }
@@ -9041,7 +9041,8 @@ function gcCrowd(list, region, o){ o = o || {}; if(!list.length) return null; co
   const by = {}; list.forEach((e, i)=>{ e.ph = (i*1.618) % 6.28; e.pop = -9; (by[e.k] = by[e.k] || []).push(e); });
   const mB = new T.Matrix4(), mL = new T.Matrix4(), mA = new T.Matrix4(), ups = [];
   Object.keys(by).forEach(k=>{ const D = G.T[k], L = by[k], n = L.length;
-    const mk = (geo, nm)=>{ const im = new T.InstancedMesh(geo, G.mat, n); im.instanceMatrix.setUsage(T.DynamicDrawUsage); im.frustumCulled = false; im.name = nm; im.castShadow = false; lfReg(im, V(region[0], region[1], region[2]), region[3], f); return im; };
+    const mk = (geo, nm)=>{ const sg = new T.BufferGeometry(); Object.keys(geo.attributes).forEach(q=>sg.setAttribute(q, geo.attributes[q])); sg.boundingSphere = new T.Sphere(V(region[0], region[1], region[2]), region[3]); LF.geos.push(sg);   /* (its own bounds for the culling, the same vertex buffers) */
+      const im = new T.InstancedMesh(sg, G.mat, n); im.instanceMatrix.setUsage(T.DynamicDrawUsage); im.name = nm; im.castShadow = false; lfReg(im, V(region[0], region[1], region[2]), region[3], f); return im; };
     const body = mk(D.body, 'crew-' + k), arms = D.arms.map((a, j)=>mk(a.geo, 'crew-' + k + j));
     ups.push((t, cheer, pp)=>{ for(let i = 0; i < n; i++){ const e = L[i], s = e.s;
         if(pp){ const dx = pp.x - e.x, dz = pp.z - e.z; if(dx*dx + dz*dz < near*near && Math.abs(pp.y - e.y) < near && t - e.pop > 3) e.pop = t; }
