@@ -332,7 +332,7 @@
 .rq .rq-say.big{width:68px;height:68px;border-radius:20px;background:#ffd23f;border:3px solid var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:2px 2px 4px;box-sizing:border-box;touch-action:manipulation}   /* "Say it again" (owner, 2026-10-10: the question is said once; this replays it) */
 .rq .rq-say.big .i{width:30px;height:30px;stroke-width:2.4}
 .rq-sayt{font:800 11px/1.05 var(--display);color:var(--ink);text-align:center}
-.rq .rq-pics{padding-right:70px;box-sizing:border-box}
+.rq .rq-pics{padding-right:70px;box-sizing:border-box}.rq .rq-pics.eq{padding-left:6px}.rq .rq-pics.eq .rq-plus{padding:0 3px}
 .wl-rep{position:absolute;left:calc(var(--sl) + 10px);bottom:calc(var(--sb) + 80px);min-height:52px;padding:0 16px 0 10px;border-radius:26px;border:3px solid var(--ink);background:#ffd23f;color:var(--ink);font:900 17px/1 var(--display);display:flex;align-items:center;gap:6px;pointer-events:auto;cursor:pointer;touch-action:manipulation;box-shadow:0 4px 14px rgba(0,0,0,.22)}
 .wl-rep .i{width:28px;height:28px;stroke-width:2.4}
   .r-ann{position:absolute;left:50%;bottom:calc(var(--sb) + 26px);transform:translateX(-50%);display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.95);border-radius:999px;padding:8px 18px 8px 10px;box-shadow:0 3px 12px rgba(0,0,0,.2);font:800 18px var(--display);color:var(--ink);white-space:nowrap}
@@ -400,6 +400,8 @@
   .rq-pics svg{width:44px;height:44px;transition:transform .15s}
   .rq-pics.many svg{width:34px;height:34px}
   .rq-pics .rq-plus{font:900 30px var(--display);color:var(--ink-2);padding:0 6px}
+  .rq-pics .rq-eq{flex-basis:100%;text-align:center;font:900 34px/1.05 var(--display);color:var(--ink);letter-spacing:.04em;margin:-2px 0 2px}.rq-pics .rq-eq i{font-style:normal;color:#1f9aa6;padding:0 .12em}.rq-pics .rq-eq u{text-decoration:none;color:#e07b00}
+  .rq-ans button.no:disabled{opacity:.28;filter:grayscale(1);cursor:default}.r-zoom.small{font-size:clamp(30px,8vw,56px)}
   .rq-pics .rq-row{display:flex;gap:4px;flex-basis:100%;justify-content:center}
   .rq-pics svg.lit{transform:scale(1.3)}
   .rq-pics .rq-e{display:inline-block;font-size:38px;line-height:1.1;transition:transform .15s}.rq-pics.many .rq-e{font-size:30px}.rq-pics .rq-e.lit{transform:scale(1.3)}
@@ -12662,7 +12664,7 @@ function wmRecShot(){ const R = WM.rec, r = WM.r; if(!R || !r) return; R.shots++
    A wrong tap costs nothing: the game counts along (or says which number that was) and the right answer starts to glow.
    Levels (1 to 6: count to 3, count to 5, find the number, count to 10, add within 5, add within 10; 7 to 12 since 2026-10-31: adding
    past ten, take away, the missing number, counting by twos, fives and tens, the biggest or smallest, story problems) go up after three
-   right-first-time answers in a row, down after two misses in a row, and are saved. Since 2026-10-31 a question has one try (lnAnswer). */
+   right-first-time answers in a row, down after two misses in a row, and are saved. Since 2026-11-01 he keeps trying until it is right; only a first try counts (lnAnswer). */
 const raceTypeSaved = ()=>{ const t = saveGet('hangar-racetype'); return t === 'numbers' || t === 'words' || ((t === 'beats' || t === 'radio' || t === 'letters') && lang === 'en') || t === 'tower' ? t : 'classic'; };   // (the Letter Race too: English only)   // (Radio Out too: English only)   // Word Launch is English only for now (an old Spanish save with it opens the classic race)
 RACE.type = raceTypeSaved();
 const LEARN = {on:false, me:null, q:null, nextT:0, stars:0, scale:1, streak:0, miss:0, lvl:1, help:[]};
@@ -12857,10 +12859,10 @@ const LN_STORY = {
 const LN_SKIP = [2, 5, 10];
 Object.assign(UI.en, {lnTake:(a, b)=>`${a} take away ${b}.`, lnMiss:(a, n)=>`${a} and how many more make ${n}?`, lnBy:{2:'Count by twos!', 5:'Count by fives!', 10:'Count by tens!'}, lnNext:'What comes next?',
   lnBiggest:'Which number is the biggest?', lnSmallest:'Which number is the smallest?', lnBigger:"There's a bigger one.", lnSmaller:"There's a smaller one.",
-  lnSoon:["We'll try that one again soon!", 'Good try! That one will come back.', "Let's count it again later!"]});
+  lnTry:'Try again!', lnGot:'You got it!', lnSoon:["We'll try that one again soon!", 'Good try! That one will come back.', "Let's count it again later!"]});
 Object.assign(UI.es, {lnTake:(a, b)=>`${a} menos ${b}.`, lnMiss:(a, n)=>`¿${a} y cuántos más son ${n}?`, lnBy:{2:'¡Cuenta de dos en dos!', 5:'¡Cuenta de cinco en cinco!', 10:'¡Cuenta de diez en diez!'}, lnNext:'¿Qué número sigue?',
   lnBiggest:'¿Qué número es el más grande?', lnSmallest:'¿Qué número es el más pequeño?', lnBigger:'Hay uno más grande.', lnSmaller:'Hay uno más pequeño.',
-  lnSoon:['¡Esa vuelve pronto!', '¡Buen intento! Esa va a volver.', '¡La contamos otra vez más tarde!']});
+  lnTry:'¡Inténtalo ahora!', lnGot:'¡Muy bien!', lnSoon:['¡Esa vuelve pronto!', '¡Buen intento! Esa va a volver.', '¡La contamos otra vez más tarde!']});
 /* every line her number pack (nums-q) needs for the levels 7 to 12 (herLines) */
 function lnHerMore(L, add){ const u = UI[L], P = 'nums-q';
   LN_BIG.forEach(n=>add(P, [String(n), u.thatsN(n)]));
@@ -12930,6 +12932,10 @@ function lnRender(){
     : t === 'skip' ? q.seq.map(v=>`<b class="rq-tile">${v}</b>`).join('') + '<b class="rq-tile q">?</b>'
     : t === 'cmp' ? `<span class="rq-e rq-cmp">${q.big ? '🐘' : '🐭'}</span>`   // the biggest: an elephant; the smallest: a mouse
     : '';
+  const op = t === 'add' || t === 'add15' ? '+' : t === 'sub' ? '−' : t === 'story' ? (q.op === '+' ? '+' : '−') : null;   // the problem written above its pictures (2026-11-01, the owner: "2 + 2" over the diamonds)
+  if(op) pics.innerHTML = `<div class="rq-eq" aria-hidden="true">${q.a} <i>${op}</i> ${q.b}</div>` + pics.innerHTML;
+  else if(t === 'miss') pics.innerHTML = `<div class="rq-eq" aria-hidden="true">${q.a} <i>+</i> <u>?</u> <i>=</i> ${q.sum}</div>` + pics.innerHTML;
+  pics.classList.toggle('eq', !!pics.querySelector('.rq-eq'));   // (eq: the written problem on top; the pictures use the card's left side so 2 + 2 stays on one line)
   pics.hidden = t === 'find'; pics.classList.toggle('many', many); pics.classList.toggle('lots', q.a + q.b > 10 || (t === 'count' && q.n > 10)); pics.classList.toggle('skip', t === 'skip');   // (lots: past ten, smaller pictures so the card stays low)
   const ans = $('rqAns'); ans.innerHTML = ''; ans.className = 'rq-ans' + (q.live ? '' : ' wait') + (q.choices.some(v=>v > 99) ? ' wide' : '');   // (round number buttons: no picture-card classes left over)
   q.choices.forEach(v=>{ const bt = document.createElement('button'); bt.textContent = v; bt.addEventListener('click', ()=>lnAnswer(v, bt)); ans.appendChild(bt); });
@@ -12977,38 +12983,29 @@ function lnThanks(r, pre){ say([pre || [], talkLine(r, 'thanks')], lnVoice()); n
     if(btAnswer(r, ahead)) return;   // a line to a plane it just passed, which answers back (banter, race section), in place of the zoom line
     say(talkLine(r, 'zoom'), Object.assign({force:true}, planeVoice(r))); if(r.c.pair) twinCue(r); };   // Ned & Zed show off
   clearTimeout(LEARN.zoomT); LEARN.zoomT = setTimeout(()=>{ LEARN.zoomBy = 0; zoom(); }, 3600); LEARN.zoomBy = t0 + 6600; }   // (zoomBy: the zoom line is on its way, so the blimp's lap call waits: blLapRoom)
-/* One try (2026-10-31, the owner: "I think he's just pressing each one until he gets the right one"): only a first-try right answer gives
-   the boost, the zoom and a star on the trail. A wrong tap ends the question kindly: her reason ("That's 4. There are more."), she counts
-   along with him (what is left, the missing ones, the numbers in the row), the right answer lights up as she says it, and she says it
-   will come back; no boost, no lost places, and the same question returns two or three questions later with its answers shuffled. */
+/* Keep trying (2026-11-01, the owner: let him keep pressing until he gets it right; replaces the one-try flow of 2026-10-31): a wrong pick
+   gets a gentle "Try again!" from her and that button fades and stays off, so the next press is a real new try; the answers sleep while
+   she says it (the listening beat). Nothing shows or counts out the answer. Only a first-try right answer gives the boost, the zoom and a
+   star on the trail (and counts toward the next level); a right answer after misses gets a small "You got it!" and no star or boost. */
 function lnAnswer(v, bt){
   const q = LEARN.q; if(!q || q.done || bt.disabled) return;
   if(!q.live) return lnNotYet(bt);   // still listening: the answers are not awake yet
   audio(); const u = UI[lang];
   if(v === q.n){
-    q.done = true; bt.classList.add('yes'); sfx.chime(); LEARN.stars++;
-    LEARN.streak++; LEARN.miss = 0; lnFirst();
+    q.done = true; bt.classList.add('yes'); sfx.chime(); const z = $('rZoom'); LEARN.help.forEach(clearTimeout);
+    if(q.tries){ z.textContent = u.lnGot; z.classList.add('small'); z.classList.remove('pop'); void z.offsetWidth; z.classList.add('pop');
+      say(u.lnGot, herV(null, {qpref: /-nums-q$/})); LEARN.help = [setTimeout(()=>{ if(LEARN.q === q) lnClose(); }, 1500)]; LEARN.nextT = RACE.t + 15 + Math.random()*3; return; }
+    LEARN.stars++; LEARN.streak++; LEARN.miss = 0; lnFirst();
     if(LEARN.streak >= 3 && LEARN.lvl < LN_TOP){ LEARN.lvl++; LEARN.streak = 0; saveSet('hangar-mathlvl', String(LEARN.lvl)); }
     const r = LEARN.spk; lnBoost(.06);
-    const z = $('rZoom'); z.textContent = u.zoom; z.classList.remove('pop'); void z.offsetWidth; z.classList.add('pop');
-    LEARN.help.forEach(clearTimeout); LEARN.help = [setTimeout(()=>{ if(LEARN.q === q) lnClose(); }, 700)];
+    z.textContent = u.zoom; z.classList.remove('small'); z.classList.remove('pop'); void z.offsetWidth; z.classList.add('pop');
+    LEARN.help = [setTimeout(()=>{ if(LEARN.q === q) lnClose(); }, 700)];
     lnThanks(r); LEARN.nextT = RACE.t + 17 + Math.random()*4;   // about half as many questions as before
     return;
   }
-  q.done = true; q.tries = 1; q.miss = v; bt.classList.add('no'); tone(240, .22, 'sine', .14, 190); q.pT = 0;
-  LEARN.streak = 0; if(++LEARN.miss >= 2 && LEARN.lvl > 1){ LEARN.lvl--; LEARN.miss = 0; saveSet('hangar-mathlvl', String(LEARN.lvl)); }
-  (LEARN.redo = LEARN.redo || []).push({q: Object.assign({}, q, {done:false}), due: (LEARN.qn || 0) + 2 + (Math.random() < .5 ? 1 : 0)});
-  LEARN.help.forEach(clearTimeout); LEARN.help = []; [...$('rqAns').children].forEach(b=>{ b.disabled = true; });
-  const t = q.type, pics = [...$('rqPics').querySelectorAll('svg,.rq-e')], soon = bagPick('nsoon:' + lang, u.lnSoon), end = [u.thatsN(q.n), soon];
-  const why = t === 'cmp' ? [u.thatsN(v), q.big ? u.lnBigger : u.lnSmaller] : t === 'skip' ? [] : [u.thatsN(v), v > q.n ? u.fewerN : u.moreN];
-  let m;
-  if(t === 'cmp'){ say([why, end], herV(null, {qpref: /-nums-q$/})); LEARN.help.push(setTimeout(()=>lnShow(q), 1400)); m = {t: 6}; }
-  else if(t === 'skip'){ const tiles = [...$('rqPics').querySelectorAll('.rq-tile')]; m = lnCountAlong(q, [], why, tiles, [...q.seq, q.n].map(String), end); LEARN.help.push(setTimeout(()=>{ const qt = $('rqPics').querySelector('.rq-tile.q'); if(qt && LEARN.q === q) qt.textContent = q.n; }, m.t*1000)); }
-  else if(t === 'miss') m = lnCountAlong(q, [], why, pics.filter(p=>p.classList.contains('ghost')), null, end);
-  else if(t === 'sub' || (t === 'story' && q.op === '-')) m = lnCountAlong(q, [], why, pics.filter(p=>!p.classList.contains('gone')), null, end);
-  else m = lnCountAlong(q, [], why, pics, null, end);
-  LEARN.help.push(setTimeout(()=>{ if(LEARN.q === q) lnClose(); }, (m.t + 4.5)*1000));
-  LEARN.nextT = RACE.t + 13 + m.t + Math.random()*3;
+  if(!q.tries++){ LEARN.streak = 0; if(++LEARN.miss >= 2 && LEARN.lvl > 1){ LEARN.lvl--; LEARN.miss = 0; saveSet('hangar-mathlvl', String(LEARN.lvl)); } }   // (the level counts the first try only)
+  bt.classList.add('no'); bt.disabled = true; tone(240, .22, 'sine', .14, 190); q.pT = 0;
+  q.live = false; $('rqAns').classList.add('wait'); lnLiveAfter(q, say(u.lnTry, herV(null, {qpref: /-nums-q$/})));   // her "Try again!", then the answers wake
 }
 function learnStart(){
   lnClose(); clearTimeout(LEARN.zoomT); LEARN.mode = RACE.type; lrnStart(); ltStart(); LEARN.on = RACE.type === 'numbers' || RACE.type === 'words' || (RACE.type === 'letters' && lang === 'en');   // Word Launch ('beats') and Control Tower run in their own sections: no cards, the race never stops (the Letter Race: English only)
