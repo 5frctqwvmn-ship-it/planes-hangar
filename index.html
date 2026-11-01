@@ -542,7 +542,7 @@
   .rq-pics .lt-big{display:inline-block;font:900 64px/1 var(--display);color:var(--ink);letter-spacing:.02em;transition:transform .15s}.rq-pics .lt-big i{font-style:normal;margin-left:.2em;color:#1f9aa6}.rq-pics .lt-big.lit{transform:scale(1.15)}
   .rq-ans.lt button{min-height:136px;max-width:160px;background:#fff7d6;transition:transform .15s,background .15s}.rq-ans.lt.three{gap:8px}.rq-ans.lt.three button{max-width:124px;padding:8px 4px}
   .rq-ans.lt .pr-e{font-size:58px}.rq-ans.lt .lt-svg svg{display:block;width:64px;height:58px}.rq-ans.lt .pr-w{font-size:24px}.rq-ans.lt .pr-w.long{font-size:20px}.rq-ans.lt .pr-w.longer{font-size:16px;white-space:normal;text-align:center}
-  .rq-ans.lt button.lit{transform:scale(1.06);background:#ffe27a;box-shadow:0 0 0 4px #ffd23f}.rq-ans.lt button.no{animation:none;opacity:.5}.rq-ans.lt button.yes{background:#8ac926;border-color:#3f6d0c}.rq-ans.lt button.yes .pr-w{color:#fff}
+  .rq-ans.lt button.lit{transform:scale(1.06);background:#ffe27a;box-shadow:0 0 0 4px #ffd23f}.rq-ans.lt button.no{animation:shake .4s}.rq-ans.lt button.yes{background:#8ac926;border-color:#3f6d0c}.rq-ans.lt button.yes .pr-w{color:#fff}
   .rq-ans.lt .pr-w .fl{display:inline-block;font-style:normal;font-size:1.3em;line-height:1;color:#1f9aa6;transition:opacity .2s,color .2s,transform .2s}.rq-ans.lt .pr-w .fl.under{opacity:.28}.rq-ans.lt .pr-w .fl.lock{opacity:1;color:#2f7d0a;transform:scale(1.12)}.rq-ans.lt .pr-w .fl.miss{color:#e0605e}
   .rq-ans.lt .pr-w .fl.hl{opacity:1;color:#1c2426;background:#ffd23f;border-radius:.2em;box-shadow:0 0 0 .14em #ffd23f,0 0 14px 6px rgba(255,210,63,.85);animation:ltHl .7s ease-in-out infinite alternate}   /* the first letter lights up while she gives the reason, and on a right pick */
   @keyframes ltHl{from{transform:scale(1)}to{transform:scale(1.12)}}
@@ -575,6 +575,14 @@
   .rq-pics.skip{gap:6px;flex-wrap:nowrap}.rq-pics .rq-tile{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:46px;padding:0 4px;box-sizing:border-box;border-radius:12px;background:#e9f4fb;border:3px solid #4ea8de;font:900 24px/1 var(--display);color:var(--ink);transition:transform .15s}
   .rq-pics .rq-tile.q{background:#fff7d6;border-color:#f2b705;border-style:dashed}.rq-pics .rq-tile.lit{transform:scale(1.18);background:#ffe27a}
   .rq-ans.wide button{font-size:32px}
+  .rq-ans.four{gap:10px}.rq-ans.four button{width:70px;height:70px;font-size:36px}.rq-ans.four.wide button{font-size:28px}   /* four number choices from level 7 (2026-11-01 review) */
+  .kf-btn{align-self:center;display:inline-flex;align-items:center;gap:6px;border:2px solid #9aa3a7;border-radius:999px;background:#fff;color:#4a5458;font:800 14px/1 var(--display);padding:6px 12px 6px 9px;cursor:pointer;touch-action:manipulation}
+  .kf-btn svg{width:18px;height:18px;fill:#4a5458}.kf-btn[hidden]{display:none}
+  .rq-pics.touch svg,.rq-pics.touch .rq-e:not(.rq-cmp){cursor:pointer;animation:kfTouch 1.4s ease-in-out infinite}.rq-pics.touch .lit{animation:none}
+  .rq-pics.touch .rq-e.lit{background:radial-gradient(circle,#ffe27a 52%,rgba(255,226,122,0) 72%);border-radius:50%}.rq-pics.touch svg.lit{filter:drop-shadow(0 0 5px #ffd23f)}
+  @keyframes kfTouch{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+  @media (prefers-reduced-motion:reduce){.rq-pics.touch svg,.rq-pics.touch .rq-e{animation:none}}
+  .rq-ans.lt.hidew .pr-w{visibility:hidden}   /* Letter Race: the word stays hidden until he answers (2026-11-01 review) */
   .rq-pics .rq-cmp{font-size:46px}
   .rq-pics.lots{gap:2px 4px}.rq-pics.lots .rq-e{font-size:25px}.rq-pics.lots svg{width:27px;height:27px}.rq-pics.lots .rq-plus{font-size:24px;padding:0 4px}.rq-pics.lots .rq-row{gap:2px}
   .rq-pics .lt-big.small .lt-cap{font-size:84px;letter-spacing:0}
@@ -725,7 +733,7 @@
   .st-ch .th .st-scene{width:100%;height:100%;aspect-ratio:auto;box-shadow:none;border-radius:12px}
   .st-em{font-size:56px;line-height:1}
   .st-ch .lb{font:800 16px/1.15 var(--display);text-align:center}
-  .st-ch.dim{opacity:.35}
+  .st-ch.dim{opacity:.35}.st-ch.no{animation:shake .4s}.st-q .kf-btn,.hd-kf{margin:10px auto 0;display:flex;width:fit-content}.hd-kf[hidden]{display:none}
   .st-ch.ok{border-color:#2eaa5b;background:#e6f7ec}
   .st-ch.hint{animation:stGlow 1s ease-in-out infinite}
   @keyframes stGlow{0%,100%{box-shadow:0 0 0 0 rgba(217,165,33,.9),0 2px 10px rgba(0,0,0,.12);border-color:var(--mustard)}50%{box-shadow:0 0 0 10px rgba(217,165,33,0),0 2px 10px rgba(0,0,0,.12);border-color:var(--mustard)}}
@@ -800,6 +808,7 @@
         <div class="rq-head"><b id="rqText"></b><button class="iconbtn rq-say big" id="rqSay"><svg class="i" viewBox="0 0 24 24"><path d="M4 9.5h4l5-4v13l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span class="rq-sayt"></span></button></div>
         <div class="rq-pics" id="rqPics"></div>
         <div class="rq-ans" id="rqAns"></div>
+        <button class="kf-btn" id="rqKf" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13.5l7-1.5 5.5-7h2.5l-2.5 7 5-1 1.5-2.5H23l-1 5-6.5 1.5L12 21H9.5l2-4.5-7 .5z"/></svg><span></span></button>
       </div>
       <div class="rq rw" id="rW" hidden>
         <div class="rq-head"><b id="rwPrompt"></b><button class="iconbtn rq-say big" id="rwSay"><svg class="i" viewBox="0 0 24 24"><path d="M4 9.5h4l5-4v13l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg><span class="rq-sayt"></span></button></div>
@@ -3864,9 +3873,9 @@ async function say0(parts, opt){                // opt.force: speak even with Re
   for(const p of [...new Set(locs.map(c=>c[0]))]){ bufs[p] = await voPack(p); if(tok !== VO.tok) return; if(!bufs[p]){ deviceSay(units.join(' '), L); return; } }
   let cls; try{ cls = await Promise.all(locs.map(([p, st, du])=>voLine(a, bufs[p], st, du))); }catch(e){ cls = null; } if(tok !== VO.tok) return; if(!cls){ deviceSay(units.join(' '), L); return; }   // (each line decoded on its own: section "speech line by line")
   if(a.state === 'suspended'){ try{ await a.resume(); }catch(e){} if(tok !== VO.tok) return; }
-  let t = a.currentTime + .03, tH = 0; const rate = (opt && opt.rate) || 1, plain = (opt && opt.plain) || []; ent.a0 = t; ent.packs = locs.slice(0, ent.u.length).map(c=>c[0]); if(ent2) ent2.packs = locs.slice(hk).map(c=>c[0]);   // (tests: when it plays on the audio clock, from which packs)
+  let t = a.currentTime + .03, tH = 0; const rate = (opt && opt.rate) || 1, plain = (opt && opt.plain) || [], slow = (opt && opt.slow) || [];   // (opt.slow: lines played stretched, at .7 speed: the Letter Race's sound after a miss) ent.a0 = t; ent.packs = locs.slice(0, ent.u.length).map(c=>c[0]); if(ent2) ent2.packs = locs.slice(hk).map(c=>c[0]);   // (tests: when it plays on the audio clock, from which packs)
   if(!VO.tap){ VO.tap = a.createGain(); VO.tap.gain.value = VOL.voice; VO.tap.connect(out); VO.an = a.createAnalyser(); VO.an.fftSize = 512; VO.anBuf = new Uint8Array(512); VO.tap.connect(VO.an); }   // a tap to hear how loud the voice is (talking mouths)
-  locs.forEach(([p, st, du], i)=>{ if(i === hk){ tH = t; if(ent2) ent2.a0 = t; } const src = a.createBufferSource(), r = i >= hk || plain.includes(units[i]) ? 1 : rate, cl = cls[i]; src.buffer = cl[0]; src.playbackRate.value = r; src.connect(VO.tap); src.start(t, cl[1], du); VO.srcs.push(src); t += du/r + ((opt && opt.gap) || .05); });
+  locs.forEach(([p, st, du], i)=>{ if(i === hk){ tH = t; if(ent2) ent2.a0 = t; } const src = a.createBufferSource(), r = (i >= hk || plain.includes(units[i]) ? 1 : rate)*(slow.includes(units[i]) ? .7 : 1), cl = cls[i]; src.buffer = cl[0]; src.playbackRate.value = r; src.connect(VO.tap); src.start(t, cl[1], du); VO.srcs.push(src); t += du/r + ((opt && opt.gap) || .05); });
   VO.from = a.currentTime; VO.until = t; VO.prio = 5; talkSet(t - a.currentTime); ent.a1 = ent2 ? tH : t; if(ent2) ent2.a1 = t;
   if(ent2){ const her = units.slice(hk).join(' '), ms = Math.max(0, (tH - a.currentTime)*1000); ent.t1 = performance.now() + ms; ent2.t0 = ent.t1;   // her part: who talks switches to her as it starts (her mouth, the bubble)
     setTimeout(()=>{ if(VO.tok === tok){ VO.who = 'blimp'; VO.text = her; } }, ms); }
@@ -12946,10 +12955,10 @@ const LN_STORY = {
 const LN_SKIP = [2, 5, 10];
 Object.assign(UI.en, {lnTake:(a, b)=>`${a} take away ${b}.`, lnMiss:(a, n)=>`${a} and how many more make ${n}?`, lnBy:{2:'Count by twos!', 5:'Count by fives!', 10:'Count by tens!'}, lnNext:'What comes next?',
   lnBiggest:'Which number is the biggest?', lnSmallest:'Which number is the smallest?', lnBigger:"There's a bigger one.", lnSmaller:"There's a smaller one.",
-  lnTry:'Try again!', lnGot:'You got it!', lnSoon:["We'll try that one again soon!", 'Good try! That one will come back.', "Let's count it again later!"]});
+  lnTry:'Try again!', lnTouch:'Touch each one!', lnTouchSay:'Count them one by one!', kfly:'Keep flying', lnGot:'You got it!', lnSoon:["We'll try that one again soon!", 'Good try! That one will come back.', "Let's count it again later!"]});
 Object.assign(UI.es, {lnTake:(a, b)=>`${a} menos ${b}.`, lnMiss:(a, n)=>`¿${a} y cuántos más son ${n}?`, lnBy:{2:'¡Cuenta de dos en dos!', 5:'¡Cuenta de cinco en cinco!', 10:'¡Cuenta de diez en diez!'}, lnNext:'¿Qué número sigue?',
   lnBiggest:'¿Qué número es el más grande?', lnSmallest:'¿Qué número es el más pequeño?', lnBigger:'Hay uno más grande.', lnSmaller:'Hay uno más pequeño.',
-  lnTry:'¡Inténtalo ahora!', lnGot:'¡Muy bien!', lnSoon:['¡Esa vuelve pronto!', '¡Buen intento! Esa va a volver.', '¡La contamos otra vez más tarde!']});
+  lnTry:'¡Inténtalo ahora!', lnTouch:'¡Toca cada uno!', lnTouchSay:'¡Cuéntalos uno por uno!', kfly:'Sigue volando', lnGot:'¡Muy bien!', lnSoon:['¡Esa vuelve pronto!', '¡Buen intento! Esa va a volver.', '¡La contamos otra vez más tarde!']});
 /* every line her number pack (nums-q) needs for the levels 7 to 12 (herLines) */
 function lnHerMore(L, add){ const u = UI[L], P = 'nums-q';
   LN_BIG.forEach(n=>add(P, [String(n), u.thatsN(n)]));
@@ -12972,7 +12981,7 @@ function lnType(L){ const r = Math.random();
   return r < .55 ? 'story' : r < .67 ? 'cmp' : r < .78 ? 'skip' : r < .9 ? 'miss' : 'sub'; }
 function lnMake(prev){   // counting, adding and the rest as the child gets them right (levels 1 to 12); every part from its own bag (bagPick)
   const L = LEARN.lvl, rd = LEARN.redo || [], ri = rd.findIndex(x=>x.due <= (LEARN.qn || 0) + 1);
-  if(ri >= 0){ const o = rd.splice(ri, 1)[0].q; return Object.assign({}, o, {choices: lnShuffle(o.choices.slice()), tries:0, done:false, live:false, again:true, t0:RACE.clock, nag:false}); }   // a question he missed, two or three later (spaced repeat)
+  if(ri >= 0){ const o = rd.splice(ri, 1)[0].q; return Object.assign({}, o, {choices: lnShuffle(o.choices.slice()), tries:0, done:false, live:false, again:true, t0:RACE.clock, nag:false, pgN:0, touch:null, skip:false}); }   // a question he missed, two or three later (spaced repeat)
   const cnt = (lo, hi)=>{ max = hi; n = bagPick('ncount' + lo + '-' + hi, Array.from({length: hi - lo + 1}, (x, i)=>lo + i), String); };
   const add = (top, lo)=>{ type = 'add'; max = top; const pairs = []; for(let s = lo || 2; s <= top; s++) for(let x = 1; x < s; x++) if(x <= 10 && s - x <= 10) pairs.push([x, s - x]); const p = bagPick('nadd' + top + (lo ? '-' + lo : ''), pairs, p=>p.join('+')); a = p[0]; b = p[1]; n = a + b; };
   const kind = bagPick('nkind', LC.kinds, k=>k[0])[0];   // every thing to count once before any comes back
@@ -12983,16 +12992,17 @@ function lnMake(prev){   // counting, adding and the rest as the child gets them
   else if(type === 'sub'){ const pairs = []; for(let x = 2; x <= 10; x++) for(let y = 1; y < x; y++) pairs.push([x, y]); const p = bagPick('nsub', pairs, p=>p.join('-')); a = p[0]; b = p[1]; n = a - b; max = 10; }
   else if(type === 'miss'){ const pairs = []; for(let x = 1; x <= 9; x++) for(let y = x + 1; y <= 10; y++) pairs.push([x, y]); const p = bagPick('nmiss', pairs, p=>p.join('/')); a = p[0]; b = p[1] - p[0]; n = b; extra.sum = p[1]; max = 10; }
   else if(type === 'skip'){ const st = bagPick('nskip', LN_SKIP, String), top = st === 2 ? 20 : st === 5 ? 50 : 100, k = lnRand(1, top/st - 3); extra.step = st; extra.seq = [k*st, (k + 1)*st, (k + 2)*st]; n = (k + 3)*st; max = top; }
-  else if(type === 'cmp'){ const big = Math.random() < .6, s = new Set(); while(s.size < 3) s.add(lnRand(1, 20)); const v = [...s]; n = big ? Math.max(...v) : Math.min(...v); extra.big = big; extra.vals = v; max = 20; }
+  else if(type === 'cmp'){ const big = Math.random() < .6, s = new Set(); while(s.size < (L >= 7 ? 4 : 3)) s.add(lnRand(1, 20)); const v = [...s]; n = big ? Math.max(...v) : Math.min(...v); extra.big = big; extra.vals = v; max = 20; }
   else { const st = bagPick('nstory:' + lang, LN_STORY[lang], x=>x[0][0]); extra.lines = st[0]; a = st[2]; b = Math.abs(st[3]); n = st[3] > 0 ? a + b : a - b; extra.op = st[3] > 0 ? '+' : '-'; max = 15; return lnDone(prev, {type, kind: st[1], n, a, b, max, ...extra}); }
   return lnDone(prev, {type, kind, n, a, b, max, ...extra});
 }
 function lnDone(prev, q){
   if(prev && prev.type === q.type && prev.n === q.n && prev.a === q.a && !prev.again) return lnMake(prev);   // never the same question twice in a row
-  let choices;
+  let choices; const nc = LEARN.lvl >= 7 ? 4 : 3;   // four choices from level 7 (2026-11-01 review: three let him find it by elimination)
   if(q.type === 'cmp') choices = q.vals.slice();
-  else if(q.type === 'skip'){ const s = q.step, o = [q.n - s, q.n + s, q.n + 1, q.n - 1].filter(v=>v >= 1 && v !== q.n && !q.seq.includes(v)); choices = [q.n, ...lnShuffle(o).slice(0, 2)]; }
-  else { const lo = 1, near = lnShuffle([q.n - 2, q.n - 1, q.n + 1, q.n + 2].filter(v=>v >= lo && v <= Math.max(q.max, 3))); choices = [q.n, near[0], near[1]]; }
+  else if(q.type === 'skip'){ const s = q.step, o = [q.n - s, q.n + s, q.n + 1, q.n - 1, q.n + 2*s].filter(v=>v >= 1 && v !== q.n && !q.seq.includes(v)); choices = [q.n, ...lnShuffle(o).slice(0, nc - 1)]; }
+  else { const lo = 1, near = lnShuffle([q.n - 2, q.n - 1, q.n + 1, q.n + 2].filter(v=>v >= lo && v <= Math.max(q.max, 3))); choices = [q.n, ...near.slice(0, nc - 1)]; }
+  for(let v = q.n + 3, k = 0; choices.length < nc && k < 40; k++, v = k % 2 ? q.n - 3 - (k >> 1) : q.n + 3 + (k >> 1)) if(v >= 1 && !choices.includes(v) && !(q.seq || []).includes(v)) choices.push(v);   // (a short list: the next numbers out)
   const lt = {add:'add', add15:'add', sub:'sub'}[q.type] || 'count', ld = q.type === 'story' || q.type === 'cmp' || q.type === 'skip' || q.type === 'miss' ? null : bagPick('nlead-' + lt + ':' + lang, LC.lead[lt][lang]);
   return Object.assign(q, {lead: ld, choices: lnShuffle(choices), tries:0, done:false, live:false, t0:RACE.clock, nag:false});
 }
@@ -13024,7 +13034,7 @@ function lnRender(){
   else if(t === 'miss') pics.innerHTML = `<div class="rq-eq" aria-hidden="true">${q.a} <i>+</i> <u>?</u> <i>=</i> ${q.sum}</div>` + pics.innerHTML;
   pics.classList.toggle('eq', !!pics.querySelector('.rq-eq'));   // (eq: the written problem on top; the pictures use the card's left side so 2 + 2 stays on one line)
   pics.hidden = t === 'find'; pics.classList.toggle('many', many); pics.classList.toggle('lots', q.a + q.b > 10 || (t === 'count' && q.n > 10)); pics.classList.toggle('skip', t === 'skip');   // (lots: past ten, smaller pictures so the card stays low)
-  const ans = $('rqAns'); ans.innerHTML = ''; ans.className = 'rq-ans' + (q.live ? '' : ' wait') + (q.choices.some(v=>v > 99) ? ' wide' : '');   // (round number buttons: no picture-card classes left over)
+  const ans = $('rqAns'); ans.innerHTML = ''; ans.className = 'rq-ans' + (q.live ? '' : ' wait') + (q.choices.some(v=>v > 99) ? ' wide' : '') + (q.choices.length > 3 ? ' four' : ''); kfShow(q);   // (round number buttons: no picture-card classes left over)
   q.choices.forEach(v=>{ const bt = document.createElement('button'); bt.textContent = v; bt.addEventListener('click', ()=>lnAnswer(v, bt)); ans.appendChild(bt); });
   $('rqSay').setAttribute('aria-label', u.sayAgain); $('rqSay').querySelector('.rq-sayt').textContent = u.sayAgain; lnTrail();
 }
@@ -13033,7 +13043,7 @@ function lnAsk(){
   LEARN.spk = LEARN.lastSpk = LEARN.next || lnHelper(); LEARN.next = null; const ask = talkLine(LEARN.spk, 'ask'); lnLiveAfter(q, say([ask, lnSpeech(q, true)], askV(LEARN.spk, ask, null, {qpref: /-nums-q$/})));   // its own line asks for help, then the blimp asks the question (2026-10-17); the buttons wake when it has been said
   newShot('talk', LEARN.spk); RACE.nextCut = RACE.clock + 4.2;   // the plane that asks, from the front; then the whole pack while they think
 }
-function lnClose(){ LEARN.help.forEach(clearTimeout); LEARN.help = []; LEARN.q = null; ltFlyClear(); $('rQ').hidden = true; $('rW').hidden = true; }
+function lnClose(){ LEARN.help.forEach(clearTimeout); LEARN.help = []; LEARN.q = null; ltFlyClear(); $('rQ').hidden = true; $('rW').hidden = true; $('rqKf').hidden = true; $('rqPics').classList.remove('touch'); }
 /* The listening beat (2026-10-31, the owner: no tapping each answer until one is right): the answers stay asleep (faded, .wait) until the
    question has been said, then fade in; a tap before that does nothing but a tiny wiggle. lnLiveAfter(q, p): p is say()'s promise; once it
    has started the line, the buttons wake when the voice ends (and in 12 s at most, if no voice plays). */
@@ -13080,7 +13090,7 @@ function lnAnswer(v, bt){
   q.pgN = (q.pgN || 0) + 1; pgLog('num', {lvl: LEARN.lvl, q: pgQ(q), pick: v, ok: v === q.n, try: q.pgN, ms: q.pgT ? Math.round(performance.now() - q.pgT) : null});
   audio(); const u = UI[lang];
   if(v === q.n){
-    q.done = true; bt.classList.add('yes'); sfx.chime(); const z = $('rZoom'); LEARN.help.forEach(clearTimeout);
+    q.done = true; bt.classList.add('yes'); sfx.chime(); const z = $('rZoom'); LEARN.help.forEach(clearTimeout); kfShow(q); $('rqPics').classList.remove('touch');
     if(q.tries){ z.textContent = u.lnGot; z.classList.add('small'); z.classList.remove('pop'); void z.offsetWidth; z.classList.add('pop');
       say(u.lnGot, herV(null, {qpref: /-nums-q$/})); LEARN.help = [setTimeout(()=>{ if(LEARN.q === q) lnClose(); }, 1500)]; LEARN.nextT = RACE.t + 15 + Math.random()*3; return; }
     LEARN.stars++; LEARN.streak++; LEARN.miss = 0; lnFirst();
@@ -13092,9 +13102,42 @@ function lnAnswer(v, bt){
     return;
   }
   if(!q.tries++){ LEARN.streak = 0; if(++LEARN.miss >= 2 && LEARN.lvl > 1){ LEARN.lvl--; LEARN.miss = 0; saveSet('hangar-mathlvl', String(LEARN.lvl)); } }   // (the level counts the first try only)
-  bt.classList.add('no'); bt.disabled = true; tone(240, .22, 'sine', .14, 190); q.pT = 0;
-  q.live = false; $('rqAns').classList.add('wait'); lnLiveAfter(q, say(u.lnTry, herV(null, {qpref: /-nums-q$/})));   // her "Try again!", then the answers wake
+  lnNo(bt); tone(240, .22, 'sine', .14, 190); q.pT = 0; kfShow(q);
+  q.live = false; $('rqAns').classList.add('wait'); lnTouchStart(q, say(u.lnTry, herV(null, {qpref: /-nums-q$/})));   // her "Try again!", then he counts it himself (touch each one), then the answers wake
 }
+/* One miss flow for every question game (2026-11-01, the outside review the owner agreed with): a wrong pick shakes for a moment, nothing
+   fades or locks, so he picks again from the full set. Number race: then "Touch each one!": each picture he taps lights up and she says
+   that number (her nums-q pack), his finger does the counting, nothing counts by itself; the answers wake once all are touched, or 6 s
+   after she asked. Kinds with nothing to count (counting by twos, the biggest number) wake after her "Try again!". */
+const KF_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13.5l7-1.5 5.5-7h2.5l-2.5 7 5-1 1.5-2.5H23l-1 5-6.5 1.5L12 21H9.5l2-4.5-7 .5z"/></svg>';
+function lnNo(bt){ bt.classList.remove('no', 'nudge'); void bt.offsetWidth; bt.classList.add('no'); LEARN.help.push(setTimeout(()=>bt.classList.remove('no'), 650)); }
+function lnTouchEls(){ return [...$('rqPics').querySelectorAll('svg,.rq-e')].filter(el=>!el.closest('.rq-eq') && !el.classList.contains('gone') && !el.classList.contains('rq-cmp')); }
+function lnTouchStart(q, p){
+  const els = lnTouchEls(); if(!els.length) return lnLiveAfter(q, p);
+  els.forEach(el=>el.classList.remove('lit')); q.touch = {seen: new Set(), n: els.length};
+  Promise.resolve(p).then(()=>{ const t0 = performance.now(), go = ()=>{ if(LEARN.q !== q || q.done || !q.touch) return;
+      if(wlTalking() && performance.now() - t0 < 5000) return LEARN.help.push(setTimeout(go, 120));
+      $('rqText').textContent = q.bubble = UI[lang].lnTouch; $('rqPics').classList.add('touch');
+      say(UI[lang].lnTouchSay, herV(null, {qpref: /-nums-q$/})); lnTouchWait(q, 7800); };
+    LEARN.help.push(setTimeout(go, 250)); });
+}
+function lnTouchWait(q, ms){ const k = q.touch.k = (q.touch.k || 0) + 1; LEARN.help.push(setTimeout(()=>{ if(q.touch && q.touch.k === k) lnTouchEnd(q); }, ms)); }   // the answers wake a few seconds after the prompt or his last touch
+function lnTouchEnd(q){ if(LEARN.q !== q || q.done || q.live) return; $('rqPics').classList.remove('touch'); $('rqText').textContent = q.bubble = lnBubble(q); lnLive(q); }
+function lnTouchTap(el){ const q = LEARN.q; if(!q || q.done || !q.touch || q.live || !$('rqPics').classList.contains('touch')) return; const els = lnTouchEls(); if(!els.includes(el) || q.touch.seen.has(el)) return;
+  q.touch.seen.add(el); el.classList.add('lit'); const k = q.touch.seen.size; audio(); say(String(k), herV(null, {qpref: /-nums-q$/}));
+  pgLog('num', {lvl: LEARN.lvl, q: pgQ(q), touch: k, of: q.touch.n, try: q.pgN || 0});
+  lnTouchWait(q, k >= q.touch.n ? 900 : 5000); }
+$('rqPics').addEventListener('click', e=>{ const el = e.target.closest('svg,.rq-e'); if(el) lnTouchTap(el); });
+/* "Keep flying": a small button after the first miss; it skips the card with no penalty and no answer shown (the card comes back later), logged as a skip */
+function kfShow(q){ const b = $('rqKf'); if(!b) return; const on = !!q && !q.done && q.tries > 0; b.hidden = !on; if(on) b.querySelector('span').textContent = UI[q.L || lang].kfly; }
+function lnSkip(q){ if(!q || q.done || q.heard || !q.tries) return; q.done = true; q.skip = true; audio(); sfx.pop(); voStop();
+  const g = q.type === 'letter' ? 'letter' : q.type === 'pair' ? 'pair' : 'num', ms = q.pgT ? Math.round(performance.now() - q.pgT) : null;
+  if(g === 'letter'){ const R = q.opts[q.right]; pgLog('letter', {lvl: LT.lvl, kind: q.kind, right: R && R.d, word: pgQ(R).w || '', skip: true, try: q.pgN || 0, ms});
+    LT.again = LT.again.filter(a=>a.w[0] !== R.w[0]); LT.again.push({kind: q.kind || 'first', d: R.d, w: R.w, due: LT.n + 2 + (Math.random() < .5 ? 1 : 0)}); }
+  else if(g === 'pair') pgLog('pair', {word: q.w && q.w.w, skip: true, try: q.pgN || 0, ms});
+  else { pgLog('num', {lvl: LEARN.lvl, q: pgQ(q), skip: true, try: q.pgN || 0, ms}); (LEARN.redo = LEARN.redo || []).push({due: (LEARN.qn || 0) + 2 + (Math.random() < .5 ? 1 : 0), q}); }
+  lnClose(); LEARN.nextT = RACE.t + 12 + Math.random()*3; }
+$('rqKf').addEventListener('click', ()=>lnSkip(LEARN.q));
 function learnStart(){
   lnClose(); clearTimeout(LEARN.zoomT); LEARN.mode = RACE.type; lrnStart(); ltStart(); LEARN.on = RACE.type === 'numbers' || RACE.type === 'words' || (RACE.type === 'letters' && lang === 'en');   // Word Launch ('beats') and Control Tower run in their own sections: no cards, the race never stops (the Letter Race: English only)
   LEARN.me = null; LEARN.spk = LEARN.lastSpk = LEARN.next = LEARN.force = LEARN.want = LEARN.pick = null; LEARN.lvl = lnLevel(); RACE.racers.forEach(r=>{ r.helped = 0; });
@@ -13487,19 +13530,18 @@ function lrnChip(q, i){ const c = $('rwChips'); if(LEARN.q !== q) return; [...c.
 function lrnPairTap(q, s, bt){
   if(LEARN.q !== q || q.done || q.heard || bt.disabled) return; if(!q.live) return lnNotYet(bt); audio(); const u = UI.en, v = wdVoice(q), ans = $('rqAns');
   if(s.w === q.w.w){   // right: chime, "You heard it!", then the card turns into the normal word card for the target
-    q.heard = true; bt.classList.add('yes'); sfx.chime(); [...ans.children].forEach(b=>b.classList.remove('hint')); wdCount({w:q.label, l:'en'}, false);   // the practice log keeps the listening card too
+    q.heard = true; bt.classList.add('yes'); sfx.chime(); $('rqKf').hidden = true; [...ans.children].forEach(b=>b.classList.remove('hint')); if(!q.tries) wdCount({w:q.label, l:'en'}, false);   // the practice log keeps the listening card too
     const q2 = lrnCard({w:q.w.w, l:'en', e:q.w.e}, q.set, q.cueOn), swap = ()=>{ if(q.swapped) return; q.swapped = true; LEARN.q = q2; q2.t0 = RACE.clock; wdRender(q2); lrnShow(q2); };
     LEARN.help.forEach(clearTimeout); LEARN.help = [setTimeout(swap, 6000)];   // the turn into the word card must never wait on the voice
     lrnSayAt([u.heardIt, wdSpeech(q2, true)], v, {1: swap}, q);
     return;
   }
-  /* wrong (one try, 2026-10-31): it greys out, she says what it was ("That's bow."), the right one lights up as she says the word again,
-     and the card turns into the word card for it, as after a right pick but without the chime */
-  bt.classList.add('no'); q.heard = true; q.tries++; q.pT = 0; tone(240, .22, 'sine', .14, 190); [...ans.children].forEach(b=>{ b.disabled = true; });
-  const right = [...ans.children].find(b=>b !== bt); wdCount({w:q.label, l:'en'}, false);
-  const q2 = lrnCard({w:q.w.w, l:'en', e:q.w.e}, q.set, q.cueOn), swap = ()=>{ if(q.swapped) return; q.swapped = true; LEARN.q = q2; q2.t0 = RACE.clock; wdRender(q2); lrnShow(q2); };
-  LEARN.help.forEach(clearTimeout); LEARN.help = [setTimeout(swap, 9000)];
-  lrnSayAt([[u.thatsW(s.w)], [u.listenAgain], [q.w.w], wdSpeech(q2, true)], v, {2: ()=>{ if(right) right.classList.add('show'); }, 3: swap}, q);
+  /* wrong (2026-11-01 review): a short shake, nothing greys or locks, no answer shown; "Try again!" and the question again, then he picks again
+     from both (only a right pick turns it into the word card); "Keep flying" skips it after the first miss (lnSkip) */
+  q.pgN = (q.pgN || 0) + 1; q.tries++; q.pT = 0; lnNo(bt); tone(240, .22, 'sine', .14, 190); kfShow(q);
+  if(q.tries === 1) wdCount({w:q.label, l:'en'}, false);
+  q.live = false; ans.classList.add('wait'); LEARN.help.forEach(clearTimeout); LEARN.help = [];
+  const p = lrnSayAt([[UI.en.lnTry], u.whichOne, q.w.w], v, {}, q); lnLiveAfter(q, p);
 }
 
 /* ================= letter race: pick the picture that starts with the letter's sound ================= */
@@ -13764,29 +13806,25 @@ function ltTap(q, i, bt){
   if(!q.live) return lnNotYet(bt);   // still listening: the pictures are not awake yet
   audio(); const u = UI.en, R = q.opts[q.right], O = q.opts[i], L = ltLinesOf(q);
   q.pgN = (q.pgN || 0) + 1; pgLog('letter', {lvl: LT.lvl, kind: q.kind, right: R && (R.d || R.w), pick: O && (O.d || O.w), word: pgQ(R).w || '', ok: i === q.right, try: q.pgN, ms: q.pgT ? Math.round(performance.now() - q.pgT) : null});
-  ltUnlight(); const lands = ltFlyOut(q, bt, i === q.right), tok = LTF.tok;
-  if(i === q.right){   // right: the letter locks on with a glow, the chime, the boost (as a right answer in the number race), the praise naming the word and the letter, the thanks
-    q.done = true; LEARN.stars++; ltScore(true); lnFirst();
-    const r = LEARN.spk; lnBoost(.06);
-    const z = $('rZoom'); z.textContent = u.zoom; z.classList.remove('pop'); void z.offsetWidth; z.classList.add('pop');
-    LEARN.help.forEach(clearTimeout); LEARN.help = [setTimeout(()=>{ if(LEARN.q === q && !LT.hold) lnClose(); }, 2400)];   // (LT.hold: tests, the card stays for a picture until released) (the letter's flight and its glow first)
+  ltUnlight();
+  if(i === q.right){   // right: the word shows (its first letter coloured), the letter locks on with a glow, the chime; a first try also the boost, the praise naming the word and the letter, the thanks
+    q.done = true; kfShow(q); $('rqAns').classList.remove('hidew'); const first = !q.tries; const lands = ltFlyOut(q, bt, true), tok = LTF.tok;
+    const z = $('rZoom'), r = LEARN.spk;
+    if(first){ LEARN.stars++; ltScore(true); lnFirst(); lnBoost(.06); z.textContent = u.zoom; z.classList.remove('small'); }
+    else { z.textContent = u.lnGot; z.classList.add('small'); }
+    z.classList.remove('pop'); void z.offsetWidth; z.classList.add('pop');
+    LEARN.help.forEach(clearTimeout); LEARN.help = [setTimeout(()=>{ if(LEARN.q === q && !LT.hold) lnClose(); }, first ? 2400 : 2600)];   // (LT.hold: tests, the card stays for a picture until released) (the letter's flight and its glow first)
     lands.then(()=>{ if(tok !== LTF.tok || LEARN.q !== q) return; bt.classList.add('yes'); sfx.chime(); LTF.state = 'locked'; if(LTF.el) LTF.el.classList.add('ok'); const f = bt.querySelector('.fl'); if(f) f.classList.add('lock', 'hl'); });
-    LTF.tm.push(setTimeout(()=>{ if(LEARN.q === q) lnThanks(r, [bagPick('lt:praise', u.ltPraise), L.is(R.w[0])]); }, FLY_MS*.7));   // the praise names the word as the letter lands
-    LEARN.nextT = RACE.t + 17 + Math.random()*4;
+    LTF.tm.push(setTimeout(()=>{ if(LEARN.q !== q) return; if(first) lnThanks(r, [bagPick('lt:praise', u.ltPraise), L.is(R.w[0])]); else say([L.is(R.w[0])], ltVoice()); }, FLY_MS*.7));   // the praise names the word as the letter lands
+    LEARN.nextT = RACE.t + (first ? 17 : 15) + Math.random()*4;
     return; }
-  q.done = true; q.miss = i; q.tries = 1; ltScore(false); LEARN.firstRow = 0;   // wrong: the card ends here, kindly
-  LT.again = LT.again.filter(a=>a.w[0] !== R.w[0]); LT.again.push({kind: q.kind || 'first', d: R.d, w: R.w, due: LT.n + 2 + (Math.random() < .5 ? 1 : 0)});
-  q.pT = 0; q.fly = true; LEARN.help.forEach(clearTimeout); LEARN.help = []; const rb = $('rqAns').children[q.right];
-  [...$('rqAns').children].forEach(b=>{ b.disabled = true; });
-  (async ()=>{ await lands; if(tok !== LTF.tok || LEARN.q !== q) return;
-    bt.classList.add('no'); tone(240, .22, 'sine', .14, 190); if(LTF.el) LTF.el.classList.add('no'); LTF.state = 'wrong';
-    const f = bt.querySelector('.fl'); if(f) f.classList.add('hl');   // the picked word's letter lights up while she says what it is
-    await say([u.ltThats(O.w[0]), L.why(O)], ltVoice()); if(tok !== LTF.tok || LEARN.q !== q) return;
-    await ltWait(Math.min(7000, Math.max(900, (VO.wall || 0) - performance.now() + 300))); if(tok !== LTF.tok || LEARN.q !== q) return;
-    rb.classList.add('show'); await ltFlyOn(rb); if(tok !== LTF.tok || LEARN.q !== q) return;   // the right one lights up and the letter lands on it
-    await say([L.is(R.w[0]), L.model(R.w[0]), bagPick('lt:soon', u.ltSoon)], ltVoice()); if(tok !== LTF.tok || LEARN.q !== q) return;
-    await ltWait(Math.min(9000, Math.max(1200, (VO.wall || 0) - performance.now() + 500))); while(LT.hold && tok === LTF.tok && LEARN.q === q) await ltWait(150); if(tok !== LTF.tok || LEARN.q !== q) return;   // (LT.hold: a test keeps it there to look)
-    q.fly = false; lnClose(); LEARN.nextT = RACE.t + 9 + Math.random()*3; })();
+  /* wrong (2026-11-01 review): the picture shakes, nothing fades or locks; she says "Try again!" and the letter's sound again, slowed
+     (the same recording at a slower playbackRate: opt.slow), then the pictures wake and he picks again from all of them. Only a first-try
+     right pick counts (ltScore, the star, the boost); "Keep flying" skips the card and it comes back later (lnSkip). */
+  if(!q.tries++){ ltScore(false); } LEARN.firstRow = 0; q.pT = 0;
+  lnNo(bt); tone(240, .22, 'sine', .14, 190); kfShow(q);
+  q.live = false; $('rqAns').classList.add('wait'); const m = L.model(R.w[0]);
+  lnLiveAfter(q, say([u.lnTry, m], Object.assign(ltVoice(), {slow: [m]})));
 }
 /* the race setup: the level (the grown-up can set it; a new level starts its count again) */
 function renderLettersSetup(){
@@ -15790,17 +15828,22 @@ function stAnswer(i){
   const q = ST.q, s = stStory(), p = s.pages[ST.pg], u = UI[lang]; if(!q || q.done) return; const x = q.opts[i], bs = $('stBody').querySelectorAll('.st-ch');
   clearTimeout(ST.nagT);
   if(x.ok){
-    q.done = true; ST.done[ST.pg] = true; bs.forEach((b, k)=>{ b.disabled = true; b.classList.remove('hint'); b.classList.toggle('ok', k === i); if(k !== i) b.classList.add('dim'); });
+    q.done = true; ST.done[ST.pg] = true; stKf(false); bs.forEach((b, k)=>{ b.disabled = true; b.classList.remove('hint'); b.classList.toggle('ok', k === i); if(k !== i) b.classList.add('dim'); });
     if(!q.tries){ ST.streak++; ST.miss = 0; if(ST.streak >= 3 && stLvl() < 3){ saveSet('hangar-storylvl', '3'); ST.streak = 0; } }   // 3 right in a row: three choices
     sfx.chime(); stAsk2([u.praise[Math.floor(Math.random()*u.praise.length)], stT(x.o.label)]);
     $('stNext').disabled = false; $('stNext').classList.remove('wait'); $('stNext').textContent = ST.pg === s.pages.length - 1 ? u.yourTurn : u.stNext;
   } else {
     q.tries++; if(q.tries === 1){ ST.streak = 0; ST.miss++; if(ST.miss >= 2 && stLvl() > 2){ saveSet('hangar-storylvl', '2'); ST.miss = 0; } }   // 2 misses: back to two choices
-    bs[i].disabled = true; bs[i].classList.add('dim'); sfx.pop(); stAsk2([stT(x.o.why || x.o.label)]);   // 2026-10-20 (owner: "explain why the answer that he picked is incorrect"): it greys out and she says why ("Dusty does not have the balloon."), he picks again from what is left
-    if([...bs].filter(b=>!b.disabled).length === 1) bs[q.opts.findIndex(o=>o.ok)].classList.add('hint');   // the right one glows only when it is the last one left (never said or shown first)
-    ST.nagT = setTimeout(()=>stNag(), 20000);
+    /* 2026-11-01 review: nothing greys out or glows (it gave the answer away by elimination); a short shake, she says why ("Dusty does not
+       have the balloon.", her story pack has no "Try again!") and asks the question again, and he picks again from all of them */
+    bs[i].classList.remove('no'); void bs[i].offsetWidth; bs[i].classList.add('no'); setTimeout(()=>bs[i].classList.remove('no'), 650); sfx.pop(); stAsk2([stT(x.o.why || x.o.label), stT(p.q.ask)]);
+    stKf(true); ST.nagT = setTimeout(()=>stNag(), 20000);
   }
 }
+/* "Keep flying" after the first miss (2026-11-01 review): on to the next page, no answer shown, logged as a skip */
+function stKf(on){ const b = $('stKf'); if(b) b.hidden = !on; else if(on){ const box = $('stBody').querySelector('.st-q'); if(box) box.insertAdjacentHTML('beforeend', `<button class="kf-btn" id="stKf">${KF_SVG}<span>${escHTML(UI[lang].kfly)}</span></button>`); } }
+function stSkip(){ const q = ST.q; if(ST.phase !== 'q' || !q || q.done || !q.tries) return; q.done = true; clearTimeout(ST.nagT); sfx.pop(); voStop();
+  pgLog('story', {story: ST.id, pg: ST.pg, skip: true, try: q.tries}); stAdvance(); }
 function stAdvance(){ const s = stStory(); if(ST.pg < s.pages.length - 1) stPage(ST.pg + 1); else stRetellStart(); }
 /* ---- retell: five icons, the narrator says only the word, a grown-up taps the star ---- */
 function stRetellStart(){ const s = stStory(); ST.phase = 'retell'; ST.rt = {cur:0, stars:[0, 0, 0, 0, 0], hide:!!stRetold()[s.id], done:false}; stClearTimers(); stRenderRetell(); stAsk2([UI[lang].stRetell]); }
@@ -15824,6 +15867,7 @@ $('stBack').addEventListener('click', ()=>{ audio(); if(ST.phase === 'q') stPage
 $('stBody').addEventListener('click', e=>{ audio(); const t = e.target.closest('button'); if(!t) return;
   if(t.classList.contains('st-card')){ sfx.pop(); stStart(+t.dataset.i); }
   else if(t.classList.contains('st-ch')) stAnswer(+t.dataset.i);
+  else if(t.id === 'stKf') stSkip();
   else if(t.id === 'stHear'){ const p = stStory().pages[ST.pg]; if(ST.phase === 'q') stAsk2([stT(p.q.ask)]); else stSay([stT(p.text)]); }
   else if(t.classList.contains('st-ic')){ const i = +t.dataset.i; sfx.pop(); stAsk2([UI[lang].stParts[i]]); $('stBody').querySelectorAll('.st-ic').forEach((b, k)=>b.classList.toggle('lit', k === i)); }
   else if(t.id === 'stStarB') stStar();
@@ -15952,11 +15996,11 @@ function hdSayBox(f){
   const u = UI[lang]; let a, b;
   if(f.kind === 's'){ a = hdL.sizeFind(f.pid, f.w, lang); b = ''; }
   else { const sp = hdSp(f.spot), ph = sp[lang], cw = HD_CWL[lang][sp.c]; a = hdL.ask(f.pid, lang); b = escHTML(lang === 'es' ? '¡Está ' : hdL.pre(f.pid, lang)) + `<b>${cw}</b>${escHTML(ph.slice(cw.length))}!`; }
-  return `<div class="hd-say"><div class="hd-lines"><p class="hd-ask">${escHTML(a)}</p>${b ? `<p class="hd-where">${b}</p>` : ''}</div><button class="st-hear" id="hdHear" aria-label="${u.hdHearL}">${stSpk}</button></div>`;
+  return `<div class="hd-say"><div class="hd-lines"><p class="hd-ask">${escHTML(a)}</p>${b ? `<p class="hd-where">${b}</p>` : ''}</div><button class="st-hear" id="hdHear" aria-label="${u.hdHearL}">${stSpk}</button></div>` + (f.tries && !f.done ? `<button class="kf-btn hd-kf" id="hdKf">${KF_SVG}<span>${escHTML(u.kfly)}</span></button>` : '');
 }
 function hdFindRender(mark){
   const f = HD.f, no = f.no || [], noI = f.noI || [], left = f.kind === 'c' ? HD_OBJS.length - no.length : f.items.length - noI.length;   // what he tapped that was wrong stays greyed; the place glows only when it is the last one left (2026-10-20)
-  mark = Object.assign({}, !f.done && f.tries && left === 1 ? {ring: f.spot} : {}, mark || {}, {no});
+  mark = Object.assign({}, mark || {}, {no});   // (2026-11-01 review: no ring when one is left)
   $('hdBody').innerHTML = hdSayBox(f) + `<div class="hd-scene" id="hdScene">${hdScene(f.items.map((it, i)=>Object.assign({}, it, {out:f.done && i === f.want && f.kind === 'c', dim:noI.includes(i) && !f.done})), mark)}</div>`; $('hdBody').scrollTop = 0;
 }
 const hdPt = e=>{ const r = $('hdScene').getBoundingClientRect(), s = Math.min(r.width, r.height), ox = r.left + (r.width - s)/2, oy = r.top + (r.height - s)/2; return {x:(e.clientX - ox)/s*100, y:(e.clientY - oy)/s*100}; };
@@ -15971,12 +16015,15 @@ function hdTap(e){
 /* a wrong tap (2026-10-20, owner: explain the wrong pick, never show the right answer first): "Not there. That's the tree." (the narrator's voice,
    this game's), that thing greys out and he picks again from what is left; the place glows only when it is the last one left. A size find has
    two planes: "Not that one. That's the little Dusty.", it greys, and the other one glows. (Before: the plane wiggled, then glowed, and hopped out by itself.) */
+/* 2026-11-01 review: nothing greys out and nothing glows when one is left (that showed the answer); "Not there." ("Not that one.") and the
+   question again, and he looks again everywhere. After the first miss "Keep flying" moves on to the next find (hdSkip), logged as a skip. */
 function hdWrong(o, hit){
-  const f = HD.f; if(f.kind === 'c'){ f.no = f.no || []; if(f.no.includes(o)) return; f.no.push(o); } else { f.noI = f.noI || []; if(f.noI.includes(hit)) return; f.noI.push(hit); }
-  f.tries++; clearTimeout(HD.nagT); sfx.pop();
-  hdSay(f.kind === 's' ? [hdL.notThat(lang), hdL.thatSize(f.pid, f.w === 'big' ? 'little' : 'big', lang)] : [hdL.notThere(lang), hdL.thatIs(o, lang)]);
+  const f = HD.f; if(f.done) return; f.tries++; clearTimeout(HD.nagT); sfx.pop();
+  hdSay([f.kind === 's' ? hdL.notThat(lang) : hdL.notThere(lang), ...hdAskParts(f)]);
   hdFindRender(); HD.nagT = setTimeout(hdNag, 20000);
 }
+function hdSkip(){ const f = HD.f; if(HD.phase !== 'find' || !f || f.done || !f.tries) return; f.done = true; hdClearTimers(); sfx.pop(); voStop();
+  pgLog('hide', {pid: f.pid, kind: f.kind, skip: true, try: f.tries}); hdNext(); }
 function hdNag(){   // nobody tapped: say it again, and wait again (the place never glows or hops out by itself)
   const f = HD.f; if(!f || f.done || HD.phase !== 'find') return; hdSay(hdAskParts(f)); HD.nagT = setTimeout(hdNag, 20000);
 }
@@ -16028,6 +16075,7 @@ $('hdNext').addEventListener('click', ()=>{ audio(); if(HD.phase === 'find' && H
 $('hdBody').addEventListener('click', e=>{ audio(); const t = e.target.closest('button');
   if(!t){ if(e.target.closest('#hdScene')){ if(HD.phase === 'find') hdTap(e); else hdSceneTap(e); } return; }
   if(t.id === 'hdHear'){ if(HD.phase === 'find') hdSay(hdAskParts(HD.f)); else hdSay([UI[lang].hdTell]); }
+  else if(t.id === 'hdKf') hdSkip();
   else if(t.classList.contains('hd-chip')) hdTold(t.dataset.c);
   else if(t.id === 'hdAgain'){ sfx.pop(); HD.t = {pid:null, sp:null, told:false, sel:null}; hdClearTimers(); hdTellRender(); hdSay([UI[lang].hdTell]); }
   else if(t.id === 'hdSeek'){ sfx.pop(); HD.used = []; HD.plan = hdPlan(); HD.n = 0; hdNext(); } });
