@@ -7713,7 +7713,7 @@ async function buildCourse0(idx){
     pylons.push({pos:V(px, gy, pz), top, u, n}); });
   // farm buildings, lighthouse, boats
   const spin = [];
-  if(C.id==='farm'){
+  function propOld_farmBarns(){   // ?classic=props: nine box barns, each with a metal-roofed cylinder roof and a silo, as they were
     const wood = woodTexture('#9e2b25', '#efe9dc'), roofT = metalTexture(); roofT.repeat.set(4, 1);
     const wallM = new T.MeshStandardMaterial({map:wood, roughness:.8}), roofM = new T.MeshStandardMaterial({map:roofT, roughness:.45, metalness:.55}), siloM = new T.MeshStandardMaterial({map:roofT.clone(), roughness:.35, metalness:.75});
     siloM.map.repeat.set(6, 1); siloM.map.needsUpdate = true;
@@ -7724,6 +7724,11 @@ async function buildCourse0(idx){
       const dome = new T.Mesh(new T.SphereGeometry(9,24,12,0,Math.PI*2,0,Math.PI/2), siloM); dome.position.set(40,64,0); barn.add(dome);
       barn.position.set(x, y, z); barn.rotation.y = Math.random()*Math.PI; barn.traverse(o=>{ if(o.isMesh){ o.castShadow = true; o.receiveShadow = true; } }); barn.name = 'building'; group.add(barn); shadeDot(x, z, 50, .35); }); }
   }
+  if(C.id==='farm'){ if(PROP_CLASSIC) propOld_farmBarns(); else {   // nine barns and silos from the same painted atlas: two shared geometries, one material (the old wood and metal textures are gone)
+    const pm = prGroupMat(group, 'farm'), gB = skGeo(lfBarnBag()), gS = skGeo(lfSiloBag(46));
+    for(let i=0;i<9;i++){ place(1, (y,x,z)=>y > water + 3 && y < 60 && slopeAt(x,z) < .12, (x,y,z)=>{ const barn = new T.Group(), m = new T.Mesh(gB, pm), sl = new T.Mesh(gS, pm); m.scale.setScalar(1.05); sl.position.set(32, 0, -10); barn.add(m); barn.add(sl);
+      barn.position.set(x, y, z); barn.rotation.y = Math.random()*Math.PI; barn.traverse(o=>{ if(o.isMesh){ o.castShadow = true; o.receiveShadow = true; } }); barn.name = 'building'; group.add(barn); shadeDot(x, z, 50, .35); }); }
+  } }
   if(C.id==='coast'){
     let best = null; for(let s=0;s<samples.length;s+=5){ const q = samples[s]; for(const off of [130,-130]){ const tg = curve.getTangentAt(s/samples.length); const x = q.x - tg.z*off, z = q.z + tg.x*off; const y = H(x,z); if(y > 20 && slopeAt(x,z) < .35 && (!best || y > best.y)) best = {x, y, z}; } }
     if(best){ if(PROP_CLASSIC) propOld_lighthouse(best, group, spin, shadeDot); else prLighthouse(best, group, spin, shadeDot); }
@@ -8951,7 +8956,7 @@ LBag.prototype._uvF = function(i0, src){ const P = this.P, N = this.N, U = this.
   const q0 = LBag.prototype.geo; LBag.prototype.geo = function(){ const U = this.U && this.U.length === this.P.length/3*2 ? this.U : null, g = q0.call(this); if(U) g.setAttribute('uv', new T.Float32BufferAttribute(U, 2)); this.U = null; this.uvf = null; return g; }; }
 /* a bag's geometry that no course life owns (the course's own landmarks: freed with the course group) */
 function skGeo(b){ const g = new T.BufferGeometry(); g.setAttribute('position', new T.Float32BufferAttribute(b.P, 3)); g.setAttribute('normal', new T.Float32BufferAttribute(b.N, 3)); g.setAttribute('color', new T.Float32BufferAttribute(b.C, 3));
-  if(b.U && b.U.length === b.P.length/3*2) g.setAttribute('uv', new T.Float32BufferAttribute(b.U, 2)); g.computeBoundingSphere(); if(!isFinite(g.boundingSphere.radius)){ let bad = -1; for(let i = 0; i < b.P.length; i++) if(!isFinite(b.P[i])){ bad = i; break; } console.error('skGeo NaN at ' + bad + ' of ' + b.P.length + ' ' + new Error().stack.split('\n').slice(1, 4).join('|')); } b.P = b.N = b.C = []; b.U = null; return g; }
+  if(b.U && b.U.length === b.P.length/3*2) g.setAttribute('uv', new T.Float32BufferAttribute(b.U, 2)); g.computeBoundingSphere(); b.P = b.N = b.C = []; b.U = null; return g; }
 /* fake ambient occlusion in the vertex colours from vertex i0 on: darker towards y0 (the deck), lighter towards y1, undersides dark, tops lit */
 function skAO(b, i0, y0, y1, k){ k = k === undefined ? .3 : k; const P = b.P, N = b.N, C = b.C;
   for(let i = i0*3; i < P.length; i += 3){ const t = Math.max(0, Math.min(1, (P[i + 1] - y0)/(y1 - y0))), ny = N[i + 1]; let f = 1 - k*(1 - Math.sqrt(t)); if(ny < -.4) f *= .7; else if(ny > .85) f *= 1.08;
@@ -9475,7 +9480,7 @@ function prSkyline(group, H, place, nearPath, slopeAt, shadeDot, water, beside, 
   const cb = new LBag().uv(), pal = ['#ffffff', '#cfe0f5', '#f3e2c4', '#d5efe4', '#c4cff5', '#f6d6cf'], list = [], tile = (x, y, z, nx, ny, nz)=>{ if(ny > .75) return [.03, .97]; const h = Math.hypot(nx, nz) || 1; return [(-nz*x + nx*z)/h/56, y/48]; };
   cb.uv(tile);
   place(220, (y, x, z)=>y > water + 4 && slopeAt(x, z) < .25 && !nearPath(x, z, 170), (x, y, z)=>{ const w = 50 + Math.random()*60, ht = 80 + Math.pow(Math.random(), 1.6)*360, d = w*(.7 + Math.random()*.6), ry = Math.round(Math.random()*2)*Math.PI/4, c = pal[Math.floor(Math.random()*pal.length)], c2 = lfMulC(c, .93), c3 = lfMulC(c, .86), y0 = y - 2;
-    list.push({x, z, r:Math.max(w, d)*.7});
+    const tall = ht > 190, mid = !tall && ht > 120, f = tall ? .42 : mid ? .7 : 1; list.push({x, y:y0, z, w:w*f, d:d*f, h:tall ? ht*.96 : ht + 2, ry, r:Math.max(w, d)*.75});
     if(ht > 190){ const h0 = ht*.68, h1 = ht*.2; cb.add('box', c, x, y0, z, w, h0 + 2, d, ry); cb.add('box', c2, x, y0 + h0, z, w*.74, h1, d*.74, ry); cb.add('box', c3, x, y0 + h0 + h1, z, w*.42, ht*.08, d*.42, ry); cb.beam('cyl6', '#aab4c0', x, y0 + ht*.96, z, x, y0 + ht*1.12, z, 1.1, .3); }
     else if(ht > 120){ const h0 = ht*.82; cb.add('box', c, x, y0, z, w, h0 + 2, d, ry); cb.add('box', c2, x, y0 + h0, z, w*.7, ht*.18, d*.7, ry); }
     else { cb.add('box', c, x, y0, z, w, ht + 2, d, ry); cb.add('box', c3, x, y0 + ht, z, w*.34, 7, d*.34, ry); cb.add('box', '#8a929c', x + w*.2*Math.cos(ry), y0 + ht, z - w*.2*Math.sin(ry), 6, 4, 6, ry); }
@@ -9851,7 +9856,7 @@ function lfBillboardBag(){ const b = new LBag(); [-1, 1].forEach(o=>{ lfRBox(b, 
   lfRBox(b, '#e8353a', 3.2, 33.4, 0, .8, 4, 72, 0, .3); for(let k = -2; k <= 2; k++){ b.beam('cyl6', '#59626b', 4, 59, k*14, 8, 59, k*14, .4, .4); b.add('sph', '#fff6c0', 8.4, 59, k*14, .9); } b.beam('cyl6', '#59626b', 0, 58, -34, 0, 58, 34, .5, .5); [-1, 1].forEach(o=>b.beam('cyl6', '#59626b', 0, 14, o*30, 0, 40, o*14, .5, .5)); return b; }
 LIFE2.skyline = X=>{
   const {H, wl, K} = X, bag = new LBag().uv(), gb = new LBag(), tw = [], needle = lfNeedleBag(), bill = lfBillboardBag();
-  K.group.traverse(o=>{ if(o.name === 'city' && o.isInstancedMesh){ const a = o.instanceMatrix.array; for(let i = 0; i < o.count; i++){ const q = i*16; tw.push({x:a[q + 12], z:a[q + 14], r:Math.max(Math.hypot(a[q], a[q + 1], a[q + 2]), Math.hypot(a[q + 8], a[q + 9], a[q + 10]))*.75}); } } });
+  if(K.group.userData.cityList) K.group.userData.cityList.forEach(t=>tw.push({x:t.x, z:t.z, r:t.r})); K.group.traverse(o=>{ if(o.name === 'city' && o.isInstancedMesh){ const a = o.instanceMatrix.array; for(let i = 0; i < o.count; i++){ const q = i*16; tw.push({x:a[q + 12], z:a[q + 14], r:Math.max(Math.hypot(a[q], a[q + 1], a[q + 2]), Math.hypot(a[q + 8], a[q + 9], a[q + 10]))*.75}); } } });
   const clear = (x, z, m)=>{ for(let i = 0; i < tw.length; i++){ const t = tw[i]; if(Math.hypot(t.x - x, t.z - z) < t.r + m) return false; } return true; };
   const towers = [lfTowerBag([{w:52, d:52, h:90}, {w:40, d:40, h:60}, {w:28, d:28, h:50}], '#3b6a8a', '#eae6da', 'spire'), lfTowerBag([{w:46, d:58, h:130}, {w:34, d:44, h:50}], '#5a4f3a', '#d9c79a', 'dome'), lfTowerBag([{w:44, d:44, h:170}, {w:30, d:30, h:40}], '#2f7f86', '#f2efe6', 'roof')];
   const face = c=>c.fy + Math.PI/2, okc = m=>(p, gy)=>clear(p.x, p.z, m);
@@ -19879,7 +19884,7 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
   raceNoDraw: on=>{ RACE.noDraw = !!on; CR.skipDraw = !!on; return true; },   // tests: the race runs without drawing (software rendering: so the race clock keeps the wall clock's pace and her lines and shots line up as on a phone)
   blimpLog: ()=>({log: BL.log.slice(), lapT: Object.assign({}, BL.lapT), sB: Math.round(BL.sB), yaw0: +BL.yaw0.toFixed(2), last: BL.rec && BL.rec.last, cur: RACE.shot ? {type: RACE.shot.type, age: +(RACE.clock - RACE.shot.t0).toFixed(2), dur: RACE.shot.dur || null, hold: !!RACE.shot.hold, ahead: RACE.shot.r ? Math.round(BL.sB - ((((RACE.shot.r.d - RACE.shot.r.take) % rL) + rL) % rL)) : null, cam: rCam.position.toArray().map(Math.round), P: BL.P.toArray().map(Math.round), lead: RACE.shot.r ? RACE.shot.r.P.toArray().map(Math.round) : null} : null}),   // her shots, when and why, and how long she was on in each lap
   blimpFit: (x, y, z, yaw)=>SC.race ? crBlimpFit(x, y, z, yaw || 0) : null, blimpPut: (x, y, z, yaw)=>{ BL.ax = x; BL.alt = y; BL.az = z; if(yaw != null) BL.yaw0 = yaw; blimpFrame(0); return true; },   // tuning her station in Sky City
-  courseStats: ()=>{ const K = rCourse; if(!K) return null; const tex = new Set(), geos = new Set(); let meshes = 0, tris = 0; K.group.traverse(m=>{ if(m.geometry){ geos.add(m.geometry); if(m.isMesh){ const g = m.geometry, n = g.index ? g.index.count/3 : g.attributes.position.count/3; tris += n*(m.isInstancedMesh ? m.count : 1); } } if(m.isMesh) meshes++; [].concat(m.material || []).forEach(mt=>Object.keys(mt).forEach(k=>{ if(mt[k] && mt[k].isTexture) tex.add(mt[k]); })); }); return {tex: tex.size, geos: geos.size, meshes, tris: Math.round(tris)}; },
+  courseStats: ()=>{ const K = rCourse; if(!K) return null; const tex = new Set(), geos = new Set(); let meshes = 0, tris = 0; K.group.traverse(m=>{ if(m.geometry){ geos.add(m.geometry); if(m.isMesh){ const g = m.geometry, n = g.index ? g.index.count/3 : g.attributes.position.count/3; tris += n*(m.isInstancedMesh ? m.count : 1); } } if(m.isMesh) meshes++; [].concat(m.material || []).forEach(mt=>Object.keys(mt).forEach(k=>{ if(mt[k] && mt[k].isTexture) tex.add(mt[k]); })); }); const objs = []; K.group.children.forEach(o=>{ if(['building', 'temple', 'tower', 'bridge'].includes(o.name)){ const bx = new T.Box3().setFromObject(o), c = bx.getCenter(new T.Vector3()), z = bx.getSize(new T.Vector3()); objs.push({name:o.name, c:[c.x, c.y, c.z], s:[z.x, z.y, z.z]}); } }); return {tex: tex.size, geos: geos.size, meshes, tris: Math.round(tris), objs}; },
   lifeInfo: ()=>{ const K = rCourse, L = K && K.life; if(!L) return null; let meshes = 0, tris = 0; L.g.traverse(o=>{ if(!(o.isMesh || o.isPoints) || !o.visible) return; meshes++; const gg = o.geometry, n = gg.index ? gg.index.count/3 : gg.attributes.position.count/3; if(!o.isPoints) tris += n*(o.isInstancedMesh ? o.count : 1); });
     return {id: L.id, ms: L.ms, meshes, tris: Math.round(tris), anim: L.anim.length, sites: L.sites, err: window.__lifeErr ? String(window.__lifeErr) : null}; },   // section "course life": what the course's scenery adds (tests)
   lifeRender: ()=>{ try{ renderer.render(rScene, rCam); return null; }catch(e){ return String(e.stack); } },   // (tests: a draw that says what failed)
