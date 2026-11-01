@@ -8103,7 +8103,7 @@ function lifeBuild(K){
   if(K.life || K.city || !LIFE[K.C.id]) return;
   const g = new T.Group(); g.name = 'life'; K.group.add(g);
   let seed = 7; for(const ch of K.C.id) seed = (seed*31 + ch.charCodeAt(0))|0;
-  Object.assign(LF, {K, g, anim:[], geos:[], mats:[], texs:[], regs:[], pts:[], sites:[], keep:[], r:lfRng(seed), gc:null});
+  Object.assign(LF, {K, g, anim:[], geos:[], mats:[], texs:[], regs:[], pts:[], sites:[], keep:[], r:lfRng(seed), gc:null, theme:GC_THEME[K.C.id] || null});
   LF.mat = lfMat('std'); LF.matS = lfMat('std', {roughness:.3, metalness:.4}); LF.matE = lfMat('basic'); LF.matG = lfMat('std', {polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3});
   LF.matA = lfMat('basic', {transparent:true, depthWrite:false, blending:T.AdditiveBlending, side:T.DoubleSide, fog:true});
   const X = lfContext(K); LF.X = X;
@@ -8879,8 +8879,11 @@ function lfBuoyBag(s){ const b = new LBag(); lfLathe(b, [[0, -8], [6, -6], [8, 0
 const GC_LIST = ['fork', 'fuel', 'tug', 'bag', 'fire', 'cat'];
 const GC_REG = {paint:[0, 0, 256, 256], decal:[256, 0, 128, 128], haz:[384, 0, 128, 64], tread:[384, 64, 128, 64], hub:[256, 128, 128, 128], grille:[384, 128, 128, 64], lamp:[384, 192, 128, 64], eyes:[0, 256, 512, 128]};
 const GC_MOUTH = {fork:'#f2b81c', fuel:'#f07a1a', tug:'#2f6fd0', bag:'#2eb872', fire:'#d8302a', cat:'#7a4fc8'};
+/* liveries by place (2026-11-01): navy for the warship courses, arctic for the snow and ice ones, desert for the canyon; every other course keeps the bright civilian colours (no theme, no extra work). The theme only changes the atlas (still one 512 px canvas, built with the course life and freed with it) and a small colour remap of the paint in the material. pri/acc/sec: what the paint's mid, light and dark vertex colours become. */
+const GC_THEME = {carrier:'navy', armada:'navy', mountain:'arctic', glacier:'arctic', canyon:'desert'};
+const GC_PAL = {navy:{pri:'#8c969e', acc:'#e9b919', sec:'#707a82', white:1}, arctic:{pri:'#f2f6fa', acc:'#ff6a1c', sec:'#d93a22', white:0}, desert:{pri:'#cdb48a', acc:'#d98d4e', sec:'#a58259', white:1}};
 GC_LIST.forEach((k, i)=>{ GC_REG['m_' + k] = [(i % 4)*128, 384 + Math.floor(i/4)*64, 128, 64]; });
-function gcAtlas(){ const cv = document.createElement('canvas'); cv.width = cv.height = 512; const c = cv.getContext('2d'), R = LF.r || Math.random;
+function gcAtlas(theme){ const cv = document.createElement('canvas'); cv.width = cv.height = 512; const c = cv.getContext('2d'), R = LF.r || Math.random;
   c.fillStyle = '#ffffff'; c.fillRect(0, 0, 512, 512);
   /* paint: panel seams with rivets, a soft highlight, grime toward the bottom of the body (the middle rows: v 0.5 is the underside) */
   { const [x0, y0, w, h] = GC_REG.paint; c.save(); c.beginPath(); c.rect(x0, y0, w, h); c.clip();
@@ -8904,6 +8907,7 @@ function gcAtlas(){ const cv = document.createElement('canvas'); cv.width = cv.h
     c.fillStyle = '#6a7078'; for(let k = 0; k < 6; k++) c.fillRect(x0 + w*.22, y0 + (k + .4)*h/6, w*.08, h/24); }
   { const [x0, y0, w, h] = GC_REG.grille; c.fillStyle = '#3a3f46'; c.fillRect(x0, y0, w, h); for(let y = 4; y < h; y += 8){ c.fillStyle = '#20232a'; c.fillRect(x0 + 4, y0 + y, w - 8, 4); c.fillStyle = '#7a828c'; c.fillRect(x0 + 4, y0 + y + 4, w - 8, 1); } }
   { const [x0, y0, w, h] = GC_REG.lamp, g = c.createRadialGradient(x0 + w/2, y0 + h/2, 2, x0 + w/2, y0 + h/2, w*.6); g.addColorStop(0, '#ffffff'); g.addColorStop(.5, '#fff6d8'); g.addColorStop(1, '#d8c890'); c.fillStyle = g; c.fillRect(x0, y0, w, h); }
+  if(theme) gcLivery(c, theme, R);
   /* the eyes: the planes' joined windshield eyes (friendly, looking a little up at the racers) on tinted glass */
   { const [x0, y0, w, h] = GC_REG.eyes, mk = (a, b)=>{ const q = document.createElement('canvas'); q.width = a; q.height = b; return q; }, jC = mk(512, 256);
     c.fillStyle = '#3b6680'; c.fillRect(x0, y0, w, h); const g = c.createLinearGradient(0, y0, 0, y0 + h); g.addColorStop(0, 'rgba(190,230,250,.55)'); g.addColorStop(1, 'rgba(20,40,60,.3)'); c.fillStyle = g; c.fillRect(x0, y0, w, h);
@@ -8912,10 +8916,49 @@ function gcAtlas(){ const cv = document.createElement('canvas'); cv.width = cv.h
   { const mC = document.createElement('canvas'); mC.width = 256; mC.height = 128; drawMouth(mC.getContext('2d'), 'friendly');
     GC_LIST.forEach(k=>{ const [x0, y0, w, h] = GC_REG['m_' + k]; c.fillStyle = GC_MOUTH[k]; c.fillRect(x0, y0, w, h); c.drawImage(mC, x0 + 6, y0 + 4, w - 12, h - 8); }); }
   return cv; }
+/* a livery over the base atlas: the paint region keeps its seams and takes stencils/panels/dust; the door decal, hazard bumper and tyre are redrawn */
+function gcLivery(c, th, R){ const rg = k=>GC_REG[k];
+  const star = (cx, cy, r, col)=>{ c.fillStyle = col; c.beginPath(); for(let i = 0; i < 10; i++){ const a = -Math.PI/2 + i*Math.PI/5, q = i % 2 ? r*.4 : r; c.lineTo(cx + Math.cos(a)*q, cy + Math.sin(a)*q); } c.closePath(); c.fill(); };
+  const stripes = (k, a, b, w)=>{ const [x0, y0, W, H] = rg(k); c.save(); c.beginPath(); c.rect(x0, y0, W, H); c.clip(); c.fillStyle = a; c.fillRect(x0, y0, W, H); c.fillStyle = b;
+    for(let q = -2; q < 9; q++){ c.beginPath(); c.moveTo(x0 + q*w*2, y0 + H); c.lineTo(x0 + q*w*2 + w, y0 + H); c.lineTo(x0 + q*w*2 + w + H, y0); c.lineTo(x0 + q*w*2 + H, y0); c.closePath(); c.fill(); } c.restore(); };
+  const [px, py, pw, ph] = rg('paint'), [dx, dy, dw] = rg('decal'), cx = dx + dw/2, cy = dy + dw/2;
+  c.save(); c.beginPath(); c.rect(px, py, pw, ph); c.clip();
+  if(th === 'navy'){
+    c.fillStyle = 'rgba(255,255,255,.12)'; for(let i = 0; i < 60; i++) c.fillRect(px + R()*pw, py + R()*ph, 10 + R()*20, 1);
+  } else if(th === 'arctic'){
+    c.fillStyle = 'rgba(210,225,240,.35)'; for(let i = 0; i < 160; i++) c.fillRect(px + R()*pw, py + R()*ph*.5, 2 + R()*6, 1);
+  } else {
+    const g = c.createLinearGradient(0, py, 0, py + ph); g.addColorStop(0, 'rgba(150,115,70,.12)'); g.addColorStop(.35, 'rgba(150,115,70,.3)'); g.addColorStop(.5, 'rgba(120,88,52,.55)'); g.addColorStop(.65, 'rgba(150,115,70,.3)'); g.addColorStop(1, 'rgba(150,115,70,.12)'); c.fillStyle = g; c.fillRect(px, py, pw, ph);
+    c.fillStyle = 'rgba(217,141,78,.75)'; [.2, .8].forEach(f=>c.fillRect(px, py + ph*f - 9, pw, 18));
+    for(let i = 0; i < 700; i++){ c.fillStyle = `rgba(${150 + R()*40|0},${110 + R()*30|0},${60 + R()*20|0},${.06 + R()*.14})`; c.fillRect(px + R()*pw, py + R()*ph, 1 + R()*5, 1 + R()*3); }
+  }
+  c.restore();
+  if(th === 'navy'){
+    const ry = dy + 50; c.fillStyle = '#1a2f6a'; c.beginPath(); c.arc(cx, ry, 40, 0, 7); c.fill(); c.fillStyle = '#ffffff'; c.beginPath(); c.arc(cx, ry, 33, 0, 7); c.fill(); c.fillStyle = '#1a2f6a'; c.beginPath(); c.arc(cx, ry, 28, 0, 7); c.fill(); star(cx, ry + 1, 24, '#ffffff');
+    c.font = 'bold 30px Impact, "Arial Black", sans-serif'; c.textAlign = 'center'; c.textBaseline = 'middle'; c.fillStyle = '#1b2230'; c.fillText('NAVY', cx, dy + 108); c.fillStyle = 'rgba(140,150,158,.9)'; for(let x = dx + 20; x < dx + 110; x += 11) c.fillRect(x, dy + 94, 2, 28);   /* (stencil bridges) */
+    stripes('haz', '#f4c20d', '#1b1c1f', 12);
+  } else if(th === 'arctic'){
+    c.fillStyle = '#ff6a1c'; c.fillRect(dx, dy, dw, dw); c.fillStyle = '#17181b'; for(let k = 0; k < 3; k++){ c.beginPath(); c.moveTo(dx + 14, cy + 30 - k*30); c.lineTo(cx, cy - 6 - k*30); c.lineTo(dx + dw - 14, cy + 30 - k*30); c.lineTo(dx + dw - 14, cy + 44 - k*30); c.lineTo(cx, cy + 8 - k*30); c.lineTo(dx + 14, cy + 44 - k*30); c.closePath(); c.fill(); }
+    stripes('haz', '#ff6a1c', '#17181b', 12);
+    const [tx, ty, tw, tH] = rg('tread'); c.strokeStyle = '#b9bec4'; c.lineWidth = 3; for(let y = 0; y < tH; y += 16){ c.beginPath(); c.moveTo(tx, ty + y); c.lineTo(tx + tw, ty + y + 8); c.stroke(); c.beginPath(); c.moveTo(tx, ty + y + 8); c.lineTo(tx + tw, ty + y); c.stroke(); }   /* (chains) */
+  } else {
+    c.fillStyle = 'rgba(176,120,66,.9)'; c.beginPath(); c.arc(cx, cy, 50, 0, 7); c.fill(); c.fillStyle = 'rgba(214,190,150,.9)'; c.beginPath(); c.arc(cx, cy, 36, 0, 7); c.fill(); c.fillStyle = 'rgba(176,120,66,.9)'; c.beginPath(); c.arc(cx, cy, 14, 0, 7); c.fill();
+    stripes('haz', '#c9a05e', '#6a5236', 12);
+    for(let i = 0; i < 400; i++){ c.fillStyle = `rgba(190,150,100,${.1 + R()*.2})`; c.fillRect(dx + R()*dw, dy + R()*dw, 1 + R()*4, 1 + R()*3); }
+    const [tx, ty, tw, tH] = rg('tread'); c.fillStyle = 'rgba(190,150,100,.35)'; c.fillRect(tx, ty, tw, tH); } }
 /* the kit: GC.T[type] = {body, arms:[geo], len, h}; front +x, ground y 0, centred in x */
 function gcKit(){ if(LF.gc) return LF.gc;
-  const tex = new T.CanvasTexture(gcAtlas()); tex.encoding = T.sRGBEncoding; tex.anisotropy = 4; LF.texs.push(tex);
+  const tex = new T.CanvasTexture(gcAtlas(LF.theme)); tex.encoding = T.sRGBEncoding; tex.anisotropy = 4; LF.texs.push(tex);
   const mat = new T.MeshStandardMaterial({map:tex, vertexColors:true, roughness:.55, metalness:.08}); LF.mats.push(mat);
+  if(LF.theme){ const P = GC_PAL[LF.theme], v3 = h=>{ const c = new T.Color(h).convertSRGBToLinear(); return `vec3(${c.r.toFixed(3)},${c.g.toFixed(3)},${c.b.toFixed(3)})`; };   // (the paint's bright colours become the livery's: only on the paint part of the atlas, so glass, lamps, tyres and decals stay)
+    mat.onBeforeCompile = sh=>{ sh.fragmentShader = sh.fragmentShader.replace('#include <color_fragment>', `
+      { float mx = max(vColor.r, max(vColor.g, vColor.b)), mn = min(vColor.r, min(vColor.g, vColor.b)), sat = (mx - mn)/max(mx, .001), lum = dot(vColor, vec3(.3, .59, .11));
+        vec3 th = lum > .33 ? ${v3(P.acc)} : (lum < .22 ? ${v3(P.sec)} : ${v3(P.pri)});
+        bool paint = vUv.x < .5 && vUv.y > .5;
+        float k = paint ? smoothstep(.2, .45, sat) : 0.;
+        ${P.white ? 'if(paint && sat < .15 && lum > .8) { th = ' + v3(P.pri) + '; k = 1.; }' : ''}
+        diffuseColor.rgb *= mix(vColor, th*(.8 + .4*lum), k); }`); };
+    mat.customProgramCacheKey = ()=>'gc-' + LF.theme; }
   const K = bkKit(T, x=>x), sp = K.sp, M4 = new T.Matrix4();
   let parts = [];
   const add = (g, reg, col, x, y, z, ry, rx, rz, sx, sy, sz)=>{ const r = GC_REG[reg || 'paint'], u0 = (r[0] + 2)/512, u1 = (r[0] + r[2] - 2)/512, v0 = 1 - (r[1] + r[3] - 2)/512, v1 = 1 - (r[1] + 2)/512;
@@ -19374,7 +19417,7 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
   lifeMap: (x0, z0, x1, z1, st)=>{ const K = rCourse, rows = []; for(let z = z0; z <= z1; z += st){ let r = ''; for(let x = x0; x <= x1; x += st){ const h = K.H(x, z); r += h < K.wl + 1 ? '~' : h < 40 ? '.' : h < 120 ? 'o' : h < 300 ? 'O' : '#'; } rows.push(r); } return rows.join('\n') + '\nwl ' + K.wl; },   // (tests: a character map of the ground, ~ water)
   lifeX: ()=>LF.X,   // (tests: the course-life context)
   lifeNear: (x, z)=>{ const K = rCourse; let b = 1e12, bu = 0; for(let i = 0; i < 600; i++){ const q = K.curve.getPointAt(i/600), d = (q.x - x)**2 + (q.z - z)**2; if(d < b){ b = d; bu = i/600; } } const q = K.curve.getPointAt(bu), tg = K.curve.getTangentAt(bu); return {x: q.x, y: q.y, z: q.z, tx: tg.x, ty: tg.y, tz: tg.z, d: Math.sqrt(b)}; },   // (tests: the racing line beside a place)
-  gcStudio: (W, H)=>{ W = W || 360; H = H || 270; const keep = {gc:LF.gc, geos:LF.geos, mats:LF.mats, texs:LF.texs}; Object.assign(LF, {gc:null, geos:[], mats:[], texs:[]}); const out = [];   // tests: a studio picture of each ground-crew vehicle (data URLs)
+  gcStudio: (W, H, theme)=>{ W = W || 360; H = H || 270; const keep = {gc:LF.gc, geos:LF.geos, mats:LF.mats, texs:LF.texs, theme:LF.theme}; Object.assign(LF, {gc:null, geos:[], mats:[], texs:[], theme:theme || null}); const out = [];   // tests: a studio picture of each ground-crew vehicle (data URLs)
     try{ const G = gcKit(), sc = new T.Scene(); sc.background = new T.Color('#d9dee3'); sc.add(new T.HemisphereLight(0xffffff, 0x8a8f96, .9)); const d = new T.DirectionalLight(0xffffff, 1.5); d.position.set(40, 60, 30); sc.add(d);
       const fl = new T.Mesh(new T.CircleGeometry(300, 48), new T.MeshStandardMaterial({color:'#a4abb2', roughness:.9})); fl.rotation.x = -Math.PI/2; sc.add(fl);
       const cam = new T.PerspectiveCamera(30, W/H, 1, 2000), rt = new T.WebGLRenderTarget(W*2, H*2); rt.texture.encoding = T.sRGBEncoding; const px = new Uint8Array(W*2*H*2*4);
