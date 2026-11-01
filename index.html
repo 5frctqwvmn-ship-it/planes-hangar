@@ -9959,7 +9959,7 @@ function btRoom(io, B, need, quiet, force){
   if(io ? !io.idle(quiet) : !btIdle(quiet)) return false;
   const spd = lead.D/lead.Tp, fl = lead.take + (NL - 1)*rL - lead.d, nr = lead.D - 900 - lead.d;   // metres to the final-lap line and to the finish line (raceCommentary)
   if(nr <= 0 || Math.min(NL < 2 || fl <= 0 || (C && C.lap2) ? 1e9 : fl, C && C.near ? 1e9 : nr) < spd*(need + BT_RULE.clear)) return false;
-  if(LEARN.on && (LEARN.q || LEARN.nextT - t < need + 2)) return false;   // never into a question
+  if(LEARN.on && (LEARN.q || LEARN.nextT - t < need + 10)) return false;   // never into a question, nor in the 10 s before one (2026-11-01 review: less talk in the learning races; was 2 s)
   return true; }
 /* a plane's banter line: the device voice (a line not recorded yet) holds the voice as a recorded one does, so the announcer waits */
 function btSay(r, parts){ const id = r.c.def.id; return say(parts, Object.assign({force:true}, planeVoice(r))).then(()=>{ const a = actx, now = performance.now();
@@ -13159,7 +13159,8 @@ function learnFrame(dt){
       [LEARN.pick, LEARN.want].forEach(r=>r && planePacks(r).forEach(voPack)); if(LEARN.mode === 'letters') ltPre(); }   // (the Letter Race: its next card too, and its letters' packs)
     if(RACE.t >= LEARN.nextT && !RACE.finishers.length && lead && lead.D - lead.d > 900 && (LEARN.next = LEARN.force || lnNext())) (LEARN.mode === 'words' ? wdAsk : LEARN.mode === 'letters' ? ltAsk : lnAsk)(); }
   else if(!q.done){   // said once (owner, 2026-10-10: a re-ask on a timer talked over the player while he answered); "Say it again" replays it
-    lnPleaFrame(q);   // and the plane pleads now and then (15, 40, 60 s of quiet)
+    /* (no pleas here since 2026-11-01, the outside review: in the number, letter and word races the plane no longer says its timed
+       "please help me" lines (PLEA_AT, lnPleaFrame) while he thinks; Word Launch keeps its own) */
     if(RACE.shot && RACE.shot.type === 'talk') RACE.nextCut = Math.max(RACE.nextCut, RACE.clock + .5); }                                // the plane that asked stays on screen, waiting
   const goal = LEARN.q && (!LEARN.q.done || LEARN.q.miss !== undefined) ? 0 : 1; LEARN.scale += (goal - LEARN.scale)*Math.min(1, dt*3);   // the race stops until the right answer (and while a missed one is shown: q.miss)
   return LEARN.scale;
