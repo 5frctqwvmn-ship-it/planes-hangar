@@ -1565,7 +1565,7 @@ bkLocal(MODELS[MODELS.length - 1], {name:['Aerospatiale/BAC Concorde', 'Aerospat
    films: a he, the team's lead, number 1 (ANGEL.num, painted on his tails: gfxAngel). His name in one place (ANGEL.name: the label, the
    spoken name, the note). Eyes on his windscreen, like the films' jets. */
 const ANGEL = {name: 'Angel', num: '1'};
-G({id:'superhornet', build:'superhornet', jet:true, glowEach:true, faceEyes:'shield', smokeCol:'#ffffff', film:'own', retract:{main:'back', nose:'fwd'}, name:'Boeing F/A-18E Super Hornet', short:'Super Hornet', character:ANGEL.name,
+G({id:'superhornet', build:'superhornet', jet:true, homeCam:[.8,.08,.95], glowEach:true, faceEyes:'shield', smokeCol:'#ffffff', film:'own', retract:{main:'back', nose:'fwd'}, name:'Boeing F/A-18E Super Hornet', short:'Super Hornet', character:ANGEL.name,
   credit:'Super Hornet built in code for this game',
   note:{en:`${ANGEL.name} is a Super Hornet, a big, fast Navy jet. He flies with the Blue Angels, the Navy's flight demonstration team. The Blue Angels fly in a diamond, so close together that their wings almost touch, to show everyone how a Super Hornet can fly. ${ANGEL.name} is number 1, the leader! He is dark blue with bright yellow stripes. Look for his square air intakes and the little notch in each wing.`,
         es:`${ANGEL.name} es un Super Hornet, un jet grande y rápido de la Marina. Vuela con los Blue Angels, el equipo de exhibición aérea de la Marina. Los Blue Angels vuelan en forma de diamante, tan juntitos que sus alas casi se tocan, para mostrarle a todos cómo vuela un Super Hornet. ¡${ANGEL.name} es el número 1, el líder! Es azul oscuro con rayas amarillas brillantes. Busca sus tomas de aire cuadradas y la muesquita en cada ala.`},
@@ -3312,7 +3312,7 @@ function goTo(n, instant){
   tiltGoal = cur.gearStep >= 0 && step >= cur.gearStep ? cur.tilt : 0;
   tiltDelay = step === cur.gearStep ? now + 1100 : 0;
   if(instant) pivot.rotation.z = tiltGoal;
-  const ty = s.flight ? null : s.parts[ids[0]].type, cv = s.flight ? [.8,.2,1.0] : CAMS[ty === 'prop' && cur.def.pusher ? 'pusher' : ty] || CAMS.body;   // (a pusher's propeller: seen from behind)
+  const ty = s.flight ? null : s.parts[ids[0]].type, cv = s.flight ? cur.def.homeCam || [.8,.2,1.0] : CAMS[ty === 'prop' && cur.def.pusher ? 'pusher' : ty] || CAMS.body;   // (a pusher's propeller: seen from behind)   // (def.homeCam: a plane's own finished view [az, el, k]; Angel, 2026-11-01: lower and a little closer, so no roof tie crosses in front of him)
   camGoal.pref = cv[0]; camGoal.el = cv[1]; camGoal.k = Math.max(.9, Math.min(1.1, cv[2])); camGoal.az = bestView(cv[0], cv[1], camGoal.k);
   if(instant){ cam.az = camGoal.az; cam.el = camGoal.el; cam.dist = fitDist(cam.az, cam.el)*camGoal.k; }
   userDriven = false; propSpeed = 0;
