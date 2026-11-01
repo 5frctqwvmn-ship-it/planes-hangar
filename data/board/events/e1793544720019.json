@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "carrier",
+  "model": "opus",
+  "name": "Find carrier launch Say-it crash",
+  "t": 1793544720019,
+  "text": "8 planes, carrier course, Say it!",
+  "type": "spawn"
+}

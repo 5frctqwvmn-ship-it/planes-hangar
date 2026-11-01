@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "deckjets",
+  "model": "sonnet",
+  "name": "Real Hornets parked on the carrier decks",
+  "t": 1793565732000,
+  "text": "static copies of the game's F/A-18 models replace the toy jets",
+  "type": "spawn"
+}

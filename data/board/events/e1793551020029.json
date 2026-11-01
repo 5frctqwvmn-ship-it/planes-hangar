@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "airfield",
+  "model": "opus",
+  "name": "Airport-style start screen",
+  "t": 1793551020029,
+  "text": "apron, helipads, smaller names",
+  "type": "spawn"
+}

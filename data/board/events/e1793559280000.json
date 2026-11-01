@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "groundcrew",
+  "model": "opus",
+  "name": "Ground-crew vehicles as the audience",
+  "t": 1793559280000,
+  "text": "forklift, fuel truck, tug, baggage tractor, fire truck, catering truck",
+  "type": "spawn"
+}

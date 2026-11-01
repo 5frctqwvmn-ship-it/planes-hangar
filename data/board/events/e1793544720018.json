@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "math",
+  "model": "opus",
+  "name": "Math: show numbers, retry until right",
+  "t": 1793544720018,
+  "text": "\"2 + 2\" above the pictures",
+  "type": "spawn"
+}

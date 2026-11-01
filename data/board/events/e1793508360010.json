@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "cabface",
+  "model": "opus",
+  "name": "Fix Cabbie's smushed face",
+  "t": 1793508360010,
+  "text": "bigger windscreen eyes, bigger smile",
+  "type": "spawn"
+}

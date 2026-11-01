@@ -1,0 +1,142 @@
+d99a4ff|2026-11-01T15:07:35-06:00|origin/props, props|Prop skins: one painted atlas per course (plaster, planks, roof tiles or shingles, stone courses, corrugated metal and three place bands), lofted lighthouse with keeper's cottage, curled-roof cottages, painted grandstand; first cut of the other courses' set pieces (checked course by course next); old builders kept as propOld_*, drawn with ?classic=props or ?classic=all
+1cdcba9|2026-11-01T14:35:47-06:00|origin/test, origin/main, test, deckjets|Merge ships: painted, smoother warships, carriers and sailboats; old ships kept behind ?classic=ships
+c9e9f40|2026-11-01T14:35:17-06:00|origin/ships, ships|Ship skins: keep the old ship, carrier and sailboat builders (shipOld_*), drawn with ?classic=ships or ?classic=all; never built without the flag
+d30cbe9|2026-11-01T14:28:51-06:00|origin/progress-archive|Progress archive: before/after sheets from every build pass, and the milestone list
+107a757|2026-11-01T14:14:25-06:00||Ship skins: a cheaper destroyer (no lattice or rails, fewer hull sections) for the far escorts and the moving ones
+949049d|2026-11-01T13:53:45-06:00||Ship skins: painted atlas for hulls, island, flight deck, yacht topsides and sails; lofted carrier hulls and a tapered island; destroyers replace the box frigates; cambered sails and rigging on the yachts
+58c765a|2026-11-01T13:35:12-06:00|tag: m10-liveries, origin/milestone/m10-liveries, origin/livery, livery|Ground crew liveries: navy (carrier, armada), arctic (mountain, glacier), desert (canyon); one atlas per course life, freed with it
+6d4059c|2026-11-01T13:21:31-06:00|tag: m09-groundcrew, origin/milestone/m09-groundcrew, origin/groundcrew, groundcrew|Ground crew: per-crowd bounds over shared buffers (frustum culling), bigger on the deck
+e31299c|2026-11-01T13:11:45-06:00||Ground crew: six airport vehicles as the audience on the carrier deck and in the grandstands
+0918957|2026-11-01T11:13:15-06:00|tag: m08-ozzie, origin/milestone/m08-ozzie|Merge osprey: Ozzie, the V-22 Osprey, on the airport's third helipad
+c129767|2026-11-01T11:10:53-06:00||Merge branch 'review1' into test
+8bfce34|2026-11-01T11:10:47-06:00|origin/osprey, osprey|Ozzie's voice: his 656 staged lines folded into the existing packs
+7616c9b|2026-11-01T11:10:34-06:00|origin/review1, review1|Learning races: no timed pleas, no banter near a question
+bdb1382|2026-11-01T11:00:06-06:00||Word Launch: microphone off by default
+e6eb9d7|2026-11-01T10:58:58-06:00||Letter Race: the printed word stays hidden until he answers
+89a09d7|2026-11-01T10:53:07-06:00|tag: m07-airport, origin/milestone/m07-airport, origin/airfield, airfield|Field: an airport apron with painted stands, helipads, terminal, tower and hangar; small name tags under each plane, a big name for the tapped one
+7037c41|2026-11-01T10:39:47-06:00||Learning games: one miss flow everywhere, touch to count, Keep flying
+01fe97a|2026-11-01T10:34:18-06:00||Ozzie: his picture on the start screen's field (models/field/meta.json, no new file)
+a3b961a|2026-11-01T10:32:05-06:00||Ozzie: a group a side for his nacelles and rotors (merged meshes had joined the two rotors), a shorter settle after his show
+3d7de1e|2026-11-01T10:23:22-06:00||Ozzie: the V-22 Osprey tiltrotor, built in code (first pass: model with tilting nacelles, roster, voice wiring, win show, letters, light copies)
+0ce9aa8|2026-11-01T10:02:20-06:00||Merge branch 'carriercrash' into test
+48ef7b6|2026-11-01T10:02:01-06:00|origin/carriercrash, carriercrash|Carrier crash: speech decoded line by line (the vodecode work, finished onto test)
+c86f499|2026-11-01T09:10:56-06:00|origin/mathshow, mathshow|Merge remote-tracking branch 'origin/test' into mathshow
+67c34e3|2026-11-01T09:10:55-06:00||Number race: the written problem above its pictures (2 + 2, 5 − 2, 4 + ? = 7); a wrong pick fades and he keeps trying, first try only earns the star
+d699cb0|2026-11-01T09:01:15-06:00||Play progress: every answer in the learning games and every race start and end logged per session to the artifact's db (progress)
+6eb71e0|2026-11-01T08:49:31-06:00||Crash reports: a trail of what the game was doing and its memory, kept every 4 s; a tab that died without closing, a JS error or lost graphics is reported to the artifact's db (crashes)
+97eacfc|2026-11-01T08:39:56-06:00|tag: m06-angel, origin/milestone/m06-angel|Angel's win show: the six fly wing to wing, a tight diamond with the solos tucked beside it
+7d41c24|2026-11-01T08:33:00-06:00|origin/angel, angel|Angel's hangar view: lower and a little closer, clear of the roof tie
+a585f5b|2026-11-01T08:31:35-06:00||Angel's voice: his 636 staged lines folded into the existing packs
+87d74ee|2026-11-01T08:31:21-06:00||Angel's new win show: the Blue Angels fly in to join him
+8661104|2026-11-01T08:27:35-06:00||Merge test into angel
+ddf8349|2026-10-31T23:59:19-05:00|origin/cabface, cabface|Cabbie's face: bigger windscreen eyes turned to look ahead, a bigger smile
+8d73bc9|2026-10-31T20:26:14-05:00||Merge test (a604d87) into angel
+f63417a|2026-10-31T20:25:54-05:00|tag: m05-maps-declutter, origin/milestone/m05-maps-declutter, origin/maps, maps|Merge test into maps
+87e8a4a|2026-10-31T20:25:53-05:00||Course life pass 3: lighter boxes, smaller coast cottage clusters
+be69459|2026-10-31T20:25:50-05:00|origin/vodecode, vodecode|Merge commit 'a604d87' into vodecode
+a604d87|2026-10-31T20:24:56-05:00||Merge branch 'slim' into test
+7c25797|2026-10-31T20:24:56-05:00||Bulldog's win: add the navy sparkle colours his flag burst asks for (it threw on every Bulldog win)
+d5f5f24|2026-10-31T17:25:01-05:00||Speech slices: the blimp's packs stay whole
+00d0ea0|2026-10-31T17:10:48-05:00|origin/slim, slim|Voice packs: take out lines no code path says (42.8 MB, 4 files), the lines that stay cut and joined frame for frame
+caa90ad|2026-10-31T16:47:50-05:00||Speech slices: padding follows the measured lag
+978b2f3|2026-10-31T16:47:13-05:00||Tests: the slice hook is voSliceInfo (voLines is the recording tools')
+34606df|2026-10-31T16:31:45-05:00||Tests: line-by-line speech hooks (voLines, voMem, voLineCheck, voLineWav, voSlices)
+93a1aa0|2026-10-31T16:19:57-05:00||Speech decoded line by line, not pack by pack
+232683f|2026-10-31T16:19:20-05:00||Angel: thicker white smoke in his win show, a higher-alpha pass
+0d7e7db|2026-10-31T16:03:13-05:00|tag: m04-learn-levels, origin/milestone/m04-learn-levels|Merge learn: harder levels, new words and phrases, pictures, one try per question
+46cb75b|2026-10-31T15:56:42-05:00||Course life: camera keep-out also for pylon, chase, win show, finish; taller gates; no gate mid keep disc
+68aa559|2026-10-31T15:55:58-05:00||Merge test (camera stability) into maps
+c90a3b4|2026-10-31T15:55:52-05:00||Merge test into maps
+96d4828|2026-10-31T15:51:18-05:00|tag: m03-stability, origin/milestone/m03-stability|Merge stability: course memory freed, lost-graphics recovery, camera line of sight
+6a2f78f|2026-10-31T15:45:51-05:00|origin/stability, stability|Camera: the scenery check runs every 0.4 s
+bbad453|2026-10-31T15:34:34-05:00||Angel: his picture on the start screen's field (models/field/meta.json, no new file)
+3b00c4c|2026-10-31T15:14:45-05:00||Angel: a darker Blue Angels navy, his blimp lines fold into her pack, a test hook (shEval)
+7cc14bb|2026-10-31T15:08:15-05:00|origin/learn, learn|Number race: an elephant or a mouse on the biggest and smallest card, counting-by tiles on one row
+09c862a|2026-10-31T15:02:38-05:00||Camera: a cut shot with scenery in the way cuts early
+0e65e4a|2026-10-31T15:01:30-05:00||Number race: a missed counting-by row goes straight to counting it together (every line recorded)
+f946a57|2026-10-31T15:01:26-05:00||Angel: work in progress (Spanish voice blend note)
+6ecb265|2026-10-31T13:10:32-05:00||Angel: the Blue Angels' Super Hornet, built in code (first pass: model, roster, voice wiring, win show, letters, light copies)
+209ffd5|2026-10-31T13:07:25-05:00||Voice: the new level names in the narrator's voice (en and es ui packs)
+9e7faf2|2026-10-31T13:00:08-05:00||Merge franzprop: Franz gets his pusher propeller
+7e0aada|2026-10-31T12:45:14-05:00||Camera: the ground never between the camera and the planes it films
+dd5d4dc|2026-10-31T12:42:49-05:00||Number race: smaller pictures past ten so the card stays low
+0de8eb7|2026-10-31T12:32:29-05:00||Course life pass 3 WIP: fewer, better-made set pieces (hero chalets, yachts, temples, towers), grandstand with fans, gates
+d23690a|2026-10-31T12:31:19-05:00||Letter Race: on a two-letter card only the pairs' words mark two letters
+5c0877b|2026-10-31T12:12:54-05:00||Voice: 1,892 new lines in her voice for the new levels, words and questions, appended to the existing packs
+35b5dd2|2026-10-31T12:10:49-05:00||Stability: a lost graphics context recovers, lit as before
+5df81df|2026-10-31T11:09:27-05:00|origin/franzprop, franzprop|Franz gets his pusher propeller
+06420bd|2026-10-31T11:06:01-05:00||Stability: free courses, idle shadow maps; guard Next and race start
+5348724|2026-10-31T10:38:27-05:00||Say it and Word Launch: F levels 7 to 9, Word Launch levels 6 to 8, more words and phrases, one picture per word, one-try listening pairs
+6a3e872|2026-10-31T10:31:03-05:00||Letter Race and number race: one try a question, listening beat, first-try stars, levels 5 to 8 and 7 to 12, more words and things to count
+7034480|2026-10-30T18:13:01-05:00|origin/voice, voice|Tests: gsInfo shows his singing, gsVol sets a volume slider
+f7307c0|2026-10-30T18:06:22-05:00||Bulldog sings God Save the Queen with the band
+600eaad|2026-10-30T17:49:06-05:00||The Concorde is just called Concorde
+8e0b1f6|2026-10-30T12:55:50-05:00|HEAD -> main, tag: m02-maps-pass2, origin/milestone/m02-maps-pass2|Merge maps pass 2: themed scenery along every race line
+7a30e60|2026-10-30T12:35:56-05:00||Course life pass 2: Metro harbour boats and pier towers along the line
+6cff7b6|2026-10-30T11:18:07-05:00||Course life pass 2: flyby camera keeps out of the dressing, wider gate keep-out, block probe shows the camera and hit points
+1e596aa|2026-10-30T11:08:58-05:00||Neutral wording in a few comments
+3d4ec3a|2026-10-30T11:01:26-05:00||Course life pass 2: navy beaches and lighthouses, Snowcap trees on the slopes, brighter farm sky
+670311e|2026-10-30T10:57:27-05:00||Course life pass 2: camera keep-out for the line dressing, bend filter, glacier colours, Metro avenue, coast turquoise sea
+df389a7|2026-10-30T10:50:43-05:00||Merge branch 'dances2' into test
+618a7a6|2026-10-30T10:50:20-05:00|origin/dances2, dances2|Dances2 polish: Ripslinger's mirrored aviators (bigger, bright, gold rims) across his canopy, his trophy just behind it
+ba3104e|2026-10-30T10:44:56-05:00||Merge branch 'dances' into test
+cad8137|2026-10-30T10:22:40-05:00||Merge branch 'models' into test
+ae6c507|2026-10-30T09:58:58-05:00|origin/dances, dances|Win show: the show flies exactly the racing line its plan was checked on
+dec2610|2026-10-30T09:55:06-05:00||Course life pass 2: line dressing for all ten courses (WIP), snowy Snowcap terrain, course moods
+738b70f|2026-10-30T09:53:37-05:00||Dances2 polish: Franz's wings fold flat and stack over his boom; Leadbottom's bold bloom and thick mulch cloud; Ripslinger's big aviators across his canopy, closer camera; bigger hiker and petals
+6eb90aa|2026-10-30T09:49:47-05:00|origin/models, models|Models: Cabbie's propellers spin on their own hubs; Windlifter and Cabbie look out of their windscreens
+9a8173e|2026-10-30T09:40:59-05:00||Merge branch 'dances2' into test
+72809a1|2026-10-30T09:40:22-05:00||Dances2: Ripslinger's shades wrap round his nose (a band over his eyes that reads from the side), unused helper removed
+63b0ee1|2026-10-30T09:22:14-05:00||Course life pass 2: Red Rock Canyon line dressing (buttes, hoodoos, giant saguaros, outpost, arches over the line) and a sunset mood
+b93674d|2026-10-30T09:10:11-05:00||Win show: finish where the whole routine fits
+f9506cb|2026-10-30T09:08:11-05:00||Course life pass 2: dressing framework (lfDress, lfGate) and the farm line: windmill rows, barns, silos, scarecrows, crop strips, harvest gates
+b99f5ab|2026-10-30T09:07:39-05:00||Dances2: Ripslinger's shades and Skipper's medal were never attached (a line-end comment had swallowed the code); fixed
+15baecb|2026-10-30T09:06:02-05:00||Merge branch 'ux' into test
+de016df|2026-10-30T09:03:20-05:00|origin/ux, ux|UX: Race now! opens with four racers picked; start-screen banner follows the language
+a709aa6|2026-10-30T08:59:48-05:00||Merge branch 'ux' into test
+535300b|2026-10-30T08:59:43-05:00||Merge branch 'models' into test
+b105f10|2026-10-30T08:59:06-05:00||Models: Sky City copies carry the new face spots (the C-119's windshield eyes too)
+c44978d|2026-10-30T08:53:26-05:00||Merge branch 'maps' into test
+3080f33|2026-10-30T08:53:21-05:00||Merge branch 'bulldog' into test
+633605b|2026-10-30T08:52:27-05:00||Course life: build time in lifeInfo (tests)
+5456e27|2026-10-30T08:52:22-05:00||Dances2: Ripslinger's shades tipped forward to face the camera, paparazzi flashes nearer; test hooks for props
+2b5d1aa|2026-10-30T08:52:16-05:00||UX: cancel a takeoff (Hangar X in the tour) and Race now! on the start screen
+51d382c|2026-10-29T00:44:21-05:00|origin/bulldog, bulldog|Bulldog: a tap waves his flags, no star sticker
+67a249d|2026-10-29T00:22:42-05:00||Models: match the old sizes, cockpit bulkheads, Sky City copies from the new builders
+0e1345a|2026-10-29T00:18:43-05:00||Bulldog's anthem: a little softer; Sky City flags halfway out the wing
+372322a|2026-10-29T00:08:38-05:00||Dances2: fixes from the first strips (Franz's road, sRGB props, bigger petals, garland, medal, flags; chutes land and go; Fire Dusty's level drop pass); dead stamp, balloon and smoke-trail code removed
+c030ba9|2026-10-29T00:04:59-05:00||Win show: the hangar's Open up! button no longer stays on screen over the show
+883142f|2026-10-28T23:28:26-05:00||Models: Windlifter and Cabbie rebuilt in detail (S-64 and C-119 shapes, panel skin, cockpits, gear)
+c8f77c7|2026-10-28T23:19:55-05:00||Dances2: character win shows, first pass (plan, one line per plane)
+cbdbc55|2026-10-28T23:15:40-05:00||Bulldog: a second win show, God Save the Queen
+93bc33e|2026-10-28T23:03:59-05:00||Win show button in the hangar: the plane's own win celebration as a race of one
+0ca889d|2026-10-28T22:02:56-05:00||Course life: Ocean Armada Run and Carrier Launch (moving warships with wakes, helicopters, deck crew, radar, submarine, buoys, flares, edge lights, steam, tractors)
+e2472f3|2026-10-28T21:54:05-05:00||Course life: Lookout Ridge Trail (hang gliders, waterfalls, rainbow, deer, hikers, campsite, eagles, anemometer)
+bba3b4f|2026-10-28T21:45:24-05:00||Dances: smaller city stamps
+ed9e2e3|2026-10-28T21:39:30-05:00||Dances: Sky City gets stamp versions of the drawn shows, seen from the city camera
+8c8ebcb|2026-10-28T21:21:31-05:00||Course life: Sun Temple Ruins (sun disc, torches, totems, camp, llamas, colonnades, sacred pool, macaws, butterflies, dust)
+2ce0379|2026-10-28T21:09:42-05:00||Course life: Metro Spire Circuit (monorail, blimps, balloons, helicopters, harbour ships, ferris wheel, parks, roundabout traffic, rooftops, signs, neon); shared lfBoats and lfPier
+d343d0b|2026-10-28T21:06:09-05:00||Dances: taps for the older shows too; gentler flips for big planes; bigger tap stamps
+729d338|2026-10-28T20:58:31-05:00||Course life: Glacier Bay Speedway (frozen lakes, skaters, seals, sled dogs, snowmobiles, penguins, igloos, ice towers, polar bears, rescue helicopter)
+1d8e373|2026-10-28T20:41:35-05:00||Dances: restore the tap table (INK_TAP)
+55e5ae3|2026-10-28T20:36:23-05:00||Dances: smaller parachutes spread under the plane
+18da4df|2026-10-28T20:28:44-05:00||Dances: road, trophy, spots
+f371360|2026-10-28T20:20:09-05:00||Course life: shared builders section (ships, helis, whales, ferris wheel, penguin, tent)
+eb0654c|2026-10-28T20:19:02-05:00||Dances: sparkles, toy spots, longer 1
+a7abda1|2026-10-28T20:15:03-05:00||Course life: Lighthouse Coast (beams, sailboats, whales, dolphins, surf, gulls, pier with ferris wheel, cottages)
+f32cd25|2026-10-28T20:09:43-05:00||Dances: mirrored number for the far side; side dealt first
+28a7c6f|2026-10-28T20:03:46-05:00||Dances: star outline
+690fe3b|2026-10-28T20:01:21-05:00||Dances: wip tuning
+61da8cf|2026-10-28T19:57:39-05:00||Course life: Snowcap Pass
+5359260|2026-10-28T19:47:35-05:00||Course life: Red Rock Canyon (fly-through arch, rim arches, hoodoos, cacti, tumbleweeds, trestle with steam train, eagles, geyser, dust devils)
+349bf62|2026-10-28T19:31:39-05:00||Course life: toolkit and Farmfield Classic (windmills, turbines, farmyards, herds, tulip fields, tractor, balloons, geese)
+90de294|2026-10-28T19:17:22-05:00||Dances: air-art engine (pen, stamps, toys, props), tap-to-join, first twelve shows (work in progress)
+fcf3b2a|2026-10-26T21:14:41-05:00||Update to test build v75, part 4
+11f65f7|2026-10-26T21:14:26-05:00||Update to test build v75, part 3
+b91619d|2026-10-26T21:14:08-05:00||Update to test build v75, part 2
+e6d8b77|2026-10-26T21:13:48-05:00||Update to test build v75, part 1
+9c916d9|2026-10-23T15:53:27-05:00||Voice clips, part 4
+40fbad9|2026-10-23T15:53:14-05:00||Voice clips, part 3
+2900a55|2026-10-23T15:53:01-05:00||Voice clips, part 2
+cd3fa10|2026-10-23T15:52:45-05:00||Voice clips, part 1
+8c4b86d|2026-10-23T15:52:02-05:00|tag: m01-start, origin/milestone/m01-start|The Planes Hangar: the game page, models and courses

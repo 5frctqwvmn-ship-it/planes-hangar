@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "maps3",
+  "model": "opus",
+  "name": "Finish maps declutter pass 3",
+  "t": 1793505420006,
+  "text": "check courses 6-9, fix only real problems",
+  "type": "spawn"
+}

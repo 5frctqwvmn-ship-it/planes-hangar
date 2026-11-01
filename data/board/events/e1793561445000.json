@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "boardtrucks",
+  "model": "sonnet",
+  "name": "Board trucks match the game's ground crew",
+  "t": 1793561445000,
+  "text": "port the six rounded vehicles to the ops board",
+  "type": "spawn"
+}

@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "ships",
+  "model": "opus",
+  "name": "Upgrade ships and set pieces",
+  "t": 1793561220001,
+  "text": "warships, carrier, sailboats to planes quality with texture tricks",
+  "type": "spawn"
+}

@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "review1",
+  "model": "opus",
+  "name": "Review fixes: retry flow, letters, mic, pleas",
+  "t": 1793549940028,
+  "text": "from the outside design review",
+  "type": "spawn"
+}

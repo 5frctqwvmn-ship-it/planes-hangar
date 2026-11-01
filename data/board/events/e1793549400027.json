@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "osprey",
+  "model": "opus",
+  "name": "Add Ozzie, the V-22 Osprey",
+  "t": 1793549400027,
+  "text": "tiltrotor, rotors up then forward",
+  "type": "spawn"
+}

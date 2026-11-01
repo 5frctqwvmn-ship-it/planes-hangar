@@ -1,0 +1,9 @@
+{
+  "effort": "medium",
+  "id": "livery",
+  "model": "sonnet",
+  "name": "Ground crew liveries per location",
+  "t": 1793561220000,
+  "text": "Navy grey with star on ships, Arctic on snow, tan in desert",
+  "type": "spawn"
+}
