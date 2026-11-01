@@ -11451,7 +11451,7 @@ const INK_SPOT = [[-.7, .6], [.75, .65], [0, .85], [-.9, .05], [.95, .15], [-.4,
 const INK_TSPOT = [[-.3, .55], [.35, .62], [-.35, -.5], [.4, -.58], [0, .72], [-.1, -.72], [.15, .4]];
 function inkAround(k, out, rad, tab){ const I = INK, TB = tab || INK_SPOT, sp = TB[k % TB.length], sz = I.r.c.size*(rad || 1); inkCamAxes();
   return out.set(I.mid.x + (I.cr.x*sp[0] + I.cu.x*sp[1])*sz, I.mid.y + (I.cr.y*sp[0] + I.cu.y*sp[1])*sz, I.mid.z + (I.cr.z*sp[0] + I.cu.z*sp[1])*sz); }
-const INK_PAL = {party: ['#ffd23f', '#ff6b9d', '#35b8ff', '#7ee081', '#ffffff'], rainbow: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff'], gold: ['#fff6b8', '#ffd740', '#ffffff', '#ffb300']};   // (Dusty's stars)
+const INK_PAL = {party: ['#ffd23f', '#ff6b9d', '#35b8ff', '#7ee081', '#ffffff'], rainbow: ['#ff3b30', '#ff9500', '#ffd60a', '#34c759', '#35b8ff'], gold: ['#fff6b8', '#ffd740', '#ffffff', '#ffb300'], navy: ['#1d3557', '#ffffff', '#d62828', '#4ea8de']};   // (Dusty's stars)
 /* a stamp of a tap: round the plane (the screen's right and up, in the frame), each tap in another place; colours as hex */
 function inkShow(shape, k, pal, scale, o){ inkAround(k, _ikA, 1); inkStamp(shape, _ikA.x, _ikA.y, _ikA.z, scale, pal, o); }
 /* sparks at the plane (the race's own fxBurst: no new pool) */
