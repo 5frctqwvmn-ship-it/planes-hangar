@@ -1464,7 +1464,7 @@ G({id:'skycrane', build:'skycrane', heli:true, faceEyes:'shield', film:'fr', nam
     S('rotor',P('Main rotor','Rotor principal','prop',6),'^(mr_|mrb|rotor)',{en:['Last part: 6 giant blades','The 6 giant blades lift heavy loads into the sky.'],es:['Última pieza: 6 aspas gigantes','Las 6 aspas gigantes suben cargas pesadas al cielo.']})
   ]});
 /* Cabbie's part in Fire & Rescue: the Fairchild C-119 Flying Boxcar, built in code (buildBoxcar), gray and white. */
-G({id:'c119', build:'boxcar', twin:true, faceEyes:'shield', film:'fr', name:'Fairchild C-119 Flying Boxcar', short:'Boxcar', character:'Cabbie',
+G({id:'c119', build:'boxcar', twin:true, faceEyes:'shield', shieldK:{size:1.3, fwd:.6, out:.45}, mouthK:1.15, film:'fr', name:'Fairchild C-119 Flying Boxcar', short:'Boxcar', character:'Cabbie',
   credit:'Flying Boxcar built in code for this game',
   note:{en:'The Flying Boxcar is a cargo plane with 2 tail booms. Its back opens wide to load big boxes.',
         es:'El Flying Boxcar es un avión de carga con 2 colas. Su parte trasera se abre para meter cajas grandes.'},
@@ -4923,10 +4923,15 @@ function computeExtras(def, wrap, groups, bb){
         if(mt && mt.userData && mt.userData.baseTransparent && mt.opacity < .95) gm.push(o); }));
       let shield = [null, null], shieldSize = es;
       if(gm.length){ const gb = boxOfMeshes(gm), gw = gb.max.z - gb.min.z, gh = gb.max.y - gb.min.y, dir = V(-1, -.35, 0).normalize();
-        for(const fy of [.55, .45, .65, .35]){ const gy = gb.min.y + gh*fy;
-          shield = [1,-1].map(sg=>{ for(const fz of [.22, .17, .27, .12]){ const h2 = rayHit(gm, V(gb.max.x + 3000, gy + 3000*.35, (gb.min.z + gb.max.z)/2 + sg*gw*fz), dir); if(h2 && h2.n.x > .2) return h2; } return null; });
+        const SK = def.shieldK || {};   // def.shieldK {fy, fz, size}: a plane's own windscreen eye spot (Cabbie: his front panes, not the high back ones)
+        for(const fy of SK.fy ? [SK.fy] : [.55, .45, .65, .35]){ const gy = gb.min.y + gh*fy;
+          shield = [1,-1].map(sg=>{ for(const fz of SK.fz ? [SK.fz] : [.22, .17, .27, .12]){ const h2 = rayHit(gm, V(gb.max.x + 3000, gy + 3000*.35, (gb.min.z + gb.max.z)/2 + sg*gw*fz), dir); if(h2 && h2.n.x > .2) return h2; } return null; });
           if(shield[0] && shield[1]) break; }
-        shieldSize = Math.max(.5, Math.min(gw*.4, gh*.75)); }
+        shieldSize = Math.max(.5, Math.min(gw*.4, gh*.75))*(SK.size || 1);
+        // SK.fwd: turn the eyes from the glass's upward slope toward straight ahead (a little out), so they read from level and
+        // from below too, not only from above; they sink a little so no edge floats off the glass
+        if(SK.fwd && shield[0] && shield[1]) shield = shield.map((h2, i)=>{ const sg = i === 0 ? 1 : -1, want = V(1, SK.up || .15, sg*(SK.out || .25)).normalize(), n2 = h2.n.clone().lerp(want, SK.fwd).normalize();
+          return {object: h2.object, point: h2.point.clone().addScaledVector(h2.n, -shieldSize*.3*Math.sin(h2.n.angleTo(n2))), n: n2}; }); }
       // Hornet-style eyes, every aircraft's default (owner, 2026-10-02: "match Echo and Bravo"): on top of the nose, part
       // way from the front of the windshield to the nose, sized to the nose's width there, set apart like the Hornet's
       // and turned to face up and forward the way the Hornet's do (FACE_K; it reproduces the Hornet itself).
