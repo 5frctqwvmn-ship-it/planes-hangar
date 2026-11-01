@@ -2946,7 +2946,8 @@ function buildOsprey(T, lod){
   const dark = H.keep(H.M(0x1b1e21, .7, .1)), metal = H.keep(H.M(0x8d949a, .35, .6)), tire = H.keep(H.M(0x1c1c1c, .85, 0)), cabin = H.keep(H.M(0x2a2e33, .85, 0)), blade = H.keep(H.M(0x3a3f44, .55, .15));
   const red = H.keep(H.M(0xd12a22, .35, .1, {emissive: 0x4a0806})), grn = H.keep(H.M(0x22b14c, .35, .1, {emissive: 0x063a14})), glassM = H.glass();
   const grp = nm=>{ const g = new T.Group(); g.name = nm; root.add(g); return g; }, put = H.put, loft = H.loft;
-  const body = grp('body'), wing = grp('wing'), tail = grp('tail'), nac = grp('nacelle'), gear = grp('gear'), cab = grp('cab'), rotor = grp('rotor');
+  const body = grp('body'), wing = grp('wing'), tail = grp('tail'), gear = grp('gear'), cab = grp('cab');
+  const nacS = [grp('nacelle-r'), grp('nacelle-l')], rotS = [grp('rotor-r'), grp('rotor-l')];   // a group a side, so nothing merges across the two (ozRig parts them by side)
   // ---- the fuselage: a rounded nose, a boxy cabin 7.7 ft across, the belly sweeping up behind the ramp's hinge to the tail cone
   const T0 = K.curve([0, 1, 3, 6, 9, 12, 16, 40, 46, 52, 55, 55.8], [6.7, 7.5, 8.6, 9.8, 10.7, 11.2, 11.5, 11.5, 11.3, 11.0, 10.7, 10.4]);
   const B0 = K.curve([0, 1, 3, 6, 9, 12, 33, 38, 43, 48, 52, 55, 55.8], [6.7, 5.7, 4.5, 3.5, 3.0, 2.8, 2.8, 3.6, 5.4, 7.6, 8.9, 9.7, 10.2]);
@@ -2983,13 +2984,13 @@ function buildOsprey(T, lod){
   // ---- the nacelles, made pointing forward (airplane mode) round their pivot, then turned straight up (helicopter mode)
   const up = g=>H.rotAbout(g, new T.Vector3(0, 0, 1), PI/2, [0, OZ.py, 0]), hx = OZ.px - OZ.hub, hy = OZ.py + OZ.hub;
   const nr = K.curve([hx + .4, hx + 1.4, hx + 3.5, hx + 8, hx + 10.5, hx + 12], [1.6, 2.2, 2.45, 2.45, 1.9, 1.0]);
-  [1, -1].forEach(s=>{ const z = s*OZ.pz;
+  [1, -1].forEach(s=>{ const z = s*OZ.pz, nac = nacS[s > 0 ? 0 : 1];
     put(nac, up(H.lathe(nr, hx + .4, hx + 12, n(24, 6), OZ.py, z, n(28, 8))), grey);
     put(nac, up(K.disc(hx + 12, OZ.py, z, 0, 1.02, -1, n(16, 6))), dark);
     if(L < 2) put(nac, up(H.lathe(x=>nr(x) + .04, hx + 4.8, hx + 5.2, 1, OZ.py, z, n(28, 8))), dkg);   // a band round it
     if(D) put(nac, H.at(new T.SphereGeometry(.2, 8, 6), OZ.px, OZ.py, z + s*2.5), s > 0 ? grn : red); });   // the navigation lights
   // ---- the proprotors (helicopter mode): a spinner, three wide 18.6 ft blades each
-  [1, -1].forEach(s=>{ const z = s*OZ.pz;
+  [1, -1].forEach(s=>{ const z = s*OZ.pz, rotor = rotS[s > 0 ? 0 : 1];
     put(rotor, up(H.lathe(x=>1.5*Math.sqrt(Math.max(0, Math.min(1, (x - hx + 2.9)/2.9))), hx - 2.9, hx + .45, n(10, 4), OZ.py, z, n(24, 8))), grey, 'rotor-hub');
     const bst = [[C - 1.0, hy, z + s*1.0, 2.0, .2], [C - 1.7, hy, z + s*3.2, 3.4, .14], [C - 1.5, hy - .1, z + s*11, 3.0, .1], [C - 1.05, hy - .2, z + s*17.6, 2.1, .08], [C - .65, hy - .22, z + s*OZ.R, 1.3, .004]];
     for(let k = 0; k < 3; k++){ const R = g=>H.rotAbout(g, new T.Vector3(0, 1, 0), k*2*PI/3 + (s > 0 ? 0 : PI/3), [0, hy, z]);
@@ -12273,7 +12274,7 @@ const WIN_MOVE = {
   bristles:  {cam: 'front', tap: 'clack', ov: 'hop', s: [[1.0, ['hop', .2, 2]], [BB_APART.len + .15, ['apart'], ['wag', .1, 1]], [1.5, ['roll', 1, 1], ['fx', 'stars', .05]], [.8, ['hop', .3, 1], ['fx', 'stars', .5]]]},   // Bristles: two little hops, then its own trick: it comes apart into its blocks and snaps back together (bbApart), a ta-da roll and one big hop                                                                      // Endeavour: a slow roll like a launch's roll program (then its bay opens)
   concorde:  {cam: 'q', tap: 'reheat', ov: 'wag', settle: 2.0, s: [[2.2, ['dash', 2.2, .12], ['fx', 'puff', .02], ['fx', 'cone', .3]], [2.3, ['climb', 3.4, .95], ['fx', 'boom', .05]]]},   // Concorde 1, the sonic boom: a super fast low pass, a cone of vapour at its wings and a soft ring in the air, then a steep climb
   concorde2: {cam: 'q', tap: 'reheat', ov: 'wag', settle: 1.8, s: [[3.0, ['climb', 4.2, 1.1], ['space', 0, 1]], [1.6, ['space', 1, 0]]]},   // Concorde 2, the edge of space: a steep climb, the sky deepens to black and stars with the Earth's curve below, level off, the sky comes back
-  osprey:    {cam: 'q', tap: 'prop', ov: 'spin', settle: 1.8, s: [[1.2, ['rise', .18]], [2.8, ['pirouette', 1, 1], ['hop', .07, 2]], [2.4, ['dash', 2.6, 0], ['rise', .12]]]},   // Ozzie: rotors up, a hover with a helicopter spin and a bob, then rotors forward and he zooms off like a plane (ozFrame, ozShowGoal)
+  osprey:    {cam: 'q', tap: 'prop', ov: 'spin', settle: 1.2, s: [[1.2, ['rise', .18]], [2.8, ['pirouette', 1, 1], ['hop', .07, 2]], [2.4, ['dash', 2.6, 0], ['rise', .12]]]},   // Ozzie: rotors up, a hover with a helicopter spin and a bob, then rotors forward and he zooms off like a plane (ozFrame, ozShowGoal)
   superhornet: {cam: 'dia', tap: 'reheat', ov: 'wag', reach: SHF_REACH, rh: .15, cs: [[2.6, ['rise', .35]], [2.0], [2.2, ['rise', -.35]]], s: [[2.6, ['rise', .6]], [2.0], [2.2, ['rise', -.6]]]},   // Angel, the Blue Angels' lead (owner, 2026-11-01): "Smoke on!", he climbs and his friends, five more Super Hornets in the team's paint, fly in to join him: the diamond (two wingmen and the slot) and the two solos; they hold it a beat in white smoke, then all six blast off out of the picture together with a big whoosh (shFrame, SHF)
   _:         {cam: 'q', s: [[1.6, ['roll', 1, 1]], [1.6, ['wag', .4, 2]]]}};                                                            // anything without its own
 /* the bursts: colours, and [count, speed ft/s, size (of the plane's size), life s, fall] (fxBurst) */
