@@ -7815,14 +7815,10 @@ function buildCarrier(group, deckY, water){
   // deck-edge elevators (lowered a little) and the hangar openings in the hull side
   box(70, 5, 46, dark, stern + 260, deckY - 9, 150); box(70, 5, 46, dark, stern + 860, deckY - 9, 150);
   [stern + 160, stern + 380, stern + 700, stern + 1000].forEach(x=>box(90, 22, 1.4, black, x, deckY - 34, 84.6));
-  // arresting wires across the landing deck and a few deck crew in colored vests by the bow
+  // arresting wires across the landing deck (the deck crew are the ground-crew vehicles of the course life: gcCrowd)
   for(let k = 0; k < 4; k++) if(k !== 1) cyl(.7, .7, 110, black, stern + 150 + k*42, deckY + .5, -78, Math.PI/2);
   const wire = new T.Mesh(new T.CylinderGeometry(.7, .7, 110, 6, 10), black); wire.position.set(stern + 192, deckY + .5, -78); wire.rotation.x = Math.PI/2; wire.name = 'wire';   // the second wire is its own mesh (one more draw call): Radio Out's hook pulls it into a V
   wire.userData.base = wire.geometry.attributes.position.array.slice(); g.add(wire); g.userData.wire = wire;
-  const vest = new T.MeshStandardMaterial({vertexColors:true, roughness:.7});
-  [[bow - 120, 78, '#f2c230'], [bow - 160, -84, '#3d9b4a'], [bow - 240, 86, '#c8382e'], [bow - 300, -92, '#f2c230'], [bow - 90, -70, '#f4f4f4']].forEach(([x, z, c])=>{
-    const col = new T.Color(c).convertSRGBToLinear(); cyl(1.3, 1.1, 3.4, vest, x, deckY + 4.3, z).userData.col = col; box(1.8, 3, 1.4, black, x, deckY + 1.5, z);
-    const hd = new T.Mesh(new T.SphereGeometry(1, 12, 8), vest); hd.position.set(x, deckY + 6.8, z); hd.userData.col = col; parts.push(hd); });
   mergeByMat(parts).forEach(m=>g.add(m));
   // the flight deck itself: its own mesh, with painted markings on top
   const W = 2048, Hh = 640, X = x=>(x - (stern - 20))/(L + 40)*W, Z = z=>(z + 200)/400*Hh;
@@ -8107,7 +8103,7 @@ function lifeBuild(K){
   if(K.life || K.city || !LIFE[K.C.id]) return;
   const g = new T.Group(); g.name = 'life'; K.group.add(g);
   let seed = 7; for(const ch of K.C.id) seed = (seed*31 + ch.charCodeAt(0))|0;
-  Object.assign(LF, {K, g, anim:[], geos:[], mats:[], texs:[], regs:[], pts:[], sites:[], keep:[], r:lfRng(seed)});
+  Object.assign(LF, {K, g, anim:[], geos:[], mats:[], texs:[], regs:[], pts:[], sites:[], keep:[], r:lfRng(seed), gc:null});
   LF.mat = lfMat('std'); LF.matS = lfMat('std', {roughness:.3, metalness:.4}); LF.matE = lfMat('basic'); LF.matG = lfMat('std', {polygonOffset:true, polygonOffsetFactor:-3, polygonOffsetUnits:-3});
   LF.matA = lfMat('basic', {transparent:true, depthWrite:false, blending:T.AdditiveBlending, side:T.DoubleSide, fog:true});
   const X = lfContext(K); LF.X = X;
@@ -8750,10 +8746,10 @@ LIFE.armada = X=>{
 LIFE.carrier = X=>{
   const {H, wl, K} = X, st = new LBag(), PI2 = 6.2832, dk = K.C.deck || 62, bow = CARRIER.bow, stern = CARRIER.stern, L = bow - stern;
   lfFleet(X, {frigates:0, buoys:0, dmin:350, dmax:1400});
-  /* the flight deck at work: crew walking the deck edges, tractors, a radar turning on the island, steam, running lights */
-  { const cr = lfCrewBag(), N = 10, tn = ['#f4c20d', '#3d9b4a', '#c8382e', '#f4f4f4', '#f4c20d', '#2f7fe0', '#3d9b4a', '#c8382e', '#f4c20d', '#f4f4f4'];
-    lfAnim(cr, N, (i, t, m)=>{ const side = i % 2 ? 1 : -1, x0 = stern + 200 + (i*131)%700, rg = 140 + (i % 3)*40, sp = .35 + (i % 4)*.05, f = .5 - .5*Math.cos(t*sp + i*1.3), x = x0 + f*rg - rg*.5, dir = Math.sin(t*sp + i*1.3) > 0 ? 0 : Math.PI;
-      lfPut(m, x, dk + Math.abs(Math.sin(t*4.4 + i))*.5, side*(86 + (i % 3)*8), dir, 0, Math.sin(t*4.4 + i)*.07, 1.7, 1.7, 1.7); }, [stern + L/2, dk, 0, L*.6], {name:'deckcrew', tint:tn, f:3600}); }
+  /* the flight deck at work: the ground crew parked along the deck edges and by the island, cheering (gcCrowd), tractors, a radar turning on the island, steam, running lights */
+  { const S = 1.5, sb = Math.PI/2 - .35, pt = -Math.PI/2 + .35;
+    gcCrowd([['fire', bow - 215, 96, sb], ['fork', bow - 268, 104, sb], ['cat', bow - 330, 112, sb], ['fuel', stern + 660, 112, sb + .2], ['bag', stern + 395, 96, sb], ['tug', stern + 335, 92, sb],
+      ['fuel', bow - 235, -84, pt], ['tug', bow - 290, -92, pt], ['fork', bow - 340, -100, pt], ['bag', stern + 760, -106, pt]].map(([k, x, z, ry])=>({k, x, y:dk, z, ry, s:S})), [stern + L/2, dk, 0, L*.6], {f:3600}); }
   { const tb = lfTractorBag(); lfAnim(tb, 2, (i, t, m)=>{ const f = .5 - .5*Math.cos(t*.22 + i*2), x = stern + 300 + i*60 + f*380, dir = Math.sin(t*.22 + i*2) > 0 ? 0 : Math.PI; lfPut(m, x, dk, -100 - i*10, dir, 0, 0, 1.6, 1.6, 1.6); }, [stern + L/2, dk, 0, L*.6], {name:'tractors', f:3600}); }
   { const rb = new LBag(); rb.add('box', '#cfd4d9', 0, 0, 0, 34, 1.8, 5); rb.add('cyl6', '#cfd4d9', 0, -3, 0, 1.4, 4, 1.4); rb.add('sph', '#e8353a', 17, .8, 0, 1.7); lfSpin(rb, stern + 515, dk + 173, 104, 0, 'y', 1.8, null, 'radar', 5200); X.site('radar', stern + 515, dk + 190, 104, 1, 0); }
   { const lt = []; for(let x = stern + 60; x < bow - 10; x += 32){ lt.push([x, dk + 2, 114, 0]); lt.push([x, dk + 2, -114, 1]); }
@@ -8871,6 +8867,199 @@ function lfBuoyBag(s){ const b = new LBag(); lfLathe(b, [[0, -8], [6, -6], [8, 0
   lfLathe(b, [[0, 0], [4.6, 0], [3.4, 10], [0, 12]], '#f6f2ea', 0, 6*s, 0, s, s, s, 0, 0, 0, 12); for(let k = 0; k < 4; k++){ const a = k*1.5708; b.beam('cyl6', '#4a5058', Math.cos(a)*4.6*s, 6*s, Math.sin(a)*4.6*s, Math.cos(a)*1.2*s, 20*s, Math.sin(a)*1.2*s, .4*s, .3*s); }
   b.add('sph', '#ffd24a', 0, 21*s, 0, 2.4*s); b.add('cyl', '#2a2d30', 0, 18*s, 0, 2.2*s, 1*s, 2.2*s); [-1, 1].forEach(sg=>b.add('box', '#2b3f66', sg*3*s, 8*s, 0, 4*s, .4*s, 5*s, 0, 0, sg*.5)); return b; }
 
+/* ===== the ground crew (owner, 2026-11-01): airport ground equipment as the audience, on the Carrier Launch deck and in the
+   grandstands. Six of this game's own designs (no film character's shape, colours or name; nothing on screen names them): a
+   forklift, a fuel truck, a pushback tug, a baggage tractor with a cart, an airport fire truck and a catering truck, each with
+   windshield eyes and a smile drawn by the planes' own face painters (drawEyesJoined, drawMouth). Built in code with bkKit's
+   surfaces like the planes (smooth rounded superellipsoid bodies, turned tyres with tread, hubs, mirrors, lamps), not from
+   model files: the CC0 car kits reachable from here (Kenney's) are faceted low-poly and have no forklift, tug, fuel or
+   catering truck. Memory: one 512 px canvas atlas (panel seams and grime, hazard stripes, tread, hubs, grilles, lamps, a
+   roundel, the eyes and the mouths), one material, one geometry per type and per moving part, shared by every copy and every
+   crowd (an instanced mesh per type per crowd); built with the course life and freed with it (lifeFree). ===== */
+const GC_LIST = ['fork', 'fuel', 'tug', 'bag', 'fire', 'cat'];
+const GC_REG = {paint:[0, 0, 256, 256], decal:[256, 0, 128, 128], haz:[384, 0, 128, 64], tread:[384, 64, 128, 64], hub:[256, 128, 128, 128], grille:[384, 128, 128, 64], lamp:[384, 192, 128, 64], eyes:[0, 256, 512, 128]};
+const GC_MOUTH = {fork:'#f2b81c', fuel:'#f07a1a', tug:'#2f6fd0', bag:'#2eb872', fire:'#d8302a', cat:'#7a4fc8'};
+GC_LIST.forEach((k, i)=>{ GC_REG['m_' + k] = [(i % 4)*128, 384 + Math.floor(i/4)*64, 128, 64]; });
+function gcAtlas(){ const cv = document.createElement('canvas'); cv.width = cv.height = 512; const c = cv.getContext('2d'), R = LF.r || Math.random;
+  c.fillStyle = '#ffffff'; c.fillRect(0, 0, 512, 512);
+  /* paint: panel seams with rivets, a soft highlight, grime toward the bottom of the body (the middle rows: v 0.5 is the underside) */
+  { const [x0, y0, w, h] = GC_REG.paint; c.save(); c.beginPath(); c.rect(x0, y0, w, h); c.clip();
+    for(let i = 0; i < 900; i++){ const v = 236 + Math.floor(R()*16); c.fillStyle = `rgba(${v},${v},${v},.5)`; c.fillRect(x0 + R()*w, y0 + R()*h, 2 + R()*6, 1 + R()*2); }
+    const g = c.createLinearGradient(0, y0, 0, y0 + h); g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.36, 'rgba(90,80,70,0)'); g.addColorStop(.5, 'rgba(90,80,70,.34)'); g.addColorStop(.64, 'rgba(90,80,70,0)'); c.fillStyle = g; c.fillRect(x0, y0, w, h);
+    for(let i = 0; i < 160; i++){ c.fillStyle = `rgba(80,70,60,${.08 + R()*.14})`; c.beginPath(); c.arc(x0 + R()*w, y0 + h*(.4 + R()*.2), 1 + R()*3, 0, 7); c.fill(); }
+    c.strokeStyle = 'rgba(40,44,50,.32)'; c.lineWidth = 2; [.18, .5, .82].forEach(f=>{ c.beginPath(); c.moveTo(x0 + f*w, y0); c.lineTo(x0 + f*w, y0 + h); c.stroke(); });
+    [.12, .88].forEach(f=>{ c.beginPath(); c.moveTo(x0, y0 + f*h); c.lineTo(x0 + w, y0 + f*h); c.stroke(); });
+    c.strokeStyle = 'rgba(255,255,255,.55)'; c.lineWidth = 1; [.18, .5, .82].forEach(f=>{ c.beginPath(); c.moveTo(x0 + f*w + 2, y0); c.lineTo(x0 + f*w + 2, y0 + h); c.stroke(); });
+    c.fillStyle = 'rgba(40,44,50,.38)'; [.18, .5, .82].forEach(f=>{ for(let y = 6; y < h; y += 14){ c.beginPath(); c.arc(x0 + f*w - 5, y0 + y, 1.3, 0, 7); c.fill(); } }); c.restore(); }
+  /* a roundel (a plain wing in a ring) and a little number plate */
+  { const [x0, y0, w] = GC_REG.decal, cx = x0 + w/2, cy = y0 + w/2; c.fillStyle = '#1d2a44'; c.beginPath(); c.arc(cx, cy, 54, 0, 7); c.fill(); c.fillStyle = '#ffffff'; c.beginPath(); c.arc(cx, cy, 44, 0, 7); c.fill();
+    c.fillStyle = '#2f7fe0'; c.beginPath(); c.arc(cx, cy, 36, 0, 7); c.fill(); c.fillStyle = '#ffffff'; c.beginPath(); c.moveTo(cx - 30, cy + 4); c.quadraticCurveTo(cx, cy - 22, cx + 30, cy + 4); c.quadraticCurveTo(cx, cy - 8, cx - 30, cy + 4); c.fill(); c.beginPath(); c.arc(cx, cy + 2, 7, 0, 7); c.fill(); }
+  { const [x0, y0, w, h] = GC_REG.haz; c.save(); c.beginPath(); c.rect(x0, y0, w, h); c.clip(); c.fillStyle = '#f4c20d'; c.fillRect(x0, y0, w, h); c.fillStyle = '#1b1c1f';
+    for(let k = -2; k < 8; k++){ c.beginPath(); c.moveTo(x0 + k*24, y0 + h); c.lineTo(x0 + k*24 + 12, y0 + h); c.lineTo(x0 + k*24 + 12 + h, y0); c.lineTo(x0 + k*24 + h, y0); c.closePath(); c.fill(); } c.restore(); }
+  { const [x0, y0, w, h] = GC_REG.tread; c.fillStyle = '#2a2b2e'; c.fillRect(x0, y0, w, h); c.strokeStyle = '#141416'; c.lineWidth = 3;
+    for(let y = 2; y < h; y += 5.33){ c.beginPath(); c.moveTo(x0 + 10, y0 + y); c.lineTo(x0 + w/2, y0 + y + 2.6); c.lineTo(x0 + w - 10, y0 + y); c.stroke(); }
+    c.fillStyle = '#3a3b3f'; c.fillRect(x0, y0, 8, h); c.fillRect(x0 + w - 8, y0, 8, h); }
+  /* hub: across = from the centre out, down = round the wheel: a silver hub with bolts, a dark rim line, the rubber sidewall */
+  { const [x0, y0, w, h] = GC_REG.hub; const g = c.createLinearGradient(x0, 0, x0 + w, 0); g.addColorStop(0, '#d8dde2'); g.addColorStop(.42, '#aeb6be'); g.addColorStop(.47, '#55595f'); g.addColorStop(.52, '#2c2d30'); g.addColorStop(1, '#1e1f22'); c.fillStyle = g; c.fillRect(x0, y0, w, h);
+    c.fillStyle = '#6a7078'; for(let k = 0; k < 6; k++) c.fillRect(x0 + w*.22, y0 + (k + .4)*h/6, w*.08, h/24); }
+  { const [x0, y0, w, h] = GC_REG.grille; c.fillStyle = '#3a3f46'; c.fillRect(x0, y0, w, h); for(let y = 4; y < h; y += 8){ c.fillStyle = '#20232a'; c.fillRect(x0 + 4, y0 + y, w - 8, 4); c.fillStyle = '#7a828c'; c.fillRect(x0 + 4, y0 + y + 4, w - 8, 1); } }
+  { const [x0, y0, w, h] = GC_REG.lamp, g = c.createRadialGradient(x0 + w/2, y0 + h/2, 2, x0 + w/2, y0 + h/2, w*.6); g.addColorStop(0, '#ffffff'); g.addColorStop(.5, '#fff6d8'); g.addColorStop(1, '#d8c890'); c.fillStyle = g; c.fillRect(x0, y0, w, h); }
+  /* the eyes: the planes' joined windshield eyes (friendly, looking a little up at the racers) on tinted glass */
+  { const [x0, y0, w, h] = GC_REG.eyes, mk = (a, b)=>{ const q = document.createElement('canvas'); q.width = a; q.height = b; return q; }, jC = mk(512, 256);
+    c.fillStyle = '#3b6680'; c.fillRect(x0, y0, w, h); const g = c.createLinearGradient(0, y0, 0, y0 + h); g.addColorStop(0, 'rgba(190,230,250,.55)'); g.addColorStop(1, 'rgba(20,40,60,.3)'); c.fillStyle = g; c.fillRect(x0, y0, w, h);
+    drawEyesJoined({style:'friendly', lx:0, ly:.35, fem:false}, 0, jC, [mk(256, 256), mk(256, 256)]); c.drawImage(jC, x0 + 14, y0 + 6, w - 28, h - 12); }
+  /* a smile per type, on that type's own paint */
+  { const mC = document.createElement('canvas'); mC.width = 256; mC.height = 128; drawMouth(mC.getContext('2d'), 'friendly');
+    GC_LIST.forEach(k=>{ const [x0, y0, w, h] = GC_REG['m_' + k]; c.fillStyle = GC_MOUTH[k]; c.fillRect(x0, y0, w, h); c.drawImage(mC, x0 + 6, y0 + 4, w - 12, h - 8); }); }
+  return cv; }
+/* the kit: GC.T[type] = {body, arms:[geo], len, h}; front +x, ground y 0, centred in x */
+function gcKit(){ if(LF.gc) return LF.gc;
+  const tex = new T.CanvasTexture(gcAtlas()); tex.encoding = T.sRGBEncoding; tex.anisotropy = 4; LF.texs.push(tex);
+  const mat = new T.MeshStandardMaterial({map:tex, vertexColors:true, roughness:.55, metalness:.08}); LF.mats.push(mat);
+  const K = bkKit(T, x=>x), sp = K.sp, M4 = new T.Matrix4();
+  let parts = [];
+  const add = (g, reg, col, x, y, z, ry, rx, rz, sx, sy, sz)=>{ const r = GC_REG[reg || 'paint'], u0 = (r[0] + 2)/512, u1 = (r[0] + r[2] - 2)/512, v0 = 1 - (r[1] + r[3] - 2)/512, v1 = 1 - (r[1] + 2)/512;
+    if(g.index){ const ng = g.toNonIndexed(); g.dispose(); g = ng; }
+    const uv = g.attributes.uv, n = g.attributes.position.count, cc = lfCol(col || '#ffffff'), C = new Float32Array(n*3);
+    for(let i = 0; i < n; i++){ uv.setXY(i, u0 + uv.getX(i)*(u1 - u0), v0 + uv.getY(i)*(v1 - v0)); C[i*3] = cc.r; C[i*3 + 1] = cc.g; C[i*3 + 2] = cc.b; }
+    g.setAttribute('color', new T.BufferAttribute(C, 3)); lfPut(M4, x || 0, y || 0, z || 0, ry, rx, rz, sx === undefined ? 1 : sx, sy === undefined ? (sx === undefined ? 1 : sx) : sy, sz === undefined ? (sx === undefined ? 1 : sx) : sz);
+    g.applyMatrix4(M4); parts.push(g); return g; };
+  /* a rounded body: a superellipsoid L x H x W (section exponent e, end exponent pe), top(xa) and wid(xa) shape it along its length (xa -1 back .. 1 front) */
+  const blob = (L, H, W, o)=>{ o = o || {}; const e = o.e || 5, pe = o.pe || 6, top = o.top || (()=>1), wid = o.wid || (()=>1), big = Math.max(L, H, W), nu = o.nu || (big < 2 ? 5 : big < 5 ? 7 : 10), nv = o.nv || (big < 2 ? 10 : big < 5 ? 14 : 22);
+    return K.surf((u, v)=>{ const xa = -Math.cos(Math.PI*u), f = Math.pow(Math.max(0, 1 - Math.pow(Math.abs(xa), pe)), 1/pe), a = v*2*Math.PI, c = Math.cos(a), s = Math.sin(a), hh = H/2*(c >= 0 ? top(xa) : 1);
+      return [xa*L/2, f*hh*sp(c, e), f*W/2*wid(xa)*sp(s, e)]; }, 0, 1, nu, 0, 1, nv, p=>p); };
+  const B = (reg, col, L, H, W, x, y, z, o, ry, rx, rz)=>add(blob(L, H, W, o), reg, col, x, y, z, ry, rx, rz);
+  const cyl = (reg, col, r0, r1, h, x, y, z, rx, rz, ry, seg)=>add(new T.CylinderGeometry(r0, r1, h, seg || 12), reg, col, x, y, z, ry, rx, rz);
+  const rod = (col, a, b, r)=>{ const d = V(b[0] - a[0], b[1] - a[1], b[2] - a[2]), L = d.length(), g = new T.CylinderGeometry(r, r, L, 8);
+    g.applyMatrix4(new T.Matrix4().compose(V((a[0] + b[0])/2, (a[1] + b[1])/2, (a[2] + b[2])/2), new T.Quaternion().setFromUnitVectors(V(0, 1, 0), d.normalize()), V(1, 1, 1))); return add(g, 'paint', col); };
+  const quad = (reg, w, h, x, y, z, ry, bend, col)=>{ const g = new T.PlaneGeometry(w, h, 6, 1); if(bend){ const p = g.attributes.position; for(let i = 0; i < p.count; i++) p.setZ(i, -bend*Math.pow(p.getX(i)/(w/2), 2)); g.computeVertexNormals(); } return add(g, reg, col, x, y, z, ry === undefined ? Math.PI/2 : ry); };
+  /* a tyre: turned, rounded, with tread, and a hub and sidewall each side; axis across the vehicle (z) */
+  const wheel = (R, w, x, y, z, hubCol)=>{ const t = K.lathe(s=>R*(.86 + .14*Math.sqrt(Math.max(0, 1 - Math.pow(2*s/w, 2)))), -w/2, w/2, 4, 0, 0, 18); add(t, 'tread', '#ffffff', x, y === undefined ? R : y, z, Math.PI/2);
+    [-1, 1].forEach(sg=>{ const d = K.disc(sg*w/2*.92, 0, 0, 0, R*.88, sg, 18); add(d, 'hub', hubCol || '#ffffff', x, y === undefined ? R : y, z, Math.PI/2); }); };
+  const lamp = (col, r, x, y, z)=>add(new T.SphereGeometry(r, 8, 6), 'lamp', col || '#ffffff', x, y, z, 0, 0, 0, .6, 1, 1);
+  const mirror = (x, y, z, sg)=>{ rod('#2a2d33', [x, y - .6, z], [x, y, z + sg*.9], .07); B('paint', '#2a2d33', .25, .9, .6, x, y + .3, z + sg*.9, {e:4, pe:4}); };
+  const face = (k, ex, ey, ew, eh, mx, my, mw, bend)=>{ quad('eyes', ew, eh, ex, ey, 0, Math.PI/2, bend || 0); quad('m_' + k, mw, mw/2, mx, my, 0, Math.PI/2, 0); };
+  const out = {}, fin = (k, arms, extra)=>{ const all = [parts].concat(arms.map(a=>a.parts)); let x0 = 1e9, x1 = -1e9, y1 = 0; all.forEach(ps=>ps.forEach(g=>{ g.computeBoundingBox(); x0 = Math.min(x0, g.boundingBox.min.x); x1 = Math.max(x1, g.boundingBox.max.x); y1 = Math.max(y1, g.boundingBox.max.y); }));
+    const cx = (x0 + x1)/2, mg = ps=>{ const gg = THREE_merge(ps); gg.translate(-cx, 0, 0); LF.geos.push(gg); return gg; };
+    out[k] = Object.assign({body:mg(parts), arms:arms.map(a=>({geo:THREE_merge(a.parts), at:V(a.at[0] - cx, a.at[1], a.at[2])})), len:x1 - x0, h:y1}, extra || {}); out[k].arms.forEach(a=>LF.geos.push(a.geo)); parts = []; };
+  const arm = (fn, at)=>{ const keep = parts; parts = []; fn(); const a = {parts, at}; parts = keep; return a; };
+  const dk = '#2c3036', mg = '#5a626c', blk = '#1d1f23', wh = '#f4f4f0', chrome = '#c9d0d6';
+
+  /* 1. the forklift: sunny yellow, a dark counterweight with hazard stripes, the overhead guard, the mast; the forks lift (arm) */
+  { const Y = '#f2b81c';
+    B('paint', Y, 6.6, 2.6, 4.6, 0, 2.3, 0, {e:6, pe:7, top:xa=>xa > .3 ? 1 - (xa - .3)*.25 : 1});
+    B('paint', mg, 2.4, 3.4, 4.9, -3.2, 2.7, 0, {e:4, pe:5}); quad('haz', 3.6, .8, -4.45, 2.0, 0, -Math.PI/2, .5);
+    B('paint', blk, 1.4, 1.6, 2.2, -1.2, 4.3, 0, {e:4, pe:4}); B('paint', blk, .5, 1.8, 2.2, -1.9, 5.1, 0, {e:4, pe:4});   // the seat
+    [[1.6, 1.95], [1.6, -1.95], [-2.2, 1.95], [-2.2, -1.95]].forEach(([x, z])=>rod(dk, [x, 3.4, z], [x*.96, 7.6, z*.96], .16));
+    B('grille', '#ffffff', 4.4, .4, 4.4, -.3, 7.7, 0, {e:8, pe:8}); B('paint', Y, 4.6, .3, 4.6, -.3, 7.95, 0, {e:6, pe:6});
+    lamp('#fff2b0', .35, 2.0, 7.5, 1.6); lamp('#fff2b0', .35, 2.0, 7.5, -1.6); lamp('#ff9a2a', .4, -2.0, 8.3, 0);
+    face('fork', 1.88, 5.5, 3.4, 1.7, 3.37, 2.55, 1.7, .25); B('paint', dk, .3, 2.0, 3.6, 1.65, 5.5, 0, {e:6, pe:6});
+    [-1, 1].forEach(sg=>{ cyl('paint', dk, .2, .2, 8.2, 3.7, 4.4, sg*1.25); }); cyl('paint', dk, .14, .14, 2.7, 3.7, 8.4, 0, Math.PI/2); B('paint', dk, .6, .5, 3.2, 3.7, 1.1, 0, {e:6, pe:6});
+    rod(blk, [3.5, 6.5, .9], [3.9, 1.5, .9], .07);   // the lift chain
+    wheel(1.0, 1.0, 2.2, undefined, 2.25); wheel(1.0, 1.0, 2.2, undefined, -2.25); wheel(.7, .8, -2.6, undefined, 2.05); wheel(.7, .8, -2.6, undefined, -2.05);
+    const forks = arm(()=>{ B('paint', mg, .35, 1.7, 3.3, 0, 1.05, 0, {e:6, pe:6}); quad('haz', 3.1, .4, .2, 1.7, 0, Math.PI/2);
+      [-1, 1].forEach(sg=>{ B('paint', mg, 3.8, .22, .55, 1.95, .2, sg*.95, {e:8, pe:10}); B('paint', mg, .22, 1.6, .55, .1, .95, sg*.95, {e:8, pe:8}); }); }, [3.95, 0, 0]);
+    fin('fork', [forks], {kind:'fork'}); }
+
+  /* 2. the fuel truck: an orange cab with a big rounded windshield, a polished tank with a hazard band, a catwalk rail, a hose reel at the back (it spins) */
+  { const O = '#f07a1a';
+    B('paint', dk, 20, 1.0, 5.6, -1.2, 2.0, 0, {e:8, pe:10});
+    B('paint', O, 6.0, 6.0, 7.0, 6.9, 5.2, 0, {e:6, pe:6, top:xa=>xa > 0 ? 1 - xa*.12 : 1});
+    face('fuel', 10.07, 6.4, 5.4, 2.5, 9.98, 3.55, 2.6, .4); B('grille', '#ffffff', .3, 1.1, 3.6, 9.85, 2.35, 0, {e:8, pe:8});
+    B('paint', dk, .9, .9, 7.4, 10.1, 1.6, 0, {e:6, pe:6}); quad('haz', 6.6, .5, 10.6, 1.6, 0, Math.PI/2, .1);
+    lamp('#fff2b0', .45, 9.8, 3.1, 2.75); lamp('#fff2b0', .45, 9.8, 3.1, -2.75); lamp('#ff9a2a', .35, 7.4, 8.3, 0);
+    mirror(9.3, 7.0, 3.5, 1); mirror(9.3, 7.0, -3.5, -1);
+    B('paint', chrome, 13, 6.0, 6.8, -3.4, 5.6, 0, {e:2.3, pe:6, nu:12, nv:24}); B('haz', '#ffffff', .9, 6.12, 6.92, -3.4, 5.6, 0, {e:2.3, pe:12, nu:4});
+    [-1, 1].forEach(sg=>quad('decal', 2.4, 2.4, -6.2, 5.6, sg*3.45, sg > 0 ? 0 : Math.PI));
+    [-9, -6, -3.4, -.8, 2].forEach(x=>{ [-1, 1].forEach(sg=>rod(mg, [x, 8.5, sg*1.6], [x, 9.6, sg*1.6], .07)); }); [-1, 1].forEach(sg=>rod(mg, [-9.2, 9.6, sg*1.6], [2.2, 9.6, sg*1.6], .08));
+    B('paint', mg, 2.2, .5, 2.2, -1.2, 8.7, 0, {e:2, pe:6});   // the filler hatch
+    B('paint', dk, 2.6, 4.2, 6.4, -11.4, 3.6, 0, {e:6, pe:8}); [-1, 1].forEach(sg=>quad('haz', 2.4, .5, -11.4, 3.6, sg*3.25, sg > 0 ? 0 : Math.PI));
+    wheel(1.5, 1.3, 7.0, undefined, 3.0); wheel(1.5, 1.3, 7.0, undefined, -3.0); [-5.2, -8.4].forEach(x=>{ wheel(1.5, 1.3, x, undefined, 3.0); wheel(1.5, 1.3, x, undefined, -3.0); });
+    const reel = arm(()=>{ add(K.lathe(s=>1.05 + .08*Math.sin(s*9), -1.5, 1.5, 6, 0, 0, 18), 'tread', '#ffffff', 0, 0, 0, Math.PI/2); [-1, 1].forEach(sg=>add(K.disc(sg*1.55, 0, 0, 0, 1.6, sg, 18), 'hub', '#e8353a', 0, 0, 0, Math.PI/2)); B('paint', chrome, .5, .5, .5, 1.1, -.6, 0, {e:3, pe:3}); }, [-12.9, 4.1, 0]);
+    fin('fuel', [reel], {kind:'fuel'}); }
+
+  /* 3. the pushback tug: low and very wide, a little glass cab, a tow bar out front with its ring, hazard stripes on the bumper */
+  { const Bl = '#2f6fd0';
+    B('paint', Bl, 13, 2.8, 8.6, 0, 2.1, 0, {e:7, pe:7, top:xa=>xa > .55 ? 1 - (xa - .55)*.6 : 1});
+    B('paint', dk, .8, 1.1, 8.8, 6.5, 1.2, 0, {e:6, pe:6}); quad('haz', 8.0, .6, 6.95, 1.2, 0, Math.PI/2, .3);
+    B('paint', Bl, 4.4, 3.4, 5.8, -2.6, 4.7, 0, {e:5, pe:5, top:xa=>1 - Math.max(0, xa)*.18}); face('tug', -.24, 4.95, 4.6, 2.1, 6.58, 2.4, 2.4, .4);
+    B('paint', dk, .25, 2.4, 5.0, -.45, 4.95, 0, {e:6, pe:6}); lamp('#ff9a2a', .5, -2.6, 6.55, 0);
+    lamp('#fff2b0', .45, 6.4, 2.45, 3.4); lamp('#fff2b0', .45, 6.4, 2.45, -3.4); B('grille', '#ffffff', 2.4, .3, 4.4, 3.4, 3.42, 0, {e:8, pe:8});
+    mirror(-.6, 5.6, 2.9, 1); mirror(-.6, 5.6, -2.9, -1);
+    rod(mg, [6.6, 1.3, 0], [12.4, .8, 0], .26); add(new T.TorusGeometry(.7, .2, 8, 16), 'paint', mg, 12.9, .8, 0, 0, Math.PI/2); rod(mg, [12.0, .8, 0], [12.0, .1, 0], .12);
+    [[4.3, 3.9], [4.3, -3.9], [-4.3, 3.9], [-4.3, -3.9]].forEach(([x, z])=>wheel(1.15, 1.2, x, undefined, z));
+    fin('tug', [], {kind:'tug'}); }
+
+  /* 4. the baggage tractor and its cart: a green tractor with a little canopy, a cart with an orange canopy and a heap of bags */
+  { const G = '#2eb872', Oc = '#f08a1c';
+    B('paint', G, 5.6, 2.4, 4.4, 1.0, 2.1, 0, {e:6, pe:6, top:xa=>xa > .2 ? 1 - (xa - .2)*.3 : 1}); B('paint', G, 2.6, 2.6, 4.6, -2.2, 2.4, 0, {e:5, pe:5});
+    B('paint', blk, 1.2, 1.4, 2.2, -1.7, 4.1, 0, {e:4, pe:4}); B('paint', blk, .4, 1.5, 2.2, -2.4, 4.8, 0, {e:4, pe:4});
+    [[1.0, 1.95], [1.0, -1.95], [-3.1, 1.95], [-3.1, -1.95]].forEach(([x, z])=>rod(dk, [x, 3.2, z], [x, 6.9, z], .13)); B('paint', G, 4.8, .35, 4.6, -1.05, 7.0, 0, {e:6, pe:6});
+    face('bag', 1.25, 5.0, 3.6, 1.6, 3.86, 2.2, 1.6, .25); B('paint', dk, .25, 1.9, 3.8, 1.05, 5.0, 0, {e:6, pe:6});
+    lamp('#fff2b0', .32, 3.7, 2.9, 1.5); lamp('#fff2b0', .32, 3.7, 2.9, -1.5); lamp('#ff9a2a', .35, -1.0, 7.3, 0); mirror(1.0, 5.8, 2.1, 1); mirror(1.0, 5.8, -2.1, -1);
+    wheel(.9, .9, 2.3, undefined, 2.25); wheel(.9, .9, 2.3, undefined, -2.25); wheel(.9, .9, -2.4, undefined, 2.25); wheel(.9, .9, -2.4, undefined, -2.25);
+    rod(mg, [-3.5, 1.2, 0], [-5.4, 1.2, 0], .15);
+    const cx = -9.0; B('paint', mg, 7.0, .5, 4.6, cx, 1.6, 0, {e:8, pe:10}); [-1, 1].forEach(sg=>quad('haz', 6.8, .4, cx, 1.6, sg*2.32, sg > 0 ? 0 : Math.PI));
+    [[cx + 3.2, 2.1], [cx + 3.2, -2.1], [cx - 3.2, 2.1], [cx - 3.2, -2.1]].forEach(([x, z])=>rod(mg, [x, 1.8, z], [x, 6.4, z], .1)); B('paint', Oc, 7.4, .9, 4.9, cx, 6.6, 0, {e:2.4, pe:8, top:()=>1.2});
+    [[1.6, -1.0, '#c8382e'], [-.4, 1.0, '#2f6fb0'], [-2.2, -.8, '#8a4fd0'], [.6, -.2, '#f4c20d'], [-1.4, .4, '#3a3f48'], [2.4, .9, '#2eb872']].forEach(([a, o, c], i)=>{ B('paint', c, 1.8, 1.1 + (i % 3)*.2, 1.3, cx + a, 2.5 + (i > 2 ? 1.0 : 0), o, {e:4, pe:4}, (i*.7) % 1); });
+    [cx + 2.4, cx - 2.4].forEach(x=>{ wheel(.65, .6, x, undefined, 2.0); wheel(.65, .6, x, undefined, -2.0); });
+    fin('bag', [], {kind:'bag'}); }
+
+  /* 5. the airport fire truck: big and red, a white band, roller-shutter lockers, six big wheels, a light bar and a roof turret that swings */
+  { const Rd = '#d8302a';
+    B('paint', Rd, 25, 7.6, 8.4, -1.6, 6.4, 0, {e:6, pe:8, nu:14, top:xa=>xa > .7 ? 1 - (xa - .7)*.5 : 1});
+    [-1, 1].forEach(sg=>{ quad('paint', 22, .9, -2.0, 5.9, sg*4.23, sg > 0 ? 0 : Math.PI, 0, wh); [-7.5, -3, 1.5].forEach(x=>quad('grille', 3.6, 2.6, x, 7.8, sg*4.24, sg > 0 ? 0 : Math.PI)); quad('decal', 2.2, 2.2, 6.4, 7.9, sg*4.25, sg > 0 ? 0 : Math.PI); });
+    face('fire', 11.0, 7.9, 6.6, 2.7, 10.98, 4.25, 3.6, .5); B('paint', dk, 1.0, 1.2, 8.4, 11.0, 2.6, 0, {e:6, pe:6}); quad('haz', 7.6, .6, 11.52, 2.6, 0, Math.PI/2, .2); quad('haz', 7.6, .6, -14.17, 4.6, 0, -Math.PI/2, .2);
+    lamp('#fff2b0', .55, 10.9, 3.7, 3.2); lamp('#fff2b0', .55, 10.9, 3.7, -3.2); mirror(9.9, 9.0, 4.2, 1); mirror(9.9, 9.0, -4.2, -1);
+    B('lamp', '#ff5a40', 1.0, .6, 5.0, 8.7, 10.25, 0, {e:6, pe:6}); B('lamp', '#5aa0ff', .6, .5, .9, 8.7, 10.6, 2.0, {e:4, pe:4}); B('lamp', '#5aa0ff', .6, .5, .9, 8.7, 10.6, -2.0, {e:4, pe:4});
+    [-1, 1].forEach(sg=>rod(chrome, [-14.35, 3.0, sg*3.5], [-14.35, 9.6, sg*3.5], .12)); for(let k = 0; k < 6; k++) rod(chrome, [-14.45, 3.6 + k*1.1, -3.5], [-14.45, 3.6 + k*1.1, 3.5], .08);   // the ladder on the back
+    [7.0, -4.2, -9.4].forEach(x=>{ wheel(1.9, 1.6, x, undefined, 3.7, '#ffffff'); wheel(1.9, 1.6, x, undefined, -3.7, '#ffffff'); });
+    const tur = arm(()=>{ cyl('paint', mg, .9, 1.1, .9, 0, .45, 0); B('paint', chrome, 1.4, 1.2, 1.4, 0, 1.4, 0, {e:3, pe:3}); cyl('paint', chrome, .32, .4, 4.6, 2.3, 1.6, 0, 0, -Math.PI/2); cyl('paint', blk, .45, .45, .5, 4.6, 1.6, 0, 0, -Math.PI/2); }, [5.2, 10.1, 0]);
+    fin('fire', [tur], {kind:'fire'}); }
+
+  /* 6. the catering truck: a purple cab, a white box on a scissor lift that rises, a front door and a little rail on the box */
+  { const P = '#7a4fc8';
+    B('paint', dk, 18.6, 1.0, 5.8, -.8, 2.0, 0, {e:8, pe:10});
+    B('paint', P, 5.4, 5.6, 7.0, 6.9, 5.0, 0, {e:6, pe:6, top:xa=>1 - Math.max(0, xa)*.15}); face('cat', 9.72, 6.0, 5.2, 2.4, 9.65, 3.45, 2.6, .4);
+    B('grille', '#ffffff', .3, 1.0, 3.6, 9.55, 2.3, 0, {e:8, pe:8}); B('paint', dk, .9, .9, 7.4, 9.8, 1.6, 0, {e:6, pe:6}); quad('haz', 6.6, .5, 10.26, 1.6, 0, Math.PI/2, .1);
+    lamp('#fff2b0', .45, 9.5, 3.0, 2.75); lamp('#fff2b0', .45, 9.5, 3.0, -2.75); lamp('#ff9a2a', .35, 7.3, 7.85, 0); mirror(9.0, 6.8, 3.5, 1); mirror(9.0, 6.8, -3.5, -1);
+    [-1, 1].forEach(sg=>quad('haz', 12, .5, -3.4, 2.0, sg*2.95, sg > 0 ? 0 : Math.PI));
+    wheel(1.5, 1.3, 6.8, undefined, 3.0); wheel(1.5, 1.3, 6.8, undefined, -3.0); wheel(1.5, 1.3, -6.0, undefined, 3.0); wheel(1.5, 1.3, -6.0, undefined, -3.0);
+    const sc = arm(()=>{ [-1, 1].forEach(sg=>{ const z = sg*2.4; for(let k = 0; k < 2; k++){ const y0 = k*.5, y1 = y0 + .5; rod(mg, [-8.4, y0, z], [1.4, y1, z], .16); rod(mg, [-8.4, y1, z], [1.4, y0, z], .16); } }); }, [0, 2.5, 0]);
+    const box = arm(()=>{ B('paint', wh, 12.6, 6.6, 7.6, 0, 3.3, 0, {e:7, pe:9}); [-1, 1].forEach(sg=>{ quad('paint', 12.2, 1.0, 0, 4.6, sg*3.84, sg > 0 ? 0 : Math.PI, 0, P); quad('decal', 2.2, 2.2, -3.6, 2.6, sg*3.85, sg > 0 ? 0 : Math.PI); });
+      quad('paint', 2.6, 4.6, 6.36, 3.0, 0, Math.PI/2, 0, '#9aa3ad'); B('paint', mg, 1.4, .3, 6.6, 7.0, .2, 0, {e:8, pe:8}); [-1, 1].forEach(sg=>{ rod(chrome, [7.6, .3, sg*3.2], [7.6, 2.6, sg*3.2], .08); }); rod(chrome, [7.6, 2.6, -3.2], [7.6, 2.6, 3.2], .08); }, [-3.4, 3.5, 0]);
+    fin('cat', [box, sc], {kind:'cat'}); }
+  return (LF.gc = {T:out, mat}); }
+/* merge non-indexed geometries with position, normal, uv and color */
+function THREE_merge(gs){ let n = 0; gs.forEach(g=>{ n += g.attributes.position.count; }); const out = new T.BufferGeometry();
+  [['position', 3], ['normal', 3], ['uv', 2], ['color', 3]].forEach(([k, s])=>{ const a = new Float32Array(n*s); let o = 0; gs.forEach(g=>{ a.set(g.attributes[k].array.subarray(0, g.attributes[k].count*s), o); o += g.attributes[k].count*s; }); out.setAttribute(k, new T.BufferAttribute(a, s)); });
+  gs.forEach(g=>g.dispose()); out.computeBoundingSphere(); return out; }
+/* a crowd of them: list = [{k, x, y, z, ry, s}], all facing their own +x. Idle: a soft bob on the springs, now and then a wave of the
+   forks, the turret, the reel or the lift. When the player's plane (RACE.racers[0]) comes within near feet: a hop and a wiggle.
+   When the race is won (RACE.finishers): they all bounce, and the arms wave fast. One instanced mesh per type and moving part. */
+function gcCrowd(list, region, o){ o = o || {}; if(!list.length) return null; const G = gcKit(), near = o.near || 260, f = o.f || 3600;
+  const by = {}; list.forEach((e, i)=>{ e.ph = (i*1.618) % 6.28; e.pop = -9; (by[e.k] = by[e.k] || []).push(e); });
+  const mB = new T.Matrix4(), mL = new T.Matrix4(), mA = new T.Matrix4(), ups = [];
+  Object.keys(by).forEach(k=>{ const D = G.T[k], L = by[k], n = L.length;
+    const mk = (geo, nm)=>{ const im = new T.InstancedMesh(geo, G.mat, n); im.instanceMatrix.setUsage(T.DynamicDrawUsage); im.frustumCulled = false; im.name = nm; im.castShadow = false; lfReg(im, V(region[0], region[1], region[2]), region[3], f); return im; };
+    const body = mk(D.body, 'crew-' + k), arms = D.arms.map((a, j)=>mk(a.geo, 'crew-' + k + j));
+    ups.push((t, cheer, pp)=>{ for(let i = 0; i < n; i++){ const e = L[i], s = e.s;
+        if(pp){ const dx = pp.x - e.x, dz = pp.z - e.z; if(dx*dx + dz*dz < near*near && Math.abs(pp.y - e.y) < near && t - e.pop > 3) e.pop = t; }
+        const pk = t - e.pop, hop = pk < 1.1 ? Math.abs(Math.sin(pk*Math.PI/.55))*(1 - pk/1.1) : 0, ch = cheer ? Math.abs(Math.sin(t*5.2 + e.ph)) : 0, big = Math.max(hop, ch);
+        const bob = Math.sin(t*2.1 + e.ph)*.05 + big*1.6, pitch = Math.sin(t*1.7 + e.ph)*.012 - big*.06, roll = Math.sin(t*1.3 + e.ph*2)*.015 + (cheer ? Math.sin(t*5.2 + e.ph)*.05 : 0);
+        lfPut(mB, e.x, e.y + bob*s, e.z, e.ry, roll, pitch, s, s, s); body.setMatrixAt(i, mB);
+        const wave = Math.max(cheer ? 1 : 0, hop > 0 ? 1 : 0, Math.pow(Math.max(0, Math.sin(t*.45 + e.ph*3)), 8)), sp = cheer || hop ? 6 : 2.5;
+        D.arms.forEach((a, j)=>{ const w = Math.sin(t*sp + e.ph);
+          if(D.kind === 'fork') lfPut(mL, a.at.x, a.at.y + (.5 + .5*w)*wave*3.2, a.at.z, 0, 0, w*wave*.08);
+          else if(D.kind === 'fire') lfPut(mL, a.at.x, a.at.y, a.at.z, w*wave*.9, 0, .15 + .2*wave);
+          else if(D.kind === 'fuel') lfPut(mL, a.at.x, a.at.y, a.at.z, 0, 0, -t*(1 + wave*5));
+          else if(D.kind === 'cat'){ const h = 1.2 + (.5 + .5*w)*wave*2.4; if(j === 0) lfPut(mL, a.at.x, a.at.y + h, a.at.z, 0, 0, 0); else lfPut(mL, a.at.x, a.at.y, a.at.z, 0, 0, 0, 1, h + .05, 1); }
+          mA.multiplyMatrices(mB, mL); arms[j].setMatrixAt(i, mA); }); }
+      body.instanceMatrix.needsUpdate = true; arms.forEach(a=>{ a.instanceMatrix.needsUpdate = true; }); }); });
+  const run = t=>{ const cheer = RACE.on && RACE.finishers && RACE.finishers.length > 0, me = RACE.on && RACE.racers[0], pp = me && me.P; ups.forEach(u=>u(t, cheer, pp)); };
+  run(0); LF.anim.push(run); return list.length; }
+/* the size that sits one in a grandstand seat (about a fan car's length, not too tall) */
+function gcSeatS(k){ const D = gcKit().T[k]; return Math.min(10/D.len, 5.6/D.h); }
 /* little cartoon fans: a plane with a cheerful face, and a car with eyes on its roof (bow +x) */
 function lfFanPlane(b, x, y, z, ry, s, col){ const at = (a, h, o)=>lfAt(x, y, z, ry, a*s, h*s, o*s), w = '#ffffff', k = '#1c1c20';
   lfLathe(b, [[0, -5], [2, -4.6], [2.6, -3], [2.5, 0], [1.9, 3], [.9, 5.4], [.3, 7]], col, ...at(0, 3, 0), s, s, s, ry, 0, 1.5708, 8);
@@ -8881,7 +9070,7 @@ function lfFanCar(b, x, y, z, ry, s, col){ const at = (a, h, o)=>lfAt(x, y, z, r
   lfRBox(b, col, ...at(0, .6, 0), 9.4*s, 2.8*s, 4.8*s, ry, .9*s); lfRBox(b, col, ...at(-.8, 3.2, 0), 5.2*s, 2.2*s, 4.2*s, ry, .8*s); b.add('box', '#9fd0ea', ...at(1.9, 3.4, 0), .3*s, 1.6*s, 3.4*s, ry); b.add('box', '#9fd0ea', ...at(-3.4, 3.4, 0), .3*s, 1.5*s, 3.4*s, ry);
   [[-3, 2.5], [-3, -2.5], [3, 2.5], [3, -2.5]].forEach(([a, o])=>b.add('cyl', '#26262a', ...at(a, 0, o), 1.2*s, .8*s, 1.2*s, ry, 1.5708)); [-1, 1].forEach(sg=>{ b.add('sph', w, ...at(1.2, 5.6, sg*1.1), .85*s, .95*s, .75*s, ry); b.add('sph', k, ...at(1.9, 5.7, sg*1.1), .36*s, .45*s, .36*s, ry); b.add('sph', '#ffe9a0', ...at(4.7, 1.9, sg*1.6), .55*s, .55*s, .55*s, ry); }); }
 /* the grandstand and its announcer tower, the viewing place at the finish; local +x faces the line, z runs along it; th = {wood, roof, roof2, trim, stone} */
-function lfStandBag(len, th){ const b = new LBag(), T0 = 5, rowD = 5.2, rowH = 4.2, ln = len/2; const bench = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c'];
+function lfStandBag(len, th){ const b = new LBag(), T0 = 5, rowD = 5.2, rowH = 4.2, ln = len/2; const bench = ['#e8353a', '#f4c20d', '#2f9fe0', '#2eb872', '#f08a1c']; b.gcSeats = [];
   lfRBox(b, th.stone || '#9a948a', -12, -1.2, 0, 52, 2.4, len + 16, 0, .8);
   for(let i = 0; i < T0; i++){ const x = 6 - i*rowD, h = (i + 1)*rowH; lfRBox(b, th.wood, x, 0, 0, rowD, h, len, 0, .5); lfRBox(b, bench[i % 5], x - .2, h, 0, rowD*.62, .9, len - 3, 0, .4); }
   lfRBox(b, th.wood, -14, 0, 0, 1.4, 34, len, 0, .3);
@@ -8904,7 +9093,7 @@ function lfStandBag(len, th){ const b = new LBag(), T0 = 5, rowD = 5.2, rowH = 4
   /* fans in the seats: planes and cars, spaced, all facing the line */
   const cols = ['#e8353a', '#2f9fe0', '#f4c20d', '#2eb872', '#f08a1c', '#e86aa8', '#8a4fd0'], nF = Math.floor(len/15); let n = 0;
   for(let i = 1; i < T0; i++) for(let k = 0; k < nF; k++){ if(((i*7 + k*5) % 3) === 0) continue; const z = -ln + 9 + (k + (i % 2)*.5)*(len - 18)/nF, x = 6 - i*rowD + .6, y = (i + 1)*rowH + .9, col = cols[(i*3 + k) % 7];
-    if((i + k) % 2) lfFanPlane(b, x, y, z, 0, 1.1, col); else lfFanCar(b, x, y, z, 0, .95, col); n++; }
+    if((i + k) % 2) lfFanPlane(b, x, y, z, 0, 1.1, col); else b.gcSeats.push([x, y, z, GC_LIST[b.gcSeats.length % 6]]); n++; }   /* the cars' seats go to the ground crew (gcCrowd, in lfGrandstand) */
   return b; }
 /* the finish-line viewing place: land beside the gate, or a pontoon on the sea; its sphere is its true size so the win show keeps clear */
 function lfGrandstand(X, th, len){ len = len || 130; const H = X.H, wl = X.wl; let sd = 0, zz = 0;
@@ -8914,6 +9103,7 @@ function lfGrandstand(X, th, len){ len = len || 130; const H = X.H, wl = X.wl; l
   if(sea){ lfRBox(b, '#6b7480', 0, wl - 5, 0, 70, 6.6, len + 24, 0, 1.6); lfRBox(b, '#e8353a', 0, wl - 1.2, 0, 70.4, 1.4, len + 24.4, 0, .5); } else { lfRBox(b, th.stone || '#9a948a', -6, gy - 12, 0, 62, 13, len + 20, 0, 1.2); }
   b.stamp(st, 0, 0, 0, 0, 1); const yaw = sd > 0 ? Math.PI/2 : -Math.PI/2, R = new LBag(); R.stamp(b, x, gy + (sea ? 0 : 0.8), zz, yaw, 1);
   LF.keep.push(x, zz, 95); const m = R.mesh(null, 'grandstand', 3400), e = LF.regs[LF.regs.length - 1]; e.r = 120;
+  const gy2 = gy + (sea ? 0 : .8); gcCrowd(st.gcSeats.map(([a, h, o, k])=>{ const q = lfAt(x, gy2, zz, yaw, a, h, o); return {k, x:q[0], y:q[1], z:q[2], ry:yaw, s:gcSeatS(k)}; }), [x, gy2 + 20, zz, 120], {f:3400, near:220});
   LF.sites.push(['hero-grandstand', x, gy + 20, zz, Math.cos(yaw), -Math.sin(yaw), 230, 26]); return {x, z:zz, side:sd}; }
 
 /* ===== third pass, shared hero pieces: houses and cabins, pines, crags, sailboats, palms ===== */
@@ -19183,6 +19373,19 @@ if(/[?&]debug\b/.test(location.search)) window.__hangar = {
   lifeMap: (x0, z0, x1, z1, st)=>{ const K = rCourse, rows = []; for(let z = z0; z <= z1; z += st){ let r = ''; for(let x = x0; x <= x1; x += st){ const h = K.H(x, z); r += h < K.wl + 1 ? '~' : h < 40 ? '.' : h < 120 ? 'o' : h < 300 ? 'O' : '#'; } rows.push(r); } return rows.join('\n') + '\nwl ' + K.wl; },   // (tests: a character map of the ground, ~ water)
   lifeX: ()=>LF.X,   // (tests: the course-life context)
   lifeNear: (x, z)=>{ const K = rCourse; let b = 1e12, bu = 0; for(let i = 0; i < 600; i++){ const q = K.curve.getPointAt(i/600), d = (q.x - x)**2 + (q.z - z)**2; if(d < b){ b = d; bu = i/600; } } const q = K.curve.getPointAt(bu), tg = K.curve.getTangentAt(bu); return {x: q.x, y: q.y, z: q.z, tx: tg.x, ty: tg.y, tz: tg.z, d: Math.sqrt(b)}; },   // (tests: the racing line beside a place)
+  gcStudio: (W, H)=>{ W = W || 360; H = H || 270; const keep = {gc:LF.gc, geos:LF.geos, mats:LF.mats, texs:LF.texs}; Object.assign(LF, {gc:null, geos:[], mats:[], texs:[]}); const out = [];   // tests: a studio picture of each ground-crew vehicle (data URLs)
+    try{ const G = gcKit(), sc = new T.Scene(); sc.background = new T.Color('#d9dee3'); sc.add(new T.HemisphereLight(0xffffff, 0x8a8f96, .9)); const d = new T.DirectionalLight(0xffffff, 1.5); d.position.set(40, 60, 30); sc.add(d);
+      const fl = new T.Mesh(new T.CircleGeometry(300, 48), new T.MeshStandardMaterial({color:'#a4abb2', roughness:.9})); fl.rotation.x = -Math.PI/2; sc.add(fl);
+      const cam = new T.PerspectiveCamera(30, W/H, 1, 2000), rt = new T.WebGLRenderTarget(W*2, H*2); rt.texture.encoding = T.sRGBEncoding; const px = new Uint8Array(W*2*H*2*4);
+      GC_LIST.forEach(k=>{ const D = G.T[k], ms = [new T.Mesh(D.body, G.mat)].concat(D.arms.map(a=>{ const m = new T.Mesh(a.geo, G.mat); m.position.copy(a.at); if(k === 'cat'){ if(a === D.arms[0]) m.position.y += 2.2; else m.scale.y = 2.25; } if(k === 'fire') m.rotation.set(0, .5, .25); if(k === 'fork') m.position.y += 1.2; return m; }));
+        const g = new T.Group(); ms.forEach(m=>g.add(m)); g.rotation.y = -.95; sc.add(g); const r = Math.max(D.len*.62, D.h*1.1); cam.position.set(r*2.2, D.h*.55 + r*.75, r*.9); cam.lookAt(0, D.h*.42, 0);
+        renderer.setRenderTarget(rt); renderer.render(sc, cam); renderer.readRenderTargetPixels(rt, 0, 0, W*2, H*2, px); renderer.setRenderTarget(null); sc.remove(g);
+        const cv = document.createElement('canvas'); cv.width = W*2; cv.height = H*2; const c = cv.getContext('2d'), id = c.createImageData(W*2, H*2);
+        for(let y = 0; y < H*2; y++) id.data.set(px.subarray((H*2 - 1 - y)*W*2*4, (H*2 - y)*W*2*4), y*W*2*4); c.putImageData(id, 0, 0);
+        const o = document.createElement('canvas'); o.width = W; o.height = H; o.getContext('2d').drawImage(cv, 0, 0, W, H); out.push(o.toDataURL('image/png')); });
+      rt.dispose(); fl.geometry.dispose(); fl.material.dispose(); }
+    finally { LF.geos.forEach(x=>x.dispose()); LF.mats.forEach(x=>x.dispose()); LF.texs.forEach(x=>x.dispose()); Object.assign(LF, keep); }
+    return out; },
   lifeCam: a=>{ LF.dbg = a || null; if(!a){ rCam.fov = 52; rCam.updateProjectionMatrix(); } return !!a; },   // a free camera [x, y, z, lookX, lookY, lookZ, fov] over the race, for pictures of the scenery
   lifeBlock: ()=>{ const K = rCourse, L = K && K.life; if(!L || !RACE.on) return null; const rc = new T.Raycaster(), list = [], o = rCam.position, hits = [], dv = V(0,0,0);
     L.g.traverse(m=>{ if(m.isMesh && m.visible) list.push(m); });
