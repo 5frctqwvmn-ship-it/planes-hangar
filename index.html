@@ -1129,7 +1129,7 @@ async function svInit(){
     const [db, user] = await Promise.all([C.use('db'), C.use('user')]);
     const uid = db && user ? await user.id() : null;
     if(!uid){ SV.st = 'off'; return; }
-    SV.db = db; SV.base = 'data/users/' + uid + '/';
+    SV.db = db; SV.base = 'data/users/' + uid + '/'; setTimeout(()=>{ try{ crSend(); }catch(e){} }, 3000);
     const snap = await svTry(()=>svDoc('save').get()), body = snap && snap.exists ? snap.data() : null;
     if(body && body.v !== 1){ SV.st = 'off'; SV.db = null; return; }   // saved by a newer version of the game: leave it alone
     const ck = body && body.keys && typeof body.keys === 'object' ? body.keys : {};
@@ -3749,7 +3749,7 @@ function voClip(a, p, st, du){   // [the buffer to play, the offset in it] for t
 function voPack(name){ const a = audio(); if(!a) return Promise.resolve(null);
   VO.used = VO.used || {}; VO.used[name] = performance.now();
   if(VO.packs[name]) return VO.packs[name];
-  VO.packs[name] = fetch('vo/' + name + '.mp3').then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); }).then(voDecode).then(x=>{ x = voHold(x); x.mb = x.length*(x.pcm ? 2 : x.numberOfChannels*4)/1e6; (VO.got = VO.got || {})[name] = performance.now(); return x; }).catch(()=>{ delete VO.packs[name]; return null; });   // VO.got: when it was ready (tests: her packs before her hello)
+  VO.packs[name] = fetch('vo/' + name + '.mp3').then(r=>{ if(!r.ok) throw 0; return r.arrayBuffer(); }).then(voDecode).then(x=>{ x = voHold(x); x.mb = x.length*(x.pcm ? 2 : x.numberOfChannels*4)/1e6; (VO.mbs = VO.mbs || {})[name] = x.mb; (VO.got = VO.got || {})[name] = performance.now(); return x; }).catch(()=>{ delete VO.packs[name]; return null; });   // VO.got: when it was ready (tests: her packs before her hello)
   const pvs = r=>Object.keys(VO.packs).filter(n=>n.indexOf('-pv-') > 0 && /-r$/.test(n) === r).sort((x, y)=>(VO.used[x] || 0) - (VO.used[y] || 0)), pv = pvs(false), pr = pvs(true);
   while(pv.length > VO_PV_MAX) delete VO.packs[pv.shift()]; while(pr.length > VO_PVR_MAX) delete VO.packs[pr.shift()];
   const lt = Object.keys(VO.packs).filter(n=>/-lt\d(-q)?$/.test(n)).sort((x, y)=>(VO.used[x] || 0) - (VO.used[y] || 0)); while(lt.length > VO_LT_MAX) delete VO.packs[lt.shift()];   // the Letter Race's letter-group packs (ltPk): the least recently used go
@@ -4193,11 +4193,46 @@ function errNote(msg){ ERR.n++; ERR.last = String(msg).slice(0, 160); const el =
 window.addEventListener('error', e=>errNote((e.message || 'error') + (e.lineno ? ' @' + e.lineno : '')));
 window.addEventListener('unhandledrejection', e=>{ const r = e.reason; if(r === 0 || r == null) return; errNote('async: ' + (r.message || r) + ' ' + ((r.stack || '').split('\n')[1] || '').trim().slice(-40)); });
 /* iPhones drop the WebGL context when graphics memory runs out; three.js keeps the scene and draws it again on restore */
-canvas.addEventListener('webglcontextlost', e=>{ e.preventDefault(); ERR.lost++; errNote('graphics reset ' + ERR.lost); ctxCheck(); }, false);
+canvas.addEventListener('webglcontextlost', e=>{ e.preventDefault(); ERR.lost++; errNote('graphics reset ' + ERR.lost); try{ crCrumb('graphics lost'); crReport('gfxlost', 'graphics reset ' + ERR.lost); }catch(e2){} ctxCheck(); }, false);
+/* ---- crash reports (owner, 2026-11-01: "so the crash reports go to you automatically"). A trail of what the game was doing (CRP.crumbs: a line each time
+   the screen, race, game or plane count changes, plus every error) and a snapshot of memory are kept in localStorage every 4 s. An iPhone that kills the
+   tab for memory gives no event, so the next load looks: the last session never closed cleanly (pagehide) and was in front when it stopped -> a 'crash'
+   report. JS errors and lost graphics are reported at once (5 a session at most). Reports go to the artifact's shared db collection 'crashes' (Claude reads
+   them there); with no db (GitHub Pages) they wait in localStorage (CR_Q, 20 at most) for a load that has one. */
+const CRP = {sid: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), crumbs: [], sig: '', sent: 0, t0: Date.now()}, CR_K = 'hangar-cr', CR_Q = 'hangar-crq';
+function crGet(k){ try{ return JSON.parse(localStorage.getItem(k) || 'null'); }catch(e){ return null; } }
+function crPut(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function crMem(){ const o = {}; try{ const m = renderer.info.memory, r = renderer.info.render; o.geo = m.geometries; o.tex = m.textures; o.calls = r.calls; o.tris = r.triangles; }catch(e){}
+  try{ let mb = 0, n = 0; for(const k in VO.packs){ n++; mb += (VO.mbs && VO.mbs[k]) || 0; } o.voPacks = n; o.voMB = Math.round(mb); }catch(e){}
+  try{ if(performance.memory) o.jsMB = Math.round(performance.memory.usedJSHeapSize/1e6); }catch(e){}
+  return o; }
+function crState(){ const o = {}; try{ o.mode = app.dataset.mode; o.plane = cur && cur.def.id; o.race = RACE.phase; o.type = RACE.type || ''; o.course = RACE.course; o.n = (RACE.racers || []).length; o.sc = !!(SC && SC.on); o.lang = lang; }catch(e){} return o; }
+function crCrumb(what){ const d = Math.round((Date.now() - CRP.t0)/1000); CRP.crumbs.push(d + 's ' + String(what).slice(0, 140)); if(CRP.crumbs.length > 40) CRP.crumbs.shift(); }
+function crBeat(){ const st = crState(), sig = JSON.stringify(st);
+  if(sig !== CRP.sig){ CRP.sig = sig; crCrumb(Object.entries(st).filter(([k, v])=>v !== '' && v != null && v !== false).map(([k, v])=>k + '=' + v).join(' ') + ' ' + JSON.stringify(crMem())); }
+  crPut(CR_K, {sid: CRP.sid, t: Date.now(), t0: CRP.t0, clean: false, hidden: document.hidden, crumbs: CRP.crumbs, st, mem: crMem(), ua: navigator.userAgent.slice(0, 160), ver: document.title}); }
+function crReport(kind, msg, extra){ if(CRP.sent >= 5 && kind !== 'crash') return; CRP.sent++;
+  const r = Object.assign({kind, msg: String(msg || '').slice(0, 400), at: new Date().toISOString(), sid: CRP.sid, st: crState(), mem: crMem(), crumbs: CRP.crumbs.slice(), ua: navigator.userAgent.slice(0, 160), w: innerWidth, h: innerHeight}, extra || {});
+  const q = crGet(CR_Q) || []; q.push(r); while(q.length > 20) q.shift(); crPut(CR_Q, q); crSend(); }
+async function crSend(){ if(!SV.db || CRP.busy) return; const q = crGet(CR_Q) || []; if(!q.length) return; CRP.busy = true;
+  try{ while(q.length){ const r = q[0]; await SV.db.doc('crashes/' + r.at.replace(/[^0-9]/g, '').slice(0, 14) + '-' + r.sid + '-' + r.kind).set(r); q.shift(); crPut(CR_Q, q); } }catch(e){}
+  CRP.busy = false; }
+(()=>{ const prev = crGet(CR_K);   // the last session: did it end without closing?
+  if(prev && prev.sid && !prev.clean && !prev.hidden && Date.now() - prev.t < 30*60e3){
+    const r = {kind: prev.reload ? 'reload' : 'crash', msg: prev.reload ? 'the game reloaded itself (' + prev.reload + ')' : 'the tab stopped without closing (likely killed for memory)', at: new Date(prev.t).toISOString(), sid: prev.sid, st: prev.st, mem: prev.mem, crumbs: prev.crumbs, ua: prev.ua, ver: prev.ver, upFor: Math.round((prev.t - prev.t0)/1000)};
+    const q = crGet(CR_Q) || []; q.push(r); while(q.length > 20) q.shift(); crPut(CR_Q, q); }
+  crBeat(); setInterval(crBeat, 4000); setInterval(crSend, 15000);
+  addEventListener('pagehide', ()=>{ const c = crGet(CR_K); if(c && c.sid === CRP.sid){ c.clean = true; crPut(CR_K, c); } });
+  addEventListener('pageshow', ()=>{ crBeat(); });
+  document.addEventListener('visibilitychange', ()=>{ crBeat(); });
+  window.addEventListener('error', e=>{ crCrumb('error ' + e.message); crReport('error', (e.message || 'error') + (e.lineno ? ' @' + e.lineno + ':' + e.colno : ''), {stack: e.error && e.error.stack ? String(e.error.stack).slice(0, 800) : ''}); });
+  window.addEventListener('unhandledrejection', e=>{ const r = e.reason; if(r === 0 || r == null) return; crCrumb('async ' + (r.message || r)); crReport('error', 'async: ' + (r.message || r), {stack: String(r.stack || '').slice(0, 800)}); });
+})();
+
 /* (the stability pass, 2026-10-31) a context that does not come back (Safari need not restore one it dropped for memory) would leave a frozen
    picture: still lost after 4 s on screen, the page loads again, into the hangar; everything saved stays (saveSet writes it at once) */
 function ctxCheck(){ clearTimeout(ERR.ctxT); ERR.ctxT = setTimeout(()=>{ let lost = false; try{ lost = renderer.getContext().isContextLost(); }catch(e){} if(!lost) return;
-  if(document.hidden) return ctxCheck(); try{ if(SV.timer) svFlush(); }catch(e){} location.reload(); }, 4000); }
+  if(document.hidden) return ctxCheck(); try{ if(SV.timer) svFlush(); }catch(e){} try{ const c = crGet(CR_K); if(c){ c.reload = 'graphics never came back'; crPut(CR_K, c); } }catch(e){} location.reload(); }, 4000); }
 canvas.addEventListener('webglcontextrestored', ()=>{ const el = $('errNote'); if(el && ERR.n <= ERR.lost) el.hidden = true; envRegen(); }, false);
 /* three uploads every texture and buffer again after a restore, but a picture drawn once into a render target comes back empty: the image
    lights (PMREM) of the hangar, of each built course and of Sky City made everything dark (measured, 2026-10-31). They are made again. */
