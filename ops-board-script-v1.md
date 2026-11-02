@@ -17,7 +17,7 @@ HOIST: "So we built a picture of the work. Everything on it answers one of those
 
 ## SCENE 3. The finished board, the tour (0:40 to 2:30)
 VISUAL: The final board (planes version), live replay of a busy stretch of Sunday evening. The camera eases to each item as Hoist names it; a cursor ring taps it and its card opens.
-3a. The tower. "That tower is Claude, the orchestrator. It never builds anything itself. It briefs the crew, checks the work, and talks to the pilot. The word on the roof is the model it's running. Change the model, the roof changes."
+3a. The tower. "That tower is the orchestrator. It never builds anything itself. It briefs the crew, checks the work, and talks to the pilot. The word on the roof is the model it's running. Change the model, the roof changes."
 3b. The radio and the cloud. Tap: the dish pulses, dots rise into the cloud. "The radio is the cheapest agent we have. All it does is relay what everybody's doing up to the board every minute. Why a separate agent? Because if the orchestrator did that, you'd pay the expensive model to do a job a cheap one can do. That's the whole trick of this crew: the right size model for each job."
 3c. A stand. "Every plane on a stand is one agent at work. Name on the tab, model colour on the ring, and that number is the tokens it's used so far."
 3d. The crew around the plane. Tap each vehicle in turn, card opens: "The vehicles are the kinds of work. Fuel truck, that's thinking. Catering, writing. Baggage, reading files. The tug, running commands. Maintenance van, rendering video. The inspection truck, filming the game. Stairs, sending messages. Tap one and you see exactly what it did, newest first."
@@ -44,6 +44,12 @@ VISUAL: Morph through V2 to V8 at about 5 s each, a label on each, a short callo
 - V7 High-detail trucks. "The trucks got rebuilt in full detail. The same models went into the game as the audience. Build it once, use it twice."
 - V8 Tower and dish to match. "And the tower and dish were brought up to match. Nothing on the board should look cheaper than the game."
 
+## SCENE 5b. Building the tower and the dish (about 30 s)
+VISUAL: Close on the tower and dish as they evolved: the first plain tower block, then the HD tower (glass cab, slanted windows, beacon), the radio as a person, then the dish, then the dish with its cloud. Each piece assembles on screen part by part (shaft, cab, windows, roof, beacon; mount, bowl, feed horn, plate).
+HOIST: "The tower is the orchestrator: one director for the whole crew, so it sits highest, where it can see every stand. It started as a box. It got a real glass cab, a beacon that turns, and the model's name on the roof, so you always know which brain is giving orders. The radio started as a little person. A radio operator should look like a radio, so it became a dish. Then it got a cloud, because the board lives in the cloud and that's where the dish is sending."
+ON SCREEN: "Tower = the orchestrator · Dish = the cheap relay · Cloud = where the board lives"
+NOTE: the board never shows a product name, only "Orchestrator", so anyone can run it with their own agents.
+
 ## SCENE 6. Making it readable (3:30 to 4:10)
 VISUAL: Morph V9 to V18.
 - V9 Model colours and legend. "Colour by model, with a legend. The legend moved to the bottom left because it was covering the tower."
@@ -66,8 +72,8 @@ VISUAL: Morph V19 to V23, this is the heart of the film, slowest pace.
 ## SCENE 8. Finding the layout (5:10 to 5:50)
 VISUAL: Morph V24 to V28.
 - V24 Round pads. "Still couldn't tell whose carts were whose. So: pads. Each actor on its own circle, crew around it."
-- V25 Tower to the top. "Claude took too much room, and it stopped looking like an airport. The tower went to the top middle, small, and the agents got the space."
-- V26 The airfield. "Then a real control tower, stands with numbers, taxi lines, a runway. The name lettered on the tower, the model on the roof. The radio sends to a cloud, because that's where the board lives."
+- V25 Tower to the top. "The orchestrator took too much room, and it stopped looking like an airport. The tower went to the top middle, small, and the agents got the space."
+- V26 The airfield. "Then a real control tower, stands with numbers, taxi lines, a runway. "Orchestrator" lettered on the tower, the model on the roof. The radio sends to a cloud, because that's where the board lives."
 - V27 On the pads list moved up. "Small one: the list of who's working moved under the controls."
 - V28 Tokens and the forecast. "Every actor and every cart shows its tokens. And the board tells you when you run out at this pace."
 - V28b The price tag. "Then tokens became dollars: what each agent would cost at public API prices, by model, so you can see what the cascade saves."
@@ -99,7 +105,7 @@ HOIST: "Script. Storyboard. Every old version of the board. A camera, a painter,
 ON SCREEN: "This film: N tool calls, X tokens, $Y at API prices" (real numbers from the board when the cut is final).
 
 ## SCENE 11. Close (6:50 to 7:05)
-VISUAL: Brass card: "Every piece on this board is there because something was hard to see." Then: "Made by MJ and his son, with Claude as orchestrator and a crew of agents." Hoist backs out of frame, lamp off.
+VISUAL: Brass card: "Every piece on this board is there because something was hard to see." Then: "Made by MJ and his son, with an orchestrator and a crew of agents." Hoist backs out of frame, lamp off.
 HOIST: "That's the board. Now go check on your crew."
 
 ---
