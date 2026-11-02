@@ -1,0 +1,15 @@
+# MJ's notes on cut v4 (Nov 1, 11:26 PM) -> cut v5
+
+Overall: chronological story of what happened in the day. No preview/teaser at the start. Do a QA pass yourself: render a low-res copy, watch it end to end (frames every 1 to 2 s), fix anything cut off, unreadable, covered or confusing.
+
+Text placement (everywhere): captions must not cover the action. Never stack text at the top over busy footage. Use a separate caption box/band outside the action area (like the board iteration section already does well) and frame the camera so the subject sits clear of the caption.
+
+Order:
+1. Open: "Everything we built on Sunday, November 1" (short). No preview montage.
+2. The two new aircraft first: introduce WHO Angel (Blue Angels Super Hornet) and Ozzie (V-22 Osprey, a helicopter that tilts its rotors) are, show the end result, then how they were made: built entirely in code, no model files (keep this, MJ liked it), paint and decorate, every plane has its own speech: show how many voice lines (Angel 636, Ozzie 656, narrator 1,892), then the win shows. Drop the third-party/licence scroll. Ozzie is hard to see in his win show (too far back): frame him closer. Note: Ozzie's windscreen is see-through in the game (a bug); avoid shots that show it, or pick angles where it does not read, until the game is fixed.
+3. Then the write-up / review prompt. Keep it short: do NOT spend long on the four changes (one quick line).
+4. Cut the "flight deck with the helpers" segment entirely.
+5. Replace the Arctic/desert crew-colours-on-the-runway segment (boring) with the HIGH-RESOLUTION PASSES on the world: before/after of the terrain and props (trees, sailboats, ships, houses, set pieces) using ?classic=props / ?classic=ships / ?classic=all vs current, in motion. Framing caption: "The world started with placeholder assets to make it feel alive. Now that we have played it, it is time to bring them up to the planes' resolution. We also solved the performance and battery-drain issues, so there is headroom for more polygons without killing the phone's battery." Put stability/memory here as the reason (fix the cut-off "about 1 GB" bar: it runs off the screen edge).
+6. Clutter: phrase it as "We made optimizations to the layout" (not "MJ: too cluttered").
+7. Ops board: start from the VERY FIRST version (planes, no orchestrator, no radio). Earliest board files on disk: /tmp/claude-0/-home-claude/917e4d6d-feb4-59ad-982a-2757f59bd3a4/scratchpad/g/board-orig.html and /home/claude/scratch-test/board-orig-backup.html; also scratchpad/board-backup.html, /home/claude/wt-out/video/raw/board-capture.html. Check which is earliest (look at what they render). Then show it building up step by step (trucks, orchestrator tower, radio, high-detail trucks, panels...) through the 27 changes in board-chapter-plan.md, then "too cluttered" -> layout optimizations -> the unlock -> airfield -> tokens -> END ON PLANES (archive/board-versions/v9-planes.html, change 29), then the whole-day replay on v9.
+8. Stability as part of section 5 (performance headroom), numbers, ending.
