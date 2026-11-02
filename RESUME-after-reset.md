@@ -6,4 +6,5 @@ Next steps after the Monday 3 PM reset:
 1. Get MJ's OK on the v10 board look (or tweak).
 2. Resume the making-of video cut 5: notes in /home/claude/wt-out/video/v5-notes.md, board chapter plan in /home/claude/wt-out/video/board-chapter-plan.md (27 changes + 28 tokens + 29 planes ending), progress in /home/claude/wt-out/video/v4-progress.md, scenes in /home/claude/wt-out/video/scenes/, assembler tools4/assemble4.sh. Ending and whole-day replay must use archive/board-versions/v10-unique-planes.html.
 3. Game bug: Ozzie's windscreen is see-through; paint it opaque.
+3b. Letter Race (MJ, Nov 2 8:20 AM): the words must be visible so he can link them to letters. Add a toggle to show/hide the words. Default ON for difficulty levels 1 to 6, default OFF above 6, toggle available at every level. (This reverses review change e6eb9d7 "words stay hidden until he answers" for the lower levels.)
 4. Restart the live feed (python3 -u /home/claude/boardtick.py >> /home/claude/radio.log) and a Haiku radio operator when agents run.
