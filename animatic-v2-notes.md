@@ -1,0 +1,16 @@
+# MJ's notes on animatic v1 (Nov 2, 5:03 PM) -> animatic v2
+
+TONE: not a 1940s film. Think of the cheerful animated explainer in Jurassic Park (the "Mr. DNA" sequence): friendly, instructive, pop-up graphics that appear as the narrator explains, a guide character who walks you through how it all works. Hoist is that guide (our own character, no copying of that film's character or lines).
+
+1. SOUND. Spoken narration is required; silence over pictures does not work. Use the cheapest voice (the game's local Kokoro TTS pipeline, see /home/claude/wt/test tooling and THIRD-PARTY.md; any built-in voice is fine for the proof). Light music bed under it.
+2. Hoist must never be covered. Put him in a reserved corner outside the action or in his own small inset.
+3. Scene 2: the terminal line needs a blinking cursor so it reads as live.
+4. OPENING: show the ENTIRE field with every agent, moving (live replay, not a still), and HOLD it long enough to take in (10 to 15 s) before anything else. Start wide, stay wide. Then the tour.
+5. CLICKS MUST BE VISIBLE. For every tap: show the cursor/finger moving to the thing, a tap ripple on it, and the card GROWING OUT of the tapped point, so you see what was tapped and what opened. The card must be small enough that the tapped thing stays visible beside it (resize cards to about a third of the frame). Do the full walk-to-and-tap for the first item (the tower: "the orchestrator"), then faster jump cuts for the rest, but always with the ripple and the grow-from-point.
+6. STOP ZOOMING IN. The whole board stays visible the entire time. No Ken Burns crops beyond about 1.2x. Scene 5b was unreadable because of close crops. Explain the tower and dish with pop-up callouts over the wide board instead.
+7. V1 IS WRONG. The real first version was planes parked on an airport layout (not planes on a dark field). Find the real first version: the board artifact's own version history (https://claude.ai/artifact/DNSSxDdmvaKByFM1ibBhsw, versions 1, 2, 3 ...; Artifact read with a version), git history of /home/claude/wt-out or scratch-test, earliest video frames. Use it for V1, V2, V3.
+8. V2/V3 frames already show the tower and radio under clutter. Either use the true earlier files, or turn it into the point: "we organized it, then cluttered it again with sprites", then show the declutter.
+9. NO "CLAUDE" ANYWHERE in frames (scenes 4, 5 and the tour showed it). Re-render every frame from the current board (v11, which says ORCHESTRATOR).
+10. Explain how the radio operator was created and what it does (cheap relay), since it exists from early on.
+11. PACING: the first half moves too fast and cuts to covered screens; the second half (from about 3:00, the version montage and the making-of) works well: keep that approach. Compress the overall length by folding scenes 5 and 6 into a brisker montage and spend the time on the tour (with visible clicks) and on scenes 7 to 10b.
+12. DIRECTOR PASS: a separate "director" agent reviews the finished proof cut frame by frame (1 fps contact strip) and reports exact timestamps where: the view is zoomed in too far, the subject is covered by a card or caption, text is unreadable, a tap is not shown, or Hoist is hidden. Fix those, then re-review once.

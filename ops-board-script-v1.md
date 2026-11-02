@@ -1,22 +1,22 @@
 # "A Picture of the Work": the Hangar Ops Board, told backwards
-Draft script v1 for MJ's approval (Nov 2). Vertical 1080x1920, about 6 to 7 minutes. Style: a 1940s training film / PSA. Film grain, a brass title card, a narrator who talks to you like a friend. Narrator: HOIST, one of the little forklifts from the game (name open). His lines are spoken (same voice pipeline as the game's planes) and also shown as subtitles in a caption band that never covers the action.
+Draft script v1 for MJ's approval (Nov 2). Vertical 1080x1920, about 6 to 7 minutes. Style: a cheerful animated explainer in the spirit of the Jurassic Park DNA sequence: a friendly guide walks you through how it works while pop-up graphics appear as he explains. Narrated aloud (cheapest voice), light music bed. Narrator: HOIST, one of the little forklifts from the game (name open). His lines are spoken (same voice pipeline as the game's planes) and also shown as subtitles in a caption band that never covers the action.
 
-Rule for every scene: the board is always live and moving (real recorded events replayed), never a still. Hoist "clicks" things: a cursor ring appears, the card opens, the camera eases in.
+Rules for every scene: the board is always live and moving (real recorded events replayed), never a still. The WHOLE board stays visible at all times (no zoom beyond 1.2x). Every tap is shown: the cursor moves to the item, a ripple marks it, and a small card grows out of that point, leaving the item visible beside it. Hoist sits in a reserved corner and is never covered.
 
 ---
 
 ## SCENE 1. Title (0:00 to 0:12)
-VISUAL: Black. Film leader countdown 3, 2, 1. Brass title card: "A PICTURE OF THE WORK. The Hangar Ops Board." Small line: "A training film. Sunday, November 1." A forklift drives into frame from the right, stops, turns its lamp to the camera.
+VISUAL: Title card: "A PICTURE OF THE WORK. The Hangar Ops Board." Small line: "Sunday, November 1." A forklift drives into frame from the right, stops, turns its lamp to the camera.
 HOIST: "Evening, friend. Name's Hoist. I move boxes for a living. Tonight I'm going to show you the board, and why every little thing on it is there."
 
 ## SCENE 2. The objective (0:12 to 0:40)
-VISUAL: A plain terminal line: "Running agent... 2h 23m". Nothing else. It sits there. Hoist drives up and taps it with a fork.
+VISUAL: A plain terminal line: "Running agent... 2h 23m" with a blinking cursor. Nothing else. It sits there. Hoist drives up and taps it with a fork.
 HOIST: "Here's the problem. You ask a crew of AI agents to build your game, and this is all you get. Running. For hours. Running what? Reading what? Stuck? Is it burning your whole week's budget on one file? You can't manage what you can't see."
 ON SCREEN (one line at a time): "What is each agent doing? · Which tools is it calling? · Is it working or waiting? · What is it costing me?"
 HOIST: "So we built a picture of the work. Everything on it answers one of those four questions. Let me show you the finished thing first. Then I'll show you how we got here, because it did not start out looking like this."
 
 ## SCENE 2b. Organized chaos (about 10 s)
-VISUAL: Wide shot of the finished board with three or four planes on their stands at once, every crew busy: beacons spinning, vehicles lit, command arcs coming down from the tower, the dish sending to the cloud, tokens ticking on every tab. Hold on it, then a slow push in toward the first stand.
+VISUAL: Wide shot of the ENTIRE finished board with three or four planes on their stands at once, live and moving: beacons spinning, vehicles lit, command arcs coming down from the tower, the dish sending to the cloud, tokens ticking on every tab. HOLD for 10 to 15 seconds with no cuts so the viewer can take it in. No push in.
 HOIST: "Ever stood at the window of a busy airport? Trucks everywhere, planes coming and going. Looks like chaos. It isn't. It's organized chaos. Break it down to its parts and it's a symphony: every truck, every light, every line moving in sequence, doing its job. This board is the same. Let's take it one piece at a time."
 
 ## SCENE 3. The finished board, the tour (0:40 to 2:30)
@@ -34,7 +34,7 @@ VISUAL: The final board (planes version), live replay of a busy stretch of Sunda
 HOIST: "Four questions. Every piece answers one. Now let me take you back to the beginning."
 
 ## SCENE 4. Where it started (2:30 to 2:50)
-VISUAL: Wipe to the very first board. Planes parked on a dark field, no tower, no radio, no panels. Live replay of the same events on it.
+VISUAL: Wipe to the TRUE first board (recover it from the board artifact version history): planes parked on an airport layout, no tower, no radio, no panels. Live replay of the same events on it.
 HOIST: "Version one. Sunday afternoon. Planes for agents, because it's a plane game. That's it. You could see that agents existed. You could not see what they were doing. Watch how far it travels."
 ON SCREEN: "V1 of 29"
 
@@ -49,7 +49,7 @@ VISUAL: Morph through V2 to V8 at about 5 s each, a label on each, a short callo
 - V8 Tower and dish to match. "And the tower and dish were brought up to match. Nothing on the board should look cheaper than the game."
 
 ## SCENE 5b. Building the tower and the dish (about 30 s)
-VISUAL: Close on the tower and dish as they evolved: the first plain tower block, then the HD tower (glass cab, slanted windows, beacon), the radio as a person, then the dish, then the dish with its cloud. Each piece assembles on screen part by part (shaft, cab, windows, roof, beacon; mount, bowl, feed horn, plate).
+VISUAL: Wide board stays on screen; pop-up callouts and insets show the tower and dish as they evolved: the first plain tower block, then the HD tower (glass cab, slanted windows, beacon), the radio as a person, then the dish, then the dish with its cloud. Each piece assembles on screen part by part (shaft, cab, windows, roof, beacon; mount, bowl, feed horn, plate).
 HOIST: "The tower is the orchestrator: one director for the whole crew, so it sits highest, where it can see every stand. It started as a box. It got a real glass cab, a beacon that turns, and the model's name on the roof, so you always know which brain is giving orders. The radio started as a little person. A radio operator should look like a radio, so it became a dish. Then it got a cloud, because the board lives in the cloud and that's where the dish is sending."
 ON SCREEN: "Tower = the orchestrator · Dish = the cheap relay · Cloud = where the board lives"
 NOTE: the board never shows a product name, only "Orchestrator", so anyone can run it with their own agents.
