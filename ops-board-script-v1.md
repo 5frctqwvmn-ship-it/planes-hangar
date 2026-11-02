@@ -17,7 +17,7 @@ HOIST: "So we built a picture of the work. Everything on it answers one of those
 
 ## SCENE 2b. Organized chaos (about 10 s)
 VISUAL: Wide shot of the finished board with three or four planes on their stands at once, every crew busy: beacons spinning, vehicles lit, command arcs coming down from the tower, the dish sending to the cloud, tokens ticking on every tab. Hold on it, then a slow push in toward the first stand.
-HOIST: "This is what a busy crew looks like. It's a lot. But it's organized chaos: every light, every truck, every line means something. Let's take it one piece at a time."
+HOIST: "Ever stood at the window of a busy airport? Trucks everywhere, planes coming and going. Looks like chaos. It isn't. It's organized chaos. Break it down to its parts and it's a symphony: every truck, every light, every line moving in sequence, doing its job. This board is the same. Let's take it one piece at a time."
 
 ## SCENE 3. The finished board, the tour (0:40 to 2:30)
 VISUAL: The final board (planes version), live replay of a busy stretch of Sunday evening. The camera eases to each item as Hoist names it; a cursor ring taps it and its card opens.
