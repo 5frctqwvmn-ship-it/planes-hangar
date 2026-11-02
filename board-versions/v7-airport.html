@@ -199,7 +199,7 @@ const $ = id => document.getElementById(id);
 let EV = [];                  // sorted by t
 function stateAt(T){
   const A = new Map(), out = {pub:0, merge:0, spawn:{}, last:null, tok:0, tokM:{}, tower:null, msgs:[], U:null, M:null, ST:null, acts:{}, crew:{}, lastAct:{}, lastEv:0, LT:null}, LT = {}; let BT = {}, BS = {};
-  for(const e of EV){ if(e.t > T) break;
+  for(const e of EV){ if(e.t > T) break; out.lastFeed = e.t;
     if(e.type === 'machine'){ out.M = e; if(e.procs && e.procs.length) out.Mp = e; continue; }
     if(e.type === 'stats'){ out.ST = e; continue; }
     out.lastEv = e.t;
@@ -799,7 +799,7 @@ const procsOf = (S, id) => S.M ? S.M.procs.filter(p=>p.owner === id) : [];
 const cpuOf = (S, id) => procsOf(S, id).reduce((s,p)=>s+p.cpu, 0);
 /* a long command can run with no new step: the machine's process list says which cart is working */
 const procRole = p=>{ const q = ((p.kind || '') + ' ' + (p.label || '')).toLowerCase(); return /browser|playwright|chrom|node|puppeteer/.test(q) ? 'film' : /ffmpeg|video|encod/.test(q) ? 'render' : /python|\bpy\b|\bpil\b/.test(q) ? 'draw' : 'shell'; };
-const liveProcs = (S, id) => S.M && T - S.M.t < 150000 ? S.M.procs.filter(p=>p.owner === id && p.cpu > 5) : [];
+const liveProcs = (S, id) => { const M = S.M && S.M.procs && S.M.procs.length ? S.M : S.Mp; return M && T - M.t < 600000 ? M.procs.filter(p=>p.owner === id && p.cpu > 5) : []; };
 function procMins(id, role){ let i = EV.length - 1; while(i >= 0 && !(EV[i].type === 'machine' && EV[i].t <= T)) i--; if(i < 0) return 1; let prev = EV[i].t, first = EV[i].t;
   for(i--; i >= 0; i--){ const e = EV[i]; if(e.type !== 'machine') continue; if(prev - e.t > 150000 || !e.procs.some(p=>p.owner === id && p.cpu > 5 && procRole(p) === role)) break; first = e.t; prev = e.t; }
   return Math.max(1, Math.round((T - first)/60000)); }
@@ -1230,7 +1230,7 @@ function panels(S){
 
 let RADIO_PULSE = 0;
 function radioFrame(a, S){ if(!R || !dish) return; const on = a && (a.st==='run' || a.st==='wait'), now = performance.now();
-  dishHead.rotation.y = on ? Math.sin(now/2600)*.9 : .4; { const ra = S.lastRadio || S.lastEv || 0, rg = T - ra; lampSet(dishLamp.material, !ra || rg > 300000 ? 'r' : rg < 10000 ? 'g' : 'a', now, 0); }
+  dishHead.rotation.y = on ? Math.sin(now/2600)*.9 : .4; { const ra = Math.max(S.lastRadio || 0, S.lastFeed || 0), rg = T - ra; lampSet(dishLamp.material, !ra || rg > 300000 ? 'r' : rg < 10000 ? 'g' : 'a', now, 0); }
   dishLamp.scale.setScalar(RADIO_PULSE && now - RADIO_PULSE < 1400 ? 2.6 : 1.6);
   if(BOWL){ const k = RADIO_PULSE && now - RADIO_PULSE < 1400 ? Math.sin((now - RADIO_PULSE)/1400*Math.PI) : 0; BOWL.rotation.x = Math.PI*.38 - .24*k; } }
 /* ---------- radio calls: an arc from the tower to the truck Claude is messaging ---------- */

@@ -36,3 +36,7 @@ Sources: archive/board-versions/ (v2 to v7 final, tonight), the board artifact's
 27. "On the pads now" moved up under the controls.
 
 Then: the dashboard tour on the final board (CPU, limits, totals, log, effort by task: "so we can see where our usage goes and make better decisions"), then the whole day in one take on the final board.
+
+## Added 11:03 PM (MJ)
+28. BIG Token counts on every actor and cart, CPU readings capped correctly, run-out forecast under the usage bars.
+29. BIG The ending: back to planes. Each agent becomes one of the game's own high-detail planes on its stand, serviced by the game's ground-crew vehicles (fuel = thinking, catering = writing, baggage = reading, tug = commands, maintenance = rendering, inspection = filming, stairs = messages). Callout: "It started with planes. It ends with planes, now with a crew you can watch." The board chapter and the whole-day replay must END on this version; if it is not built yet when you reach the board chapter, render everything else and leave the final beat as a slot to drop in.
