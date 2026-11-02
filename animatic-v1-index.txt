@@ -1,0 +1,64 @@
+scene  start(mm:ss)   frame source
+1     00:00.0  s01.jpg
+2     00:08.0  s02.jpg
+2     00:17.2  s02.jpg
+2b    00:24.5  /home/claude/wt-out/crew-shots/v10-declutter-5.png
+3a    00:33.7  s03a.jpg
+3b    00:41.3  s03b.jpg
+3c    00:49.7  s03c.jpg
+3d    00:56.0  s03d.jpg
+3e    01:06.0  s03e.jpg
+3f    01:12.5  s03f.jpg
+3g    01:18.8  s03g.jpg
+3h    01:23.0  s03h.jpg
+3i    01:28.8  s03i.jpg
+3j    01:36.3  s03j.jpg
+3     01:46.7  s03j.jpg
+4     01:50.0  v01.jpg
+5     01:57.2  v02.jpg
+5     01:59.8  v03.jpg
+5     02:02.5  v04.jpg
+5     02:05.3  v05.jpg
+5     02:08.7  v06.jpg
+5     02:11.3  v07.jpg
+5     02:14.8  v08.jpg
+5b    02:18.2  v03.jpg crop(140, 280, 340, 605)
+5b    02:26.8  s03a.jpg crop(120, 20, 300, 533)
+5b    02:30.3  v04.jpg crop(200, 300, 340, 605)
+5b    02:35.3  v06.jpg crop(200, 320, 340, 605)
+5b    02:38.7  s03b.jpg crop(30, 20, 340, 605)
+6     02:46.0  v09.jpg
+6     02:48.8  v10.jpg
+6     02:51.5  v11.jpg
+6     02:54.2  v12.jpg
+6     02:56.8  v13.jpg
+6     02:59.5  v14.jpg
+6     03:02.2  v15.jpg
+6     03:04.8  v16.jpg
+6     03:07.5  v17.jpg
+6     03:10.2  v18.jpg
+7     03:13.3  v19.jpg
+7     03:17.5  v20.jpg
+7     03:20.2  v21.jpg
+7     03:22.8  v22.jpg
+7     03:25.5  v23.jpg
+8     03:36.8  v24.jpg
+8     03:40.2  v25.jpg
+8     03:43.3  v26.jpg
+8     03:46.8  v27.jpg
+8     03:49.5  v28.jpg
+8     03:52.8  v28b.jpg
+9     03:55.7  v29.jpg
+10    04:04.8  s10.jpg
+10b   04:14.2  s10b0.jpg
+10b   04:20.2  s10b1.jpg
+10b   04:22.8  s10b2.jpg
+10b   04:25.5  s10b3.jpg
+10b   04:28.2  s10b4.jpg
+10b   04:30.8  s10b5.jpg
+10b   04:33.5  s10b6.jpg
+10b   04:36.2  s10b7.jpg
+10b   04:38.8  s10b8.jpg
+10b   04:41.5  s10b8.jpg
+11    04:52.0  s11.jpg
+total 04:58.0
