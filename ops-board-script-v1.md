@@ -26,6 +26,7 @@ VISUAL: The final board (planes version), live replay of a busy stretch of Sunda
 3g. A command arc. "When the tower briefs an agent, you see it: a pulse down the taxi line with what it said."
 3h. The runway. "Finished agents park on the runway. The stations along it are where vehicles drive when they go to work: files, the desk, the camera."
 3i. The panels (scroll down). "And the money. Session and week, how fast we're spending, and when we run out at this pace. Which task cost what. The machine. The log. This is how you decide what to build next and what to hold for Monday."
+3j. The price tag. Tap the tower, then the radio, then an agent; each card shows "API cost if billed: $X". "One more number. What would this crew cost at the public API prices, if you were paying by the token? The tower, the orchestrator, is the expensive one, because it rereads the whole conversation every time it speaks. The radio costs pennies. That's the cascade: big model to direct, mid-size models to build, the smallest one to keep the lights on." ON SCREEN: the running total by model (real figures from the board).
 HOIST: "Four questions. Every piece answers one. Now let me take you back to the beginning."
 
 ## SCENE 4. Where it started (2:30 to 2:50)
@@ -69,6 +70,7 @@ VISUAL: Morph V24 to V28.
 - V26 The airfield. "Then a real control tower, stands with numbers, taxi lines, a runway. The name lettered on the tower, the model on the roof. The radio sends to a cloud, because that's where the board lives."
 - V27 On the pads list moved up. "Small one: the list of who's working moved under the controls."
 - V28 Tokens and the forecast. "Every actor and every cart shows its tokens. And the board tells you when you run out at this pace."
+- V28b The price tag. "Then tokens became dollars: what each agent would cost at public API prices, by model, so you can see what the cascade saves."
 
 ## SCENE 9. Back to planes (5:50 to 6:20)
 VISUAL: Morph to V29, the final board. Camera pulls back to the whole airfield, busy.
@@ -78,6 +80,7 @@ ON SCREEN: "V29 of 29"
 ## SCENE 10. The whole day (6:20 to 6:50)
 VISUAL: The final board replays Sunday from 4:24 PM to midnight, dead air removed, a clock in the corner. Finished builds pop up as they land: Angel, Ozzie, the airport, the ground crew, the ships, the board itself.
 HOIST: "One Sunday. Thirty-some agents, three at a time, three sizes of model, and one pilot on the couch asking 'what is it doing?' twenty-nine times until he could see it."
+ON SCREEN at the end of the replay: "At public API prices: $X total (Opus $a, Sonnet $b, Haiku $c, Fable $d)" using the board's real running total.
 
 ## SCENE 11. Close (6:50 to 7:05)
 VISUAL: Brass card: "Every piece on this board is there because something was hard to see." Then: "Made by MJ and his son, with Claude as orchestrator and a crew of agents." Hoist backs out of frame, lamp off.
