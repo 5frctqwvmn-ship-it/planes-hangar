@@ -15,6 +15,10 @@ HOIST: "Here's the problem. You ask a crew of AI agents to build your game, and 
 ON SCREEN (one line at a time): "What is each agent doing? · Which tools is it calling? · Is it working or waiting? · What is it costing me?"
 HOIST: "So we built a picture of the work. Everything on it answers one of those four questions. Let me show you the finished thing first. Then I'll show you how we got here, because it did not start out looking like this."
 
+## SCENE 2b. Organized chaos (about 10 s)
+VISUAL: Wide shot of the finished board with three or four planes on their stands at once, every crew busy: beacons spinning, vehicles lit, command arcs coming down from the tower, the dish sending to the cloud, tokens ticking on every tab. Hold on it, then a slow push in toward the first stand.
+HOIST: "This is what a busy crew looks like. It's a lot. But it's organized chaos: every light, every truck, every line means something. Let's take it one piece at a time."
+
 ## SCENE 3. The finished board, the tour (0:40 to 2:30)
 VISUAL: The final board (planes version), live replay of a busy stretch of Sunday evening. The camera eases to each item as Hoist names it; a cursor ring taps it and its card opens.
 3a. The tower. "That tower is the orchestrator. It never builds anything itself. It briefs the crew, checks the work, and talks to the pilot. The word on the roof is the model it's running. Change the model, the roof changes."
