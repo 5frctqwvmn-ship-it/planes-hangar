@@ -82,6 +82,22 @@ VISUAL: The final board replays Sunday from 4:24 PM to midnight, dead air remove
 HOIST: "One Sunday. Thirty-some agents, three at a time, three sizes of model, and one pilot on the couch asking 'what is it doing?' twenty-nine times until he could see it."
 ON SCREEN at the end of the replay: "At public API prices: $X total (Opus $a, Sonnet $b, Haiku $c, Fable $d)" using the board's real running total.
 
+## SCENE 10b. "That's me" (the meta beat, about 40 s)
+VISUAL: The live board, recorded while THIS film was being made (Nov 2). Camera eases onto the video agent's plane on its stand. A cursor ring taps it; its card opens: "Making-of film, Sonnet".
+HOIST: "See that plane right there? That's this film. That's the agent making the video you're watching right now. Let's watch what it does."
+VISUAL: Sped-up replay of the video agent's real steps (from its recorded acts), each vehicle lighting in turn, with a small card for each step as it happens:
+- Reader (baggage) opens the script: "Reading ops-board-script-v1.md"
+- Reader again: the storyboard sheet and the board's saved versions
+- Camera operator (inspection truck): "Filming the board in the test browser" (CPU pill 180%)
+- Painter (maintenance van): "Drawing frames: captions, callouts"
+- Projectionist: "Encoding video s05_versions"
+- Writer (catering): "Writing the cut list"
+- Archivist (forklift): "Saving work to git"
+- Messenger (stairs): "Reporting back to the tower"
+Small token and cost counters tick up on the plane's tab as it goes.
+HOIST: "Script. Storyboard. Every old version of the board. A camera, a painter, a projector, a filing clerk. Every one of them is a tool call, and every one of them is on the board. That's the whole point. You asked a crew to make something, and now you can watch them do it."
+ON SCREEN: "This film: N tool calls, X tokens, $Y at API prices" (real numbers from the board when the cut is final).
+
 ## SCENE 11. Close (6:50 to 7:05)
 VISUAL: Brass card: "Every piece on this board is there because something was hard to see." Then: "Made by MJ and his son, with Claude as orchestrator and a crew of agents." Hoist backs out of frame, lamp off.
 HOIST: "That's the board. Now go check on your crew."
