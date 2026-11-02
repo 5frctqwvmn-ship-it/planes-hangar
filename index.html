@@ -2954,7 +2954,7 @@ function buildOsprey(T, lod){
   const C = OZ.C, X = x=>C - x, root = new T.Group(); root.name = 'osprey'; const K = bkKit(T, X), H = hvKit(T, K, X, lod), n = H.n, D = H.D, L = H.L, sm = bkSm, nose = bkNose, PI = Math.PI;
   const grey = H.skin(OZ.grey, .55), dkg = H.skin(OZ.dk, .6);
   const dark = H.keep(H.M(0x1b1e21, .7, .1)), metal = H.keep(H.M(0x8d949a, .35, .6)), tire = H.keep(H.M(0x1c1c1c, .85, 0)), cabin = H.keep(H.M(0x2a2e33, .85, 0)), blade = H.keep(H.M(0x3a3f44, .55, .15));
-  const red = H.keep(H.M(0xd12a22, .35, .1, {emissive: 0x4a0806})), grn = H.keep(H.M(0x22b14c, .35, .1, {emissive: 0x063a14})), glassM = H.glass();
+  const red = H.keep(H.M(0xd12a22, .35, .1, {emissive: 0x4a0806})), grn = H.keep(H.M(0x22b14c, .35, .1, {emissive: 0x063a14})), tint = H.keep(H.M(0x1b2630, .2, .35));
   const grp = nm=>{ const g = new T.Group(); g.name = nm; root.add(g); return g; }, put = H.put, loft = H.loft;
   const body = grp('body'), wing = grp('wing'), tail = grp('tail'), gear = grp('gear'), cab = grp('cab');
   const nacS = [grp('nacelle-r'), grp('nacelle-l')], rotS = [grp('rotor-r'), grp('rotor-l')];   // a group a side, so nothing merges across the two (ozRig parts them by side)
@@ -2965,7 +2965,7 @@ function buildOsprey(T, lod){
   const FS = x=>{ const t = T0(x), b = B0(x), y = (t + b)/2; return [y, Math.max(.01, W0(x)), Math.max(.01, t - y), Math.max(.01, y - b), 2.2 + 1.4*sm(x/10), 2.2 + 1.6*sm(x/10)]; };
   const win = [[2.6, 8.2, -1.1, 1.1], [5.4, 9.4, 1.22, 1.85], [5.4, 9.4, -1.85, -1.22]];   // the windscreen, the side windows [x0, x1, a0, a1]
   put(body, loft(FS, 0, 55.8, n(80, 12), -PI, PI, n(52, 10), {holes: D ? win : null}), grey);
-  win.forEach(w=>put(cab, loft(FS, w[0], w[1], n(10, 2), w[2], w[3], n(10, 2), {grow: D ? -.04 : .04}), glassM, 'glass'));
+  win.forEach(w=>put(cab, loft(FS, w[0], w[1], n(10, 2), w[2], w[3], n(10, 2), {grow: D ? -.04 : .04}), tint));   // 2026-11-02 (owner: his windscreen was see-through): an opaque dark tinted canopy, painted, so the nose is solid and his eyes sit on it (not the clear game glass)
   if(D){ put(body, H.flip(loft(FS, 2.0, 11.5, 10, -PI, PI, 18, {grow: -.22})), cabin);   // the cockpit's dark inside
     put(body, H.at(new T.BoxGeometry(1.2, .8, 5.0), 3.6, 7.6, 0), dark);   // its panel
     [-1.4, 1.4].forEach(z=>{ put(body, H.at(new T.BoxGeometry(1.5, .4, 1.4), 7.4, 5.9, z), cabin); put(body, H.at(new T.BoxGeometry(.4, 2.4, 1.4), 8.4, 7.2, z), cabin); });
@@ -14433,14 +14433,14 @@ function lrnPairTap(q, s, bt){
    questions), the praise openers in every plane voice. */
 Object.assign(UI.en, {ltName:'Letter Race', ltHint:'Pick the picture that starts with the sound!',
   ltThis:L=>`This is ${L}.`, ltSounds:s=>`It sounds like ${s}.`, ltQ:L=>`Which word starts with ${L}?`, ltIs:(w, L)=>`${ltCap(w)} starts with ${L}!`, ltModel:(s, w)=>`${ltCap(s)}, ${s}, ${w}!`, ltOpt:w=>`${ltCap(w)}?`, ltThats:w=>`That's ${w}.`, ltStarts:L=>`It starts with ${L}.`,
-  ltPraise:['Yes!', 'You got it!', 'Super!', 'You heard it!', 'Great listening!'], ltLevel:'Level',
+  ltPraise:['Yes!', 'You got it!', 'Super!', 'You heard it!', 'Great listening!'], ltLevel:'Level', ltWords:'Words',
   ltLevels:['First letters', 'Trickier first letters', 'More letters and vowels', 'Sounds that are close', 'Little letters', 'Two letters, one sound', 'Ending sounds', 'Middle sounds'], ltCapsOnly:'Capitals only', ltCapsBoth:'Big and little letters',
   ltThese:L=>`These letters are ${L}.`, ltTogether:s=>`Together they say ${s}.`, ltEndQ:L=>`Which word ends with ${L}?`, ltEnds:(w, L)=>`${ltCap(w)} ends with ${L}!`, ltEndsW:L=>`It ends with ${L}.`,
   ltMidQ:s=>`Which word has ${s} in the middle?`, ltMidIs:(w, s)=>`${ltCap(w)} has ${s} in the middle!`, ltMidHas:s=>`It has ${s} in the middle.`,
   ltSoon:["We'll see that one again soon!", 'Good try! That one will come back.', "Let's try that one again later!"]});   // (2026-10-31: levels 5 to 8, and the one-try card's lines)
 Object.assign(UI.es, {ltName:'Carrera de letras', ltHint:'¡Elige el dibujo que empieza con el sonido!',
   ltThis:L=>`Esta es la ${L}.`, ltSounds:s=>`Suena así: ${s}.`, ltQ:L=>`¿Qué palabra empieza con ${L}?`, ltIs:(w, L)=>`¡${ltCap(w)} empieza con ${L}!`, ltModel:(s, w)=>`¡${ltCap(s)}, ${s}, ${w}!`, ltOpt:w=>`¿${ltCap(w)}?`, ltThats:w=>`Eso es ${w}.`, ltStarts:L=>`Empieza con ${L}.`,
-  ltPraise:['¡Sí!', '¡Muy bien!', '¡Súper!', '¡Lo oíste!', '¡Qué bien escuchas!'], ltLevel:'Nivel',
+  ltPraise:['¡Sí!', '¡Muy bien!', '¡Súper!', '¡Lo oíste!', '¡Qué bien escuchas!'], ltLevel:'Nivel', ltWords:'Palabras',
   ltLevels:['Primeras letras', 'Primeras letras, más difíciles', 'Más letras y vocales', 'Sonidos parecidos', 'Letras pequeñas', 'Dos letras, un sonido', 'Sonidos finales', 'Sonidos del medio'], ltCapsOnly:'Solo mayúsculas', ltCapsBoth:'Mayúsculas y minúsculas',
   ltThese:L=>`Estas letras son ${L}.`, ltTogether:s=>`Juntas suenan así: ${s}.`, ltEndQ:L=>`¿Qué palabra termina con ${L}?`, ltEnds:(w, L)=>`¡${ltCap(w)} termina con ${L}!`, ltEndsW:L=>`Termina con ${L}.`,
   ltMidQ:s=>`¿Qué palabra tiene ${s} en el medio?`, ltMidIs:(w, s)=>`¡${ltCap(w)} tiene ${s} en el medio!`, ltMidHas:s=>`Tiene ${s} en el medio.`,
@@ -14537,6 +14537,7 @@ const LT = {lvl:1, n:0, next:null, log:[], again:[]};
 const LT_TOP = 8;   // levels 1 to 8 (5 to 8 since 2026-10-31)
 const ltLevel = ()=>Math.min(LT_TOP, Math.max(1, +saveGet('hangar-letterlvl') || 1));
 const ltCaps = ()=>saveGet('hangar-lettercaps') !== '0';   // 2026-10-20 (owner: "the lowercase is confusing him"): capitals only is the default; '0' brings the lowercase back
+const ltWords = ()=>{ const w = saveGet('hangar-letterwords'); return w === '1' ? true : w === '0' ? false : ltLevel() <= 6; };   // 2026-11-02 (owner: he needs to see the words to link them to the letters): the words under the pictures show on levels 1 to 6 and hide on 7 and up; the Words toggle (letter setup) overrides at any level
 const ltOn = ()=>LEARN.on && LEARN.mode === 'letters';
 function ltStart(){ LT.lvl = ltLevel(); LT.n = 0; LT.next = null; LT.log = []; LT.again = []; ltFlyClear(); }
 /* which kind of card a level makes: its own most of the time, an easier kind now and then (first: the first sound, dig: two letters
@@ -14593,7 +14594,7 @@ function ltRender(q){
   $('rqText').textContent = q.bubble = L.ask[2]; pics.hidden = false; pics.classList.remove('many');
   const caps = !q.small && ltCaps(), big = q.small ? q.ch.toLowerCase() : q.ch;   // capitals only: the card shows the capital alone and the words are written in capitals (speech does not change); small letters: the small letter alone, words in small letters
   ltFlyClear(); pics.innerHTML = `<b class="lt-big${caps || q.small ? ' caps' : ''}${q.small ? ' small' : ''}${k !== 'first' ? ' k-' + k : ''}"><span class="lt-cap">${big}</span>${caps || q.small ? '' : `<i>${q.ch.toLowerCase()}</i>`}</b>`;
-  ans.innerHTML = ''; ans.className = 'rq-ans pair lt' + (q.opts.length > 2 ? ' three' : '') + (caps ? ' caps' : '') + (q.live ? '' : ' wait') + (q.done ? '' : ' hidew');   // hidew: only the pictures while he answers; the word (its first letter coloured) shows once he gets it right (2026-11-01 review: he was matching letter shapes)
+  ans.innerHTML = ''; ans.className = 'rq-ans pair lt' + (q.opts.length > 2 ? ' three' : '') + (caps ? ' caps' : '') + (q.live ? '' : ' wait') + (q.done || ltWords() ? '' : ' hidew');   // hidew: only the pictures while he answers; the word (its first letter coloured) shows once he gets it right (2026-11-01 review: he was matching letter shapes)
   q.opts.forEach((o, i)=>{ const bt = document.createElement('button'), w = o.w[0], shown = caps ? w.toUpperCase() : w, [a, b] = ltMark(k === 'dig' && !LT_DIG.includes(o.d) ? 'first' : k, w);   // (on a two-letter card only the pairs' words mark two letters)
     bt.innerHTML = `${ltPic(o.w[1])}<span class="pr-w${w.length > 9 ? ' longer' : w.length > 6 ? ' long' : ''}">${escHTML(shown.slice(0, a))}<b class="fl">${escHTML(shown.slice(a, b))}</b>${escHTML(shown.slice(b))}</span>`;
     bt.setAttribute('aria-label', w); bt.addEventListener('click', ()=>ltTap(q, i, bt)); ans.appendChild(bt); });
@@ -14702,7 +14703,8 @@ function ltTap(q, i, bt){
 function renderLettersSetup(){
   const box = $('rsLetters'), on = RACE.type === 'letters' && lang === 'en'; if(box.hidden === on) box.hidden = !on; if(!on) return;
   const u = UI.en, lv = ltLevel();
-  box.innerHTML = `<div class="rsw-lv lt-lv many">${Array.from({length: LT_TOP}, (x, i)=>i + 1).map(n=>`<button data-lv="${n}" aria-pressed="${n === lv}">${n}</button>`).join('')}</div><div class="rsw-row"><span class="rsw-lvname">${u.ltLevel} ${lv}: ${u.ltLevels[lv - 1]}</span></div><button class="rsw-tg" id="rsLtCaps" aria-pressed="${ltCaps()}"><b>${ltCaps() ? '&#10003;' : ''}</b><span>${u.ltCapsOnly}</span></button>`;
+  box.innerHTML = `<div class="rsw-lv lt-lv many">${Array.from({length: LT_TOP}, (x, i)=>i + 1).map(n=>`<button data-lv="${n}" aria-pressed="${n === lv}">${n}</button>`).join('')}</div><div class="rsw-row"><span class="rsw-lvname">${u.ltLevel} ${lv}: ${u.ltLevels[lv - 1]}</span></div><button class="rsw-tg" id="rsLtCaps" aria-pressed="${ltCaps()}"><b>${ltCaps() ? '&#10003;' : ''}</b><span>${u.ltCapsOnly}</span></button><button class="rsw-tg" id="rsLtWords" aria-pressed="${ltWords()}"><b>${ltWords() ? '&#10003;' : ''}</b><span>${u.ltWords}</span></button>`;
+  $('rsLtWords').addEventListener('click', ()=>{ saveSet('hangar-letterwords', ltWords() ? '0' : '1'); sfx.pop(); renderLettersSetup(); });
   $('rsLtCaps').addEventListener('click', ()=>{ saveSet('hangar-lettercaps', ltCaps() ? '0' : '1'); sfx.pop(); say(ltCaps() ? u.ltCapsOnly : u.ltCapsBoth, {force:true, L:'en'}); renderLettersSetup(); });   // (its spoken label: what it is now)
   [...box.querySelectorAll('[data-lv]')].forEach(b=>b.addEventListener('click', ()=>{ saveSet('hangar-letterlvl', b.dataset.lv); saveSet('hangar-letterrun', '0'); sfx.pop(); say(u.ltLevels[+b.dataset.lv - 1], {force:true, L:'en'}); renderLettersSetup(); }));
 }
@@ -20111,6 +20113,7 @@ if(window.__hangar) Object.assign(window.__hangar, {
       btns: [...$('rqAns').children].map(b=>({w: b.getAttribute('aria-label'), txt: (b.querySelector('.pr-w') || b).textContent, cls: b.className, dis: b.disabled})), big: big ? big.className : null, bigText: big ? big.textContent : null, caps: ltCaps(), fly: ltFlyInfo(), busy: q ? !!q.fly : false}; },
   storyNag: ()=>stNag(),   // tests: the 20 s nag now
   letterAnswer: right=>{ const q = LEARN.q; if(!q || q.type !== 'letter' || q.done) return false; const bs = [...$('rqAns').children], bt = right ? bs[q.right] : bs.find((b, i)=>i !== q.right && !b.disabled); if(!bt) return false; bt.click(); return true; },
+  letterWords: on=>{ saveSet('hangar-letterwords', on == null ? '' : on ? '1' : '0'); renderLettersSetup(); return ltWords(); },   // tests: words under the pictures on, off, or null for the level's default
   letterCaps: on=>{ saveSet('hangar-lettercaps', on ? '1' : '0'); renderLettersSetup(); },   // tests: capitals only on or off
   letterHold: on=>{ LT.hold = !!on; if(!on && LEARN.q && LEARN.q.type === 'letter' && LEARN.q.done) lnClose(); },
   letterLevel: n=>{ LT.lvl = n; saveSet('hangar-letterlvl', String(n)); saveSet('hangar-letterrun', '0'); },
