@@ -1,0 +1,8 @@
+# v11 delivery specs (MJ, Nov 3 1:01 PM): high definition for phone, web and LinkedIn
+v10 rendered at 960x540, 12 fps. v11 must be truly high definition.
+
+1. MASTER: 1920x1080, 30 fps, H.264 High profile, CRF 18, -preset veryfast, yuv420p, AAC 48 kHz 192 kbps, -movflags +faststart. Draw everything at 1920x1080 (board recorded with Playwright at viewport 1920x1080 or 960x540 at deviceScaleFactor 2; Hoist, cards, text drawn at full size). No upscaled low-res frames. Text must stay crisp on a phone. Name: wt-out/video/planes-hangar-v11-1080p.mp4
+2. CAPTIONS: an SRT sidecar matching the final narration timings (LinkedIn autoplays muted and accepts SRT). Name: planes-hangar-v11.srt. Also a captioned copy with captions burnt in (lower third, large, readable at phone size, not covering what is explained): planes-hangar-v11-1080p-captioned.mp4
+3. TEASER (the hook for LinkedIn and texting friends): 15 s, 1080x1080 square, same encode settings. The most eye-catching moments: the busy airfield flash, Rochelle's polygon-diet gag, the cart traffic jam "Yikes!", the 150x BUSY time-lapse, Hoist dropping onto the tarmac. Must work with sound off (big burnt-in captions or title text), opens on motion in the first second, ends on a card "Planes Hangar: watch your AI crew at work" plus "Full video" prompt. Music under it. Name: planes-hangar-v11-teaser-square.mp4
+4. THUMBNAIL: a 1920x1080 JPEG cover (busy airfield with Hoist and a short title), plus a 1080x1080 version. Names: planes-hangar-v11-thumb.jpg, planes-hangar-v11-thumb-square.jpg
+5. Keep each file under 200 MB. No em dashes in any on-screen text. The word "Claude" never appears.
