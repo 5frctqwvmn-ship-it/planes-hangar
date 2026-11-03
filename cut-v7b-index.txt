@@ -1,0 +1,56 @@
+CUT v7b - Hangar Ops Board explainer, 1:43.8 total
+540x960, 12 fps. Voice: Kokoro am_liam, every item and comma part its own clip, silences inserted in the edit.
+
+S1 - 1 The problem (game, then the terminal) [0:00.0 to 0:06.5]
+  0:00.3  i1   "Howdy!"   (+0.3 s pause)
+  0:01.3  i2   "We were building an airplane game for my four-year-old pilot, with help from a crew of AI agents."   (+0.5 s pause)
+S1b - 1b The terminal [0:06.5 to 0:13.5]
+  0:06.8  i3   "While they work, this is all you get."   (+0.5 s pause)
+  0:09.5  i4   "Running."   (+0.9 s pause)
+  0:11.1  i5   "Running what?"   (+0.9 s pause)
+  0:12.6  i6   "So we built them an airfield of their own, just to watch."   (+0.8 s pause)
+S2 - 2 The crew: Sky City, planes, brain, crew, number, tag [0:13.5 to 0:51.5]
+  0:16.5  s1   "Every one of these planes comes straight from the game."   (+0.5 s pause)
+  0:19.3  s2   "The full-size ones got a little heavy for a phone."   (+0.5 s pause)
+  0:22.3  s3   "So we made light little versions."   (+0.3 s pause)
+  0:24.3  h1   "Every plane is one agent on the job."   (+0.5 s pause)
+  0:27.0  h2   "The fuel truck is its brain."   (+0.4 s pause)
+  0:29.0  h3   "It flashes amber while it thinks,"   (+0.3 s pause)
+  0:30.8  h3b  "and when it gets to work, out rolls the crew."   (+0.5 s pause)
+  0:34.0  h4   "Baggage is reading files."   (+0.3 s pause)
+  0:35.9  h5   "The tug runs commands."   (+0.3 s pause)
+  0:37.7  h6   "The camera truck films."   (+0.4 s pause)
+  0:39.5  h8   "That number is the CPU it's using."   (+0.8 s pause)
+  0:42.4  h9   "And that tag?"   (+0.5 s pause)
+  0:43.5  h9b  "That's what it costs."   (+0.5 s pause)
+  0:45.2  h10  "An estimate up front,"   (+0.3 s pause)
+  0:46.7  h10b "and the real number after."   (+0.6 s pause)
+  0:48.6  h11  "So you learn what things really cost."   (+0.9 s pause)
+S3 - 3 The tower and the one-job walkthrough (chips: request, tower assigns, crew rolls out, status + cost) [0:51.5 to 1:05.0]
+  0:51.8  t1   "Up at the tower is the director."   (+0.5 s pause)
+  0:53.9  t3   "It takes your request,"   (+0.3 s pause)
+  0:55.2  t3b  "plans the work,"   (+0.3 s pause)
+  0:56.3  t3c  "and sends each order flying down the taxi line."   (+0.6 s pause)
+  0:59.3  t5   "A lightweight radio keeps the board updated."   (+0.9 s pause)
+S4 - 4 How it grew (crowded, Yikes, organized, back to planes) [1:05.0 to 1:20.5]
+  1:05.3  e1   "Now, it didn't start this tidy."   (+0.5 s pause)
+  1:07.9  e2   "Every little action got its own cart,"   (+0.4 s pause)
+  1:10.2  e3   "and pretty soon?"   (+0.6 s pause)
+  1:11.5  e4   "Yikes!"   (+0.7 s pause)
+  1:12.8  e5   "Traffic jam."   (+0.9 s pause)
+  1:14.7  e6   "So we organized the chaos."   (+0.5 s pause)
+  1:16.8  e8   "Started with planes,"   (+0.5 s pause)
+  1:18.3  e8b  "ended with planes."   (+0.9 s pause)
+S5 - 5 One Sunday afternoon, fast-forwarded [1:20.5 to 1:29.6]
+  1:20.8  d1   "Here's one Sunday afternoon, fast-forwarded."   (+1.5 s pause)
+  1:24.9  d4   "And that plane right there?"   (+0.9 s pause)
+  1:26.7  d5   "That's me, making this video."   (+0.9 s pause)
+S6 - 6 Close (question, game for a four-year-old, sign-off, credit card, music only) [1:29.6 to 1:43.8]
+  1:29.9  c9   "We built a game for a four-year-old."   (+0.6 s pause)
+  1:32.5  c10  "Then we built one for his dad."   (+1.5 s pause)
+  1:35.7  c11  "Thanks for riding along, partner."   (+0.5 s pause)
+  1:38.2  c12  "Now go check on your crew!"   (+0.4 s pause)
+
+Pointer targets (stick lands first, then the name): 0:24.0 plane, 0:26.7 fuel, 0:28.9 b_fuel, 0:33.7 bag, 0:35.6 tug, 0:37.5 cam, 0:39.2 cpu, 0:42.1 tab, 0:45.0 tab_est, 0:52.1 tower, 0:56.1 arcdot, 0:59.0 dish, 1:02.6 plane, 1:03.7 tab
+Hoist hops: enter 0:00.0, out 0:18.3, back 1:04.8, out 1:23.6
+Sound effects: radar ~0:09.6, slide ~0:18.4, pop ~0:19.2, strain ~0:20.5, pop ~0:22.2, whoosh ~0:53.9, whoosh ~0:56.0, whoosh ~1:02.7, slide ~1:05.0, pop ~1:05.6, boing ~1:11.3, screech ~1:12.8, zip ~1:23.4, slide ~1:23.9, pop ~1:24.6
