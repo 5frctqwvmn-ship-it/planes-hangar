@@ -28,3 +28,16 @@ Write /home/claude/wt-out/video/qc-notes-<cut>.md:
 - Verdict: ready to show, or needs another pass.
 - Numbered fixes, most important first, each with timestamp, scene, what is wrong, and exactly what to do (concrete enough for the builder to act on without guessing).
 - A short "keep" list of what works, so the builder does not break it.
+
+## Host style guide (from MJ, three outside models' combined brief)
+Also read /home/claude/wt-out/video/host-style-guide.md and judge the cut against it, adapted to this film:
+- Original character, original lines, no copying of the 1993 film's design, lines or voice.
+- Every gag teaches; the host's body is the subject (Hoist IS ground crew, so he can do the work he explains: lift, tow, fuel).
+- Hand-drawn cel look, flat colours, ink outlines, animated on twos; not glossy 3D. (We draw with code, not image/video generators.)
+- Sincere, folksy, warm light Southwestern drawl, never sarcastic. One original catchphrase, one slapstick yelp.
+- The cartoon crosses into the footage: Hoist hops onto the live board and interacts with it.
+- One idea per shot; the picture says it first. Camera mostly locked; motion from the character.
+- Text is physical where possible: labels Hoist holds, drops or plugs in.
+- Sound effects tied to actions (pop on entrance, whoosh on data, slide whistle on a stretch), used sparingly.
+- MUTE TEST: with sound off, the picture alone explains it. Picture off: the narration makes sense.
+Note: the guide suggests 75 to 110 s; the owner asked for about 3 minutes. Keep about 3:00 unless the owner says otherwise.
