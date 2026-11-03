@@ -289,17 +289,41 @@ def model_name(mod):
     for k, n in (('fable', 'Fable'), ('opus', 'Opus'), ('sonnet', 'Sonnet'), ('haiku', 'Haiku')):
         if k in mod: return n
     return None
-def msg_usd(mod, u):
+def msg_cats(mod, u):
+    """one message's four token kinds and dollars per kind. Counts are always filled; dollars only for a priced model. This is the single source of truth for cost."""
     n = model_name(mod)
-    if not n: return None, 0.0
-    k = n.lower(); inp = u.get('input_tokens', 0) or 0; cr = u.get('cache_read_input_tokens', 0) or 0
+    inp = u.get('input_tokens', 0) or 0; cr = u.get('cache_read_input_tokens', 0) or 0; out = u.get('output_tokens', 0) or 0
     cw = u.get('cache_creation_input_tokens', 0) or 0; cc = u.get('cache_creation') or {}
     w1, w5 = cc.get('ephemeral_1h_input_tokens'), cc.get('ephemeral_5m_input_tokens')
-    if w1 is None and w5 is None: w1, w5 = cw, 0
+    if w1 is None and w5 is None: w1, w5 = cw, 0   # TTL split missing: price as 1h
     else: w1, w5 = w1 or 0, w5 or 0
-    if k == 'haiku' and inp + cr + cw > 100000: k = 'haiku_big'
-    p = PRICES[k]
-    return n, (inp * p[0] + w5 * p[1] + w1 * p[2] + cr * p[3] + (u.get('output_tokens', 0) or 0) * p[4]) / 1e6
+    r = {'tin': inp, 'tcw5': w5, 'tcw1': w1, 'tcr': cr, 'tout': out, 'usdIn': 0.0, 'usdCw': 0.0, 'usdCr': 0.0, 'usdOut': 0.0}
+    if n:
+        k = n.lower()
+        if k == 'haiku' and inp + cr + cw > 100000: k = 'haiku_big'
+        p = PRICES[k]
+        r['usdIn'] = inp * p[0] / 1e6; r['usdCw'] = (w5 * p[1] + w1 * p[2]) / 1e6; r['usdCr'] = cr * p[3] / 1e6; r['usdOut'] = out * p[4] / 1e6
+    return n, r
+def msg_usd(mod, u):
+    n, r = msg_cats(mod, u)
+    if not n: return None, 0.0
+    return n, r['usdIn'] + r['usdCw'] + r['usdCr'] + r['usdOut']
+CATK = ('tin', 'tcw5', 'tcw1', 'tcr', 'tout', 'usdIn', 'usdCw', 'usdCr', 'usdOut')
+OPUS_IN = PRICES['opus'][0]
+def cats_of(c):
+    """per-actor and per-role-kind sums of the four token kinds and their dollars (same split by role as kusd)"""
+    tot = dict.fromkeys(CATK, 0.0); byk = {}
+    for mod, u, roles in c['mu'].values():
+        _n, r = msg_cats(mod, u)
+        ks = sorted(roles) or ['think']
+        for f in CATK:
+            tot[f] += r[f]
+            for k in ks: byk.setdefault(k, dict.fromkeys(CATK, 0.0))[f] += r[f] / len(ks)
+    rd = lambda d: {f: (round(v) if f[0] == 't' else round(v, 4)) for f, v in d.items()}
+    return rd(tot), {k: rd(v) for k, v in byk.items()}
+def cost_eq(usd):
+    """cost-equivalent tokens: dollars expressed as Opus new-input tokens (usd / Opus input price). Cache-aware by construction."""
+    return round(usd / OPUS_IN * 1e6)
 def cost_of(c):
     tot, bym, byk = 0.0, {}, {}
     for mod, u, roles in c['mu'].values():
@@ -318,16 +342,17 @@ def kt_of(c):
 def stats_event(rows):
     scan(ME, 'claude', BASE)
     for bid, aid in rows: scan(D + aid + '.output', bid)
-    A = {}; CT = 0.0; CM = {}
+    A = {}; CT = 0.0; CM = {}; CTC = dict.fromkeys(CATK, 0.0)
     for k, c in SC.items():
         w, (c['ti'], c['to'], c['tw'], c['tr']) = wsum(v[1] for v in c['mu'].values())   # one usage per message id
-        A[k] = {'c': c['c'], 'tl': c['tl'], 'ti': c['ti'], 'to': c['to'], 'tw': c['tw'], 'tr': c['tr'], 'w': w, 'kt': kt_of(c), 'usd': round(cost_of(c)[0], 4), 'usdM': {a: round(b, 4) for a, b in cost_of(c)[1].items()}, 'kusd': {a: round(b, 4) for a, b in cost_of(c)[2].items()}, 'cs': round(ACC['cs'].get(k, 0))}
+        A[k] = {'c': c['c'], 'tl': c['tl'], 'ti': c['ti'], 'to': c['to'], 'tw': c['tw'], 'tr': c['tr'], 'w': w, 'kt': kt_of(c), 'usd': round(cost_of(c)[0], 4), **cats_of(c)[0], 'kcat': cats_of(c)[1], 'wc': cost_eq(cost_of(c)[0]), 'usdM': {a: round(b, 4) for a, b in cost_of(c)[1].items()}, 'kusd': {a: round(b, 4) for a, b in cost_of(c)[2].items()}, 'cs': round(ACC['cs'].get(k, 0))}
     for k, c in SC.items():
         t, bm, _ = cost_of(c); CT += t
+        for f, v in cats_of(c)[0].items(): CTC[f] += v
         for a, b in bm.items(): CM[a] = CM.get(a, 0) + b
     for k, v in ACC['cs'].items():
         if k not in A and k not in ('system',): A[k] = {'c': 0, 'tl': {}, 'ti': 0, 'to': 0, 'tw': 0, 'tr': 0, 'w': 0, 'cs': round(v)}
-    return {'t': int(time.time() * 1000), 'type': 'stats', 'id': 'stats', 'actors': A, 'cost': {'total': round(CT, 4), 'byModel': {a: round(b, 4) for a, b in CM.items()}}, 'm': {'cs': round(ACC['m']['cs']), 'pc': round(ACC['m']['pc']), 'pm': round(ACC['m']['pm']), 'sys': round(ACC['cs'].get('system', 0))}}
+    return {'t': int(time.time() * 1000), 'type': 'stats', 'id': 'stats', 'actors': A, 'cost': {'total': round(CT, 4), 'byModel': {a: round(b, 4) for a, b in CM.items()}, 'wc': cost_eq(CT), **{f: (round(v) if f[0] == 't' else round(v, 4)) for f, v in CTC.items()}}, 'm': {'cs': round(ACC['m']['cs']), 'pc': round(ACC['m']['pc']), 'pm': round(ACC['m']['pm']), 'sys': round(ACC['cs'].get('system', 0))}}
 def acc_update(m, procs_all):
     now = time.time(); dt = min(120, now - ACC['ts']) if ACC['ts'] else 60; ACC['ts'] = now
     for o, cpu in procs_all.items(): ACC['cs'][o] = ACC['cs'].get(o, 0) + cpu / 100 * dt
