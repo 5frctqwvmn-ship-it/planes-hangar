@@ -200,3 +200,82 @@ Do not cut: "Running. / Running what?", "Yikes! / Traffic jam.", "Started with p
 - The script cart bubble's styling and tail placement.
 - The title card text and its 3 s hold.
 - The mix: -16.1 LUFS, music and room tone under every pause, no dropouts, chapter badges top left.
+
+## Re-check v9
+
+This was a quick re-check. I judged cut-v9b.mp4 (2:09.4) in full and spot-checked cut-v9a.mp4 (2:21) and cut-v9full.mp4 (2:47) only where they differ. Method:
+- 2 fps sheets for v9b (_qc/v9b/sheets/).
+- Full-size and zoomed frames of Beat 6 (_qc/v9b/full/, _qc/v9b/z/, _qc/v9b/cu/, plus _qc/v9full/b6.png and _qc/v9a/b6.png).
+- Whisper speech-to-text on each full mix, per line (_qc/v9full/stt.txt and _qc/v9a/stt.txt; v9b below), and on the isolated v9b clips, with onset and tail energy checks.
+- Silencedetect: 0 spans under -45 dB in all three cuts.
+
+### Top 5 fixes from v8
+
+1. **Hoist parked clear, with a shadow: mostly landed.**
+   - From 1:41 he waits on the taxi-line asphalt right of Pad 1, clear of the plane, and his scale is right.
+   - He still overlaps the right half of the yellow camera truck and the nose of Pad 2's white cart (see _qc/v9b/z/z.jpg).
+   - His fork tips touch the right frame edge.
+   - The shadow is only faintly visible while he drives (1:40.2) and not readable once he is parked.
+2. **Wing pass: resolved.** It was dropped, as I allowed, and nothing slices him now.
+3. **Point down with a short stick: half landed.**
+   - The stick points down and is about a third of the frame height. Good.
+   - In v9b the stick is fixed to the screen while the camera eases in, so its tip drifts onto Pad 3's catering cart (1:38.3) instead of the "Making this video" plane.
+   - In v9a and v9full the tip lands just under Pad 1's name tag, which is acceptable.
+4. **Camera truck turn and REC light: partly landed.**
+   - REC now blinks at about 1 Hz on the camera badge, next to the truck, from 1:41.4. Readable.
+   - The truck does not visibly turn: its heading is the same at 1:39.6 and at 1:41.3.
+5. **QC bubble with a green flash: landed.**
+   - The label reads "TUG (running the QC check)", the tail sits on the tug's command badge, and the badge flashes green on "Clear for takeoff!" (1:53.8), with a ding.
+   - Clutter flash: the timing landed. It runs on e2 through e5 (1:11.0 to 1:18.7) with a push-in on "jam". It still uses the sparse V22b clip, so with the sound off it does not read as a jam.
+
+### Other v8 findings
+
+**Landed:**
+- Burned-in timecode removed.
+- Game speech bubble gone.
+- CPU callout on time (0:39.3).
+- Cost tag and actual now match ($1.52).
+- Whole-board glow on "this board".
+- The crew-to-dish pulse reads.
+- Short order labels, clear of the tower.
+- Field stretches on "stretch".
+- Board clock hidden; the S5 badge reads "5 AN EVENING, FAST-FORWARDED".
+- Captions stay boxed in S6, and the board chrome is hidden there.
+- The close is a no-cut push-in on Hoist.
+- S3 has its own music cue.
+- The comma on "Keep up the good work, crew!" is fixed in the caption.
+- The script cart moves and turns under its bubble.
+
+**Still open:**
+- **Board label:** the "THE BOARD: kept up to date" text spills past its box (0:54.6). Widen the box 16 px.
+- **Close-up push:** about 0.6 s (1:57.6 to 1:58.2). Ease it over 1.2 s.
+- **Sound effects:** there are now about 30, against "used sparingly". The REC SFX fires at 1:41.4, exactly on "Watch the lens", and the mix is heard as "Watch the land" while the isolated clip reads "lens". Move the REC beep to the end of m3 or later, and thin out the beat 2 pops (one pop per callout is fine; drop the extra chirps on every speed change in S5).
+- **Music:** S6 reuses S2's cue 3. Minor.
+- **Wave:** I did not confirm a wave on the last line.
+
+### v9b voice (speech-to-text on the mix, isolated clips checked)
+
+| Line | Heard | Cause and remedy |
+|---|---|---|
+| m6 "And QC?" (1:50.4) | "I'm QC" (clip: "and QC") | The clip ends mid-sound: the last 60 ms rises from -32 to -13 dB, which means a leaked context word was cut hard. Trim to the end of "C", add a 30 ms fade, and check that the head has no leading blip. |
+| m7 "Keep up the good work, crew!" (1:55.2) | "And keep up the good work on crew" (clip: "Oh, Drew") | There is a 140 ms leading fragment before "Keep" and a weak "crew". Trim the head to the onset of "K", re-synth "crew!" as its own part, and pick the variant that speech-to-text reads as "crew". |
+| e4 "Yikes!" (1:15.8) | "On Yikes!" / "For Yikes" | The clip starts at -39 dB in its first 20 ms (hard cut into sound). Re-cut from the true onset with a 10 ms fade-in. The same artifact is in v9a ("Olyikes") and v9full ("on your ex"). |
+| d5n "scaling up, scaling down." (1:33.1) | "A scaling up, a scaling down" | There is a 100 ms fragment before "scaling". Trim the head. |
+| k10 "An estimate up front," (0:44.0) | "I'll un-astimate up front" | Leading fragment, and the tail ends at -26 dB (hard cut). Trim the head and fade the tail. |
+| c12n "Now go check on your crew, partner!" (2:03.2) | "your crew apart now" (clip: "crew apartner") | The comma pause is missing. Build it as two parts with 0.3 s of silence, so "partner" lands clean. This is the catchphrase. |
+| r2b, r4 | "and our ... helpers", "Lup in the tower" | Same as in v8. Minor: listen and trim if audible. |
+
+Everything else reads correctly, including "Haiku", "Orchestrator", "Running what" and "That's me, making this video".
+
+### Verdicts
+
+- **cut-v9b (2:09): the cut to show MJ, after one short pass.** It tells the whole story, and Beat 6 now mostly matches the staging. Fix in this order:
+  1. Track the stick tip to Pad 1's plane per frame (or point before the ease-in starts).
+  2. Nudge Hoist about 30 px down and left so he clears the camera truck and Pad 2's cart, darken the shadow, and add a visible yaw of 45 degrees or more on the truck over 0.6 s as he arrives.
+  3. Fix the six clip edges in the table (m6, m7, e4, d5n, k10, c12n).
+  4. Move the REC beep off "lens" and thin the SFX.
+  5. Optionally, reach about 2:05 by trimming the remaining 3.2 s of pause excess and taking the m1n drive hold from 3.0 s to 2.4 s.
+
+  If MJ just wants to see progress, it can be shown now as a work-in-progress cut.
+- **cut-v9a (2:21): same fixes as v9b, except the pointer, which lands acceptably.** Also fix "Keep up the good work, crew!", heard as "accrue". It is the safe fallback if MJ wants his lines kept, but it drags in Beats 2 and 4.
+- **cut-v9full (2:47): reference only, not for showing.** It keeps the false "one whole day ... all day long" over a one-hour time-lapse. It also has these speech-to-text misreads: "Hey there!" heard as "Tell you there", "And QC?" as "Un-Q, see?", "work, crew" as "accrue" and "Yikes!" as "on your ex". On top of that, it has the same Beat 6 issues as v9a.
