@@ -7,16 +7,27 @@ SKIP_ME = {'ArtifactData', 'Monitor', 'TaskStop', 'ToolSearch'}
 last_tok, seen, lastxt = {}, {}, {}
 start = time.time() - 30
 BASE = 1793571840000   # 4:24 PM Nov 1, when MJ's usage page read 89%
-def mytok():
-    t = [0,0,0,0]
-    for l in open(ME):
-        try: d = json.loads(l)
-        except Exception: continue
-        m = d.get('message')
-        if not isinstance(m, dict) or ts(d.get('timestamp','')) < BASE: continue
-        u = m.get('usage')
-        if u: t[0]+=u.get('input_tokens',0); t[1]+=u.get('output_tokens',0); t[2]+=u.get('cache_creation_input_tokens',0); t[3]+=u.get('cache_read_input_tokens',0)
-    return round(t[0] + 1.25*t[2] + .1*t[3] + 5*t[1])
+def wsum(us):
+    """weighted token total over usage dicts that are already one-per-message"""
+    t = [0, 0, 0, 0]
+    for u in us:
+        t[0] += u.get('input_tokens', 0) or 0; t[1] += u.get('output_tokens', 0) or 0; t[2] += u.get('cache_creation_input_tokens', 0) or 0; t[3] += u.get('cache_read_input_tokens', 0) or 0
+    return round(t[0] + 1.25 * t[2] + .1 * t[3] + 5 * t[1]), t
+def tokd(path, since=0):
+    """weighted tokens of a transcript, counting each message id once (a transcript repeats one message's usage on every line)"""
+    best = {}
+    try:
+        for l in open(path):
+            try: d = json.loads(l)
+            except Exception: continue
+            m = d.get('message')
+            if not isinstance(m, dict) or m.get('role') != 'assistant' or not isinstance(m.get('usage'), dict): continue
+            if since and ts(d.get('timestamp', '')) < since: continue
+            k = m.get('id') or d.get('uuid'); o = m['usage'].get('output_tokens', 0) or 0
+            if k not in best or o >= best[k][0]: best[k] = (o, m['usage'])
+    except FileNotFoundError: return None
+    return wsum(u for _, u in best.values())[0]
+def mytok(): return tokd(ME, BASE) or 0
 
 def ts(s):
     try: return int(datetime.datetime.fromisoformat(s.replace('Z', '+00:00')).timestamp() * 1000)
@@ -92,6 +103,136 @@ def actions(path, key, rmap):
         else: ded.append(e)
     return ded[-3:]
 
+
+# ---- in-flight steps, command history, turn ends (A, B, C) ----
+STATE_F = '/home/claude/board-feed-state.json'
+TR = {}          # board id -> tracker
+ER = {}          # board id -> time (ms) of the latest report/done/stop the orchestrator logged for it
+INFLIGHT_SKIP = {'SendMessage', 'SendUserMessage', 'SendUserFile', 'Agent', 'ArtifactData', 'ToolSearch', 'TaskStop', 'ReadNotifications'}
+def _newtr(): return {'off': 0, 'pend': {}, 'hist': [], 'mid': None, 'end': False, 'lastts': 0, 'grow': time.time(), 'size': -1}
+WAITRE = re.compile(r'\buntil\b|\bsleep\s+\d{2,}|while\b[^;]*\bsleep|inotifywait|tail\s+-f|\bwait\b\s+\$|\bwatch\s')
+def live_text(n, i):
+    k = kindof(n, i)
+    if n == 'Bash' and WAITRE.search(str(i.get('command', ''))):
+        d = i.get('description') or ''
+        return 'wait', (d if d else 'Waiting for the command to finish')[:90]
+    if n == 'Monitor': return 'wait', (i.get('description') or 'Waiting on a monitor')[:90]
+    return k, label(n, i)[:90]
+GENERIC = {'/home/claude', '/home/claude/wt-out', '/home/claude/wt', '/tmp', '/root', '/usr', '/opt'}
+def cmd_tokens(c):
+    out = set()
+    for pth in re.findall(r'(?:/[\w.@+~-]+){3,}', c):
+        pth = pth.rstrip('/.')
+        if pth in GENERIC or pth.startswith(('/usr/', '/bin/', '/dev/', '/proc/', '/etc/', '/opt/node-tools', '/root/.', '/tmp/claude-0/-home-claude')) and pth.count('/') < 6: continue
+        if pth.startswith('/home/claude/') and pth.count('/') < 4: continue
+        out.add(pth)
+    for f in re.findall(r'[\w][\w.-]{3,}\.(?:js|mjs|cjs|py|sh|mp4|webm|html|json|txt|log|ts|wav|mp3)\b', c):
+        if f not in ('index.html', 'package.json', 'shot.js'): out.add(f)
+    return out
+def _walk_reports(o, t):
+    if isinstance(o, dict):
+        if o.get('type') in ('report', 'done', 'stop') and o.get('id'): ER[str(o['id'])] = max(ER.get(str(o['id']), 0), int(o.get('t') or t))
+        for v in o.values(): _walk_reports(v, t)
+    elif isinstance(o, list):
+        for v in o: _walk_reports(v, t)
+def track(path, key):
+    T = TR.setdefault(key, _newtr())
+    try:
+        sz = os.path.getsize(path)
+        if sz < T['off']: T.update(_newtr())
+        with open(path, 'rb') as f: f.seek(T['off']); data = f.read()
+    except OSError: return T
+    if sz != T['size']:
+        T['size'] = sz
+        try: T['grow'] = os.path.getmtime(path)
+        except OSError: pass
+    n = data.rfind(b'\n')
+    if n < 0: return T
+    T['off'] += n + 1
+    for l in data[:n].splitlines():
+        try: d = json.loads(l)
+        except Exception: continue
+        m = d.get('message')
+        if not isinstance(m, dict): continue
+        t = ts(d.get('timestamp', '')) or int(time.time() * 1000); bl = m.get('content') if isinstance(m.get('content'), list) else []
+        if m.get('role') == 'assistant':
+            mid = m.get('id') or d.get('uuid')
+            if mid != T['mid']:   # a new assistant message means every earlier step has returned or was cut off
+                T['pend'] = {k: v for k, v in T['pend'].items() if v['mid'] == mid}; T['mid'] = mid
+            T['end'] = m.get('stop_reason') == 'end_turn'; T['lastts'] = max(T['lastts'], t)
+            for b in bl:
+                if not isinstance(b, dict) or b.get('type') != 'tool_use': continue
+                nm, i = b.get('name'), b.get('input') or {}
+                if key == 'claude' and nm == 'ArtifactData': _walk_reports(i, t)
+                if nm in INFLIGHT_SKIP or (nm == 'Bash' and i.get('run_in_background')): 
+                    if nm == 'Bash': T['hist'].append({'id': b.get('id'), 's': t / 1000, 'e': t / 1000, 'tok': cmd_tokens(str(i.get('command', '')))})
+                    continue
+                kd, tx = live_text(nm, i)
+                T['pend'][b.get('id')] = {'mid': mid, 'name': nm, 'kind': kd, 'text': tx, 'since': t}
+                if nm == 'Bash': T['hist'].append({'id': b.get('id'), 's': t / 1000, 'e': None, 'tok': cmd_tokens(str(i.get('command', '')))})
+        elif m.get('role') == 'user':
+            T['end'] = False; T['lastts'] = max(T['lastts'], t); got = False
+            for b in bl:
+                if isinstance(b, dict) and b.get('type') == 'tool_result':
+                    got = True; T['pend'].pop(b.get('tool_use_id'), None)
+                    for h in T['hist']:
+                        if h['id'] == b.get('tool_use_id') and h['e'] is None: h['e'] = t / 1000
+            if not got: T['pend'].clear()   # a fresh prompt: anything unanswered was interrupted
+    nw = time.time()
+    T['hist'] = [h for h in T['hist'] if (h['e'] or nw) > nw - 3600][-80:]
+    for k in [k for k, v in T['pend'].items() if v['since'] < (nw - 10800) * 1000]: del T['pend'][k]
+    return T
+
+def live_steps(key):
+    T = TR.get(key)
+    if not T: return []
+    return [{'kind': v['kind'], 'text': v['text'], 'since': v['since'], 'tool': v['name']} for v in sorted(T['pend'].values(), key=lambda v: v['since'])][-4:]
+LV = {}
+def live_events(keys, nowm):
+    out = []
+    for k in list(dict.fromkeys(list(keys) + list(LV))):
+        st = live_steps(k); sig = json.dumps(st, sort_keys=True); pv = LV.get(k)
+        if (pv is None and not st): continue
+        if pv is None or pv['sig'] != sig or (st and nowm - pv['t'] >= 30):
+            LV[k] = {'sig': sig, 't': nowm}; out.append({'t': int(nowm * 1000), 'type': 'live', 'id': k, 'steps': st})
+    return out
+
+# ---- auto-finish (C) ----
+AR = {}; PREV = []
+try:
+    _st = json.load(open(STATE_F)); AR = _st.get('ar', {}); PREV = _st.get('prev', [])
+except Exception: pass
+def save_state():
+    try: json.dump({'ar': AR, 'prev': PREV}, open(STATE_F + '.tmp', 'w')); os.replace(STATE_F + '.tmp', STATE_F)
+    except Exception: pass
+def autofinish(rows, nowm):
+    global PREV
+    out = []; cur = [[b, a] for b, a in rows if b != 'radio']; ch = False
+    for b, a in cur:
+        T = TR.get(b)
+        if not T or not T['lastts']: continue
+        k = b + ' ' + a; st = AR.get(k)
+        if st:
+            if T['lastts'] > st['ts'] + 1000 and not T['end']:   # it got another message and is working again
+                del AR[k]; ch = True; out.append({'t': int(nowm * 1000), 'type': 'resume', 'id': b, 'text': 'Back at work'})
+            continue
+        if (T['end'] and not T['pend']) or (not T['pend'] and nowm - T['grow'] >= 180):
+            AR[k] = {'ts': T['lastts']}; ch = True
+            if ER.get(b, 0) < T['lastts'] - 120000:   # the orchestrator has not reported it
+                out.append({'t': int(nowm * 1000), 'type': 'report', 'id': b, 'tokens': tokd(D + a + '.output') or 0, 'text': 'Finished'})
+            T['pend'].clear()
+    for b, a in PREV:   # dropped from board-running.txt
+        if [b, a] in cur or b == 'radio': continue
+        k = b + ' ' + a; T = TR.get(b)
+        if k in AR: continue
+        AR[k] = {'ts': (T or {}).get('lastts', 0)}; ch = True
+        if ER.get(b, 0) < ((T or {}).get('lastts', 0) or 1) - 120000 or not T:
+            out.append({'t': int(nowm * 1000), 'type': 'report', 'id': b, 'tokens': tokd(D + a + '.output') or 0, 'text': 'Finished'})
+        if T: T['pend'].clear()
+    if cur != PREV: PREV = cur; ch = True
+    if ch: save_state()
+    return out
+
 # ---- cumulative stats ----
 SF = '/home/claude/board-stats.json'
 ACC = {'base': BASE, 'ts': 0, 'cs': {}, 'm': {'cs': 0, 'pc': 0, 'pm': 0}}
@@ -117,12 +258,13 @@ def scan(path, key, since=0):
         u = m.get('usage')
         mw = None
         if u and m.get('role') == 'assistant':
-            mw = c['mw'].setdefault(m.get('id') or d.get('uuid'), [0, set()])
+            mw = c['mw'].setdefault(m.get('id') or d.get('uuid'), [0, set(), -1])
             mu = c['mu'].get(m.get('id') or d.get('uuid'))
             if mu is None: c['mu'][m.get('id') or d.get('uuid')] = [m.get('model') or '', u, mw[1]]
             elif u.get('output_tokens', 0) >= mu[1].get('output_tokens', 0): mu[0], mu[1] = (m.get('model') or mu[0]), u
-            mw[0] += u.get('input_tokens', 0) + 1.25 * u.get('cache_creation_input_tokens', 0) + .1 * u.get('cache_read_input_tokens', 0) + 5 * u.get('output_tokens', 0)
-        if u: c['ti'] += u.get('input_tokens', 0); c['to'] += u.get('output_tokens', 0); c['tw'] += u.get('cache_creation_input_tokens', 0); c['tr'] += u.get('cache_read_input_tokens', 0)
+            if (u.get('output_tokens', 0) or 0) >= mw[2]:   # repeated lines of one message: keep the latest usage once, never add
+                mw[2] = u.get('output_tokens', 0) or 0
+                mw[0] = (u.get('input_tokens', 0) or 0) + 1.25 * (u.get('cache_creation_input_tokens', 0) or 0) + .1 * (u.get('cache_read_input_tokens', 0) or 0) + 5 * mw[2]
         if m.get('role') != 'assistant': continue
         mid = m.get('id') or d.get('uuid')
         if mid not in c['ids']: c['ids'].add(mid); c['c'] += 1
@@ -161,7 +303,7 @@ def cost_of(c):
     return tot, bym, byk
 def kt_of(c):
     kt = {}
-    for w, ks in c['mw'].values():
+    for w, ks, _o in c['mw'].values():
         ks = sorted(ks) or ['think']
         for k in ks: kt[k] = kt.get(k, 0) + w / len(ks)
     return {k: round(v) for k, v in kt.items()}
@@ -170,7 +312,7 @@ def stats_event(rows):
     for bid, aid in rows: scan(D + aid + '.output', bid)
     A = {}; CT = 0.0; CM = {}
     for k, c in SC.items():
-        w = round(c['ti'] + 1.25 * c['tw'] + .1 * c['tr'] + 5 * c['to'])
+        w, (c['ti'], c['to'], c['tw'], c['tr']) = wsum(v[1] for v in c['mu'].values())   # one usage per message id
         A[k] = {'c': c['c'], 'tl': c['tl'], 'ti': c['ti'], 'to': c['to'], 'tw': c['tw'], 'tr': c['tr'], 'w': w, 'kt': kt_of(c), 'usd': round(cost_of(c)[0], 4), 'usdM': {a: round(b, 4) for a, b in cost_of(c)[1].items()}, 'kusd': {a: round(b, 4) for a, b in cost_of(c)[2].items()}, 'cs': round(ACC['cs'].get(k, 0))}
     for k, c in SC.items():
         t, bm, _ = cost_of(c); CT += t
@@ -202,16 +344,47 @@ def _cwd(pid):
     except Exception: return ''
 def _total():
     f = open('/proc/stat').readline().split()[1:]; v = list(map(int, f)); return sum(v), v[3] + v[4]
-def _owner(pid, ids, info):
+try: BTIME = int([l for l in open('/proc/stat') if l.startswith('btime')][0].split()[1])
+except Exception: BTIME = 0
+def _pstart(pid):
+    """epoch seconds the process started (stat field 22 is in clock ticks since boot)"""
+    try:
+        s_ = open(f'/proc/{pid}/stat').read(); f = s_[s_.rindex(')') + 2:].split()
+        return BTIME + int(f[19]) / HZ
+    except Exception: return 0
+def _owners_tokens(ids, now):
+    """token -> the single agent whose recent Bash commands name it; tokens named by two agents are ambiguous and dropped"""
+    who = {}
+    for a in ids:
+        T = TR.get(a)
+        if not T: continue
+        for h in T['hist']:
+            for tk in h['tok']: who.setdefault(tk, set()).add(a)
+    return {tk: next(iter(v)) for tk, v in who.items() if len(v) == 1}
+def _owner(pid, ids, info, ctx):
+    """ids: running board ids plus the orchestrator. Order: (1) a script/file/dir named in an agent's recent Bash command appears in this process or an ancestor,
+    (2) the process started inside exactly one agent's Bash-command window, (3) folder name, last resort. Never an agent outside the roster."""
+    tokmap, now = ctx
+    ps = _pstart(pid); p, hops = pid, 0
+    while p > 1 and hops < 30:
+        hay = _cwd(p) + ' ' + _cmd(p); hit = {}
+        for tk, a in tokmap.items():
+            if tk in hay and re.search(re.escape(tk) + r'(?![\w.-])', hay): hit[a] = hit.get(a, 0) + 1
+        if hit:
+            b = sorted(hit.items(), key=lambda kv: -kv[1])
+            if len(b) == 1 or b[0][1] > b[1][1]: return b[0][0]
+        st = info.get(p) or _stat(p); p = st[0] if st else 0; hops += 1
+    if ps:
+        c = [a for a in ids if any(h['s'] - 5 <= ps <= (h['e'] if h['e'] else now) + 5 for h in (TR.get(a) or {}).get('hist', []))]
+        if len(c) == 1: return c[0]
     p, hops = pid, 0
     while p > 1 and hops < 30:
         hay = _cwd(p) + ' ' + _cmd(p)
-        if '/home/claude/wt-out/video' in hay or '/home/claude/wt/vid-' in hay:
-            for i in ids:
-                if i.startswith('video'): return i
-            return 'video'
         for i in ids:
-            if f'/home/claude/wt/{i}' in hay or f'/home/claude/wt-out/{i}' in hay: return i
+            if i != 'claude' and (f'/home/claude/wt/{i}' in hay or f'/home/claude/wt-out/{i}' in hay): return i
+        if '/home/claude/wt-out/video' in hay or '/home/claude/wt/vid-' in hay:
+            vid = [i for i in ids if i.startswith(('video', 'animatic', 'film'))]
+            if len(vid) == 1: return vid[0]
         st = info.get(p) or _stat(p); p = st[0] if st else 0; hops += 1
     return None
 def _kind(comm, cmd):
@@ -226,7 +399,10 @@ def _kind(comm, cmd):
         return 'script', (os.path.basename(a[0]) if a else comm)[:24]
     return None, None
 def machine_snap(rows, now=None):
-    ids = [b for b, _ in rows]
+    ids = [b for b, _ in rows if b != 'radio'] + ['claude']
+    for b, a in rows:
+        if b != 'radio': track(D + a + '.output', b)
+    track(ME, 'claude'); ctx = (_owners_tokens(ids, time.time()), time.time())
     t0, i0 = _total(); p0 = {}
     for d in os.listdir('/proc'):
         if d.isdigit():
@@ -245,7 +421,7 @@ def machine_snap(rows, now=None):
         if not kind or 'boardtick' in cmd: continue
         try: rss = int(open(f'/proc/{pid}/statm').read().split()[1]) * PG / 1048576
         except Exception: rss = 0
-        o = _owner(pid, ids, p0) or ('claude' if _cwd(pid).startswith('/home/claude') and kind != 'browser' else 'system')
+        o = _owner(pid, ids, p0, ctx) or ('claude' if _cwd(pid).startswith('/home/claude') and kind != 'browser' else 'system')
         k = (o, kind, lab); a = procs.setdefault(k, [0, 0]); a[0] += cpu; a[1] += rss
     for v in procs.values(): v[0] = min(v[0], NC * 100)
     ALLO = {}
@@ -304,6 +480,7 @@ while True:
     if not active:
         # QUIET: only the orchestrator transcript, every 10 s, plus a heartbeat every 4 minutes
         ev += actions(ME, 'claude', rmap)
+        track(ME, 'claude'); ev += live_events(['claude'], nowm)
         ev = [e for e in ev if not (e['type'] == 'act' and lastxt.get(e['id']) == e['text'] and e['id'] != 'radio')]
         for e in ev:
             if e['type'] == 'act': lastxt[e['id']] = e['text']
@@ -316,9 +493,9 @@ while True:
     if dotok: cad['tok'] = nowm
     for bid, aid in rows:
         if bid != 'radio': ev += actions(D + aid + '.output', bid, rmap)
-        t = tok(D + aid + '.output') if dotok else None
-        if t:
-            w = round(t[0] + 1.25 * t[2] + .1 * t[3] + 5 * t[1])
+        track(D + aid + '.output', bid)
+        w = tokd(D + aid + '.output') if dotok else None   # each message id counted once
+        if w:
             if w > last_tok.get(bid, 0) * 1.03: last_tok[bid] = w; tk.append({'t': int(time.time() * 1000), 'type': 'tokens', 'id': bid, 'tokens': w})
     ev = [e for e in ev if not (e['type'] == 'act' and lastxt.get(e['id']) == e['text'] and e['id'] != 'radio')]
     for e in ev:
@@ -326,6 +503,9 @@ while True:
     w = mytok() if dotok else 0
     if w > last_tok.get('claude', 0) * 1.05 + 20000: last_tok['claude'] = w; tk.append({'t': int(time.time() * 1000), 'type': 'tokens', 'id': 'claude', 'tokens': w})
     ev += tk
+    track(ME, 'claude')
+    ev += live_events([b for b, _ in rows if b != 'radio'] + ['claude'], nowm)
+    ev += autofinish(rows, nowm)
     if nowm - cad['mach'] >= 30:   # machine snapshot (takes ~1 s) every 30 s
         cad['mach'] = nowm
         try:
