@@ -183,3 +183,4 @@ Hey there! Watch the lens, buddy—that's me, making this video!
 5. "One whole day ... all day long": the clock runs 3:00 PM to midnight (real Monday history). Keep MJ's words; the clock shows the true times.
 6. Sheepish face: Hoist needs a new embarrassed expression (eyes glancing aside, small mouth, a slight blush or sweat drop) for the deadpan punch-in.
 7. Keep every v10 fix (Hoist parked clear with a shadow, the camera truck turn, short pointer, one clock, sparse SFX, no review timecode, wave on exit).
+8. El Chupacabra card (MJ, Nov 3 11:39 AM): when Hoist turns to El Chupacabra, pop up a small framed box, the same style as Rochelle's high-poly / low-poly model cards in Scene 2, showing El Chupacabra. His line plays from that box (speech bubble attached to the card), in his own small dramatic luchador voice. Card pops away after his line, before "Keep up the good work, crew!"
