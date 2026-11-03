@@ -30,3 +30,10 @@ As a 100 s trailer it is close: brisk, no estimate panel, clean close, 1:41 insi
 - The zoom-in to Hoist for the close (1:27.5 to 1:28.5) is nicer than the long cut's hard cut; carry it over to the long cut.
 - The "?" on "Running what?" at 0:14.5; the tower pull-back at 0:40 to 0:41.5; the arc on "flies down the taxi line" at 0:44; the tap on the video agent's plane at 1:23.
 - Pauses: 0.5 s after sentences, 0.9 before new ideas, as measured on the stem; no "Claude", no em dashes, no blank frames, credit large.
+
+## Re-check v5 (cut-v5-short.mp4, 1:39)
+Verdict: READY TO SHOW MJ.
+
+Confirmed resolved: tour re-record (0:19 to 0:52) with still targets and box labels; busy V22 (1:00 to 1:04); unlock taps on a reading and a filming cart at 1:06.5 and 1:08 (1:04 to 1:09.5); the 4.6 s dead hold is gone (replay starts at 1:14.5, voice at 1:14.7); the replay is now a 150x-ish slice (clock 5:20 PM to 5:40 PM over 5 s, closer to 240x, but it reads as a time-lapse rather than a blur) and the line says "One Sunday afternoon, fast-forwarded"; "sped up" and "Up top" re-synthesised and heard correctly; music at minus 27 to minus 31 dB per section with 1 to 4% clash frames; SFX in pauses; minus 16.3 LUFS; speech-to-text on the full mix matches the script (homophones only).
+
+Remaining (polish): 1. 1:09.8 to 1:10.3: Hoist's hop back lands over the V26 airfield clip (half a second of the forklift over the board); start the hop 0.5 s earlier during the V23 tail. 2. 1:14.5 to 1:19.5: the clock runs about 240x under a "150x" badge; trim the slice or relabel. 3. Same V2/V3 old-board crop as the long cut at 0:54.9 to 0:57.4.

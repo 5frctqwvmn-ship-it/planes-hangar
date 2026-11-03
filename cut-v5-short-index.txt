@@ -1,0 +1,40 @@
+CUT v5 SHORT (about 100 s) - Hangar Ops Board explainer
+540x960, 12 fps. Times are m:ss.s from the start.
+
+S1 - 1 Cold open: the game  [0:00.0 to 0:10.0]
+  0:00.5  q1   "Howdy! This is Planes Hangar. An airplane game for one four-year-old pilot, built by a crew of AI agents."
+S2 - 2 The problem  [0:10.0 to 0:18.9]
+  0:10.3  q2   "Trouble is, while they work, all you get is: running. Running what? So we built a way to watch."
+S3 - 3 One plane, up close  [0:18.9 to 0:52.1]
+  0:19.4  t1   "Every plane is one agent at work."
+  0:22.2  t2   "The fuel truck? That's it thinking."
+  0:24.7  q5   "The camera truck is filming. That number is the computer working hard."
+  0:29.5  t6   "Beacon on, it's busy. Green light, doing a step. Amber light, thinking."
+  0:35.0  q7   "The tag shows the cost, an estimate first, then the real bill."
+  0:40.7  q8   "At the top, the orchestrator briefs each agent, and the order flies down the taxi line."
+  0:46.8  q11  "And the radio, our cheapest agent, keeps the board up to date."
+  pointer targets (stick lands, label appears in the box): 0:19.7 plane, 0:22.5 fuel, 0:25.0 cam, 0:26.8 cpu, 0:29.7 b_cam, 0:32.1 b_tug, 0:33.7 b_fuel, 0:35.3 tab_est, 0:42.2 tower, 0:44.3 arc, 0:47.1 dish
+S4 - 4 How we got here  [0:52.1 to 1:14.4]
+  0:52.4  qh1  "It started with planes on a field. Then trucks, and a tower."
+  0:57.4  qh2  "Then little people for every tool call."
+  1:00.2  qh3  "Then carts. Lots of carts. It looked hectic."
+  1:04.1  qh4  "So we organized the chaos. An icon and a light for every kind of work."
+  1:09.7  qh5  "Then an airfield. And the agents became planes again."
+  0:52.1-0:54.6  clip V1: V1 of 29 · planes on a field
+  0:54.6-0:57.3  clip O1b2: V2 of 29 · ground crew trucks
+  0:57.3-1:00.2  clip V19: V19 of 29 · little people
+  1:00.2-1:04.0  clip V22b: V22 of 29 · carts, lots of carts
+  1:04.0-1:09.6  clip V23b: V23 of 29 · icons on every cart / V23 of 29 · a light says how
+  1:09.6-1:11.4  clip V26: V26 of 29 · a real airfield
+  1:11.4-1:14.4  clip V29: V29 of 29 · back to planes
+  unlock taps: 1:06.3 rd, 1:07.7 fm
+S5 - 5 One Sunday afternoon, fast-forwarded  [1:14.4 to 1:24.4]
+  1:14.7  qd1  "One Sunday afternoon, fast-forwarded."
+  1:19.9  d2   "And that plane? That's me, making this video."
+  pointer on the video agent plane from 1:20.1
+S6 - 6 Close  [1:24.4 to 1:39.5]
+  1:24.9  qc1  "It all started with plain curiosity. What's going on under the hood?"
+  1:30.2  c2   "Thanks for riding along, partner. Go check on your crew!"
+
+Hoist hops: enter 0:00.0, out 0:18.1, back 0:51.2, out 1:05.1, back 1:09.7, out 1:18.6
+Sound effects (moved into pauses at mix time): pop ~0:00.6, slide ~0:18.4, pop ~0:19.1, whoosh ~0:40.6, whoosh ~0:44.1, slide ~0:51.4, pop ~0:52.0, slide ~1:05.4, pop ~1:06.1, slide ~1:09.9, slide ~1:18.8, pop ~1:19.6, whoosh ~1:24.1

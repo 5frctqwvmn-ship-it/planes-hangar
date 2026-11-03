@@ -61,3 +61,23 @@ Big step up from v3: Hoist is alive (hops out, points with a stick, lip flap is 
 - The close: beige card, Hoist large and centred, the credit large and readable, no blank frames, music fades out under the credit.
 - No "Claude", no "cloud", no em dashes on screen; the terminal with its blinking cursor; the gameplay cold open with El Chupacabra and the win.
 - Music ducking under the voice (about 15 dB) and the per-section cue idea.
+
+## Re-check v5 (cut-v5.mp4, 3:03)
+Method: same pipeline on the new file (2 fps sheets in _qc/sheets_long5, whisper base.en on the full mix per index line, silencedetect on the new voice stem, per-second voice vs music, EBU loudness, MIDI clash check on the regenerated cues, SFX onset vs pause check).
+
+Verdict: READY TO SHOW MJ. All five top fixes are resolved; what remains is polish.
+
+Confirmed resolved:
+- Tour (0:26 to 1:28): recorded at 0.2x, every target holds still; stick lands and holds on plane, fuel, baggage, tug, camera, CPU pill, beacon, green light, amber light, tag, tower, tower carts, dish. No retracted-stick moments. The box now carries a big physical label for every item (PLANE = one agent at work, FUEL TRUCK = thinking, ... COST TAG = estimate first, then the real cost), which also passes the mute test. The estimate panel is gone; a single ESTIMATE $13.05 / ACTUAL $14.49 label sits on the cost tag from 0:50.5 to 0:59.
+- V22 (1:54.7 to 2:00.4): 17 agents, carts along the whole front row and around the tower, builds to the Yikes at 1:59.4. Moderately busy rather than packed, but it reads as hectic.
+- V23 unlock (2:00.4 to 2:11.7): zoom 1.1, Hoist hops out at 2:06.5, taps a reading cart at 2:08 (label A READING CART) and a filming cart at 2:09.8 (A FILMING CART), hops back at 2:11.6. Readable.
+- Music: cues RMS-normalised; section 4 now sits at minus 27 dB (was minus 45 to minus 52), all sections within minus 27 to minus 31 dB, music under voice median minus 30 dB, in gaps minus 26 dB (voice minus 20). Semitone clashes down from 15 to 25% to 1 to 4% per cue. Keys now C, Am, G, D, A, A with cut joins, so no E-to-F clash at the close. Still not heard by a human ear; MJ should listen once.
+- SFX: all 14 onsets land in pauses, 6 to 10 dB under the voice. Only the hop-out slide and pop at 2:06.8 and 2:07.5 overlap speech ("And for the first time"), at minus 30 dB, which is fine.
+- Loudness minus 16.2 LUFS (was minus 20.5).
+- Speech-to-text on the full mix: every line matches the script except homophones and inflections (Planes Hangar as Plains Hanger, work as worked, light as lights). "An airplane game", "Green light", "At the top", "fast-forwarded" all heard correctly.
+- Also fixed: insets for better trucks / usage bars / phone fit at 1:43.4 to 1:47; tower-carts label; pop-up cost chart now holds 2:50 to 2:53.5 with readable dollar values beside Hoist's head; wave is a lean with motion lines; credit holds 4.6 s; "one Sunday afternoon" matches the clock; V1 banner no longer overlaps the pill.
+
+Remaining (polish, not blocking):
+1. 1:35.6 to 1:40.2, scene 4 (V2/V3): still the old-board crop with the tower reveal rather than a whole-board trucks-only V2 (builder notes this). If a V2 file without the tower cannot be found, keep as is; the reveal at 1:37.5 is at least timed to "got a tower".
+2. 1:13.4 to 1:17, scene 3 (briefing arc): the stick points at the arc's origin label rather than following the travelling dot; the arc is still thin. A 3 px arc or a stick that follows the dot would finish the beat.
+3. 2:06.5 to 2:11.6 (unlock taps): the two taps are 1.8 s apart on carts 6 px wide at zoom 1.1; a 1.3x push-in during the taps (or a larger ripple) would make the two carts unmistakable on a phone.
