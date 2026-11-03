@@ -147,3 +147,7 @@ QUESTIONS TO ASK MJ BEFORE STARTING
 11. Priority if something has to give: pacing, comprehension, or Mr. DNA fidelity? → If pacing wins, extend shots and cut words. If comprehension wins, add the one-agent-one-job walkthrough even if it costs 10 seconds. If fidelity wins, cut the build history and lean into sound-effect pauses.
 
 After MJ answers, summarize the decisions back in five lines before generating anything.
+
+------------------------------------------------------------
+MJ ADDENDUM (Nov 2, 11:21 PM): PAUSES ARE MANDATORY, EVERYWHERE
+Lists blur into one phrase ("thinking, reading, writing the briefs"). Every comma in a list gets a real pause (about 0.3 s) inserted as silence in the edit, so it reads "thinking [pause] reading [pause] and writing the briefs". Rule for the builder: synthesize each list item and each sentence as its own clip, then assemble with silence: 0.3 s at list commas, 0.4 to 0.5 s between sentences, 0.6 to 1.0 s after a question or a new definition, 1.5 s where the brief says SFX only. Never rely on punctuation to make the voice pause. Check the result with speech-to-text word timings: any gap under 0.25 s at a comma or sentence end is a failure and must be re-cut.
