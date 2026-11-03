@@ -643,6 +643,24 @@ while True:
     except Exception: rows = []
     rmap = {aid: bid for bid, aid in rows}
     nowm = time.time(); ev = []
+    # every agent on the running list gets a stand, even if nobody logged a spawn (e.g. resumed agents)
+    try: _ann = set(json.load(open('/home/claude/board-announced.json')))
+    except Exception: _ann = set()
+    _new = False
+    for _b, _a in rows:
+        _k = _b + '|' + _a
+        if _k in _ann or _b == 'radio': continue
+        _mdl = 'sonnet'
+        try:
+            for _l in open(f'/tmp/claude-0/-home-claude/917e4d6d-feb4-59ad-982a-2757f59bd3a4/tasks/{_a}.output'):
+                if '"model":"claude-' in _l:
+                    _mdl = _l.split('"model":"claude-', 1)[1].split('-', 1)[0]; break
+        except Exception: pass
+        ev.append({'t': int(nowm * 1000), 'type': 'spawn', 'id': _b, 'name': _b, 'model': _mdl, 'text': 'On the running list'})
+        _ann.add(_k); _new = True
+    if _new:
+        try: json.dump(sorted(_ann), open('/home/claude/board-announced.json', 'w'))
+        except Exception: pass
     active = any(b != 'radio' for b, _ in rows) or os.path.exists(FLAG) or recent_me()
     want = 'active' if active else 'standby'
     if mode[0] != want:
