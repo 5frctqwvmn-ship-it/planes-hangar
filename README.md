@@ -38,3 +38,8 @@ You can also browse a tag on GitHub (Code > tags) to see the files as they were.
 When a model is replaced, the old builder stays in the code behind a switch, so both can be filmed side by side:
 
 - `?classic=ships` (or `?classic=all`): the warships, carriers and sailboats as they were before the ship upgrade.
+
+## Hard rules for the Hangar Ops Board (cost and tokens)
+- Every cost figure is computed per message from that message's own model and its four token types, at Anthropic's published per-type prices: new input, cache writes (5-minute and 1-hour, priced above input), cache reads (priced far below input), and output. Never price all tokens at one rate.
+- "% of week" is derived from those dollars and calibrated against MJ's real usage-page readings.
+- Each actor's card shows the four token types separately with their dollars.
