@@ -6,7 +6,7 @@ ME = '/root/.claude/projects/-home-claude/917e4d6d-feb4-59ad-982a-2757f59bd3a4.j
 SKIP_ME = {'ArtifactData', 'Monitor', 'TaskStop', 'ToolSearch'}
 last_tok, seen, lastxt = {}, {}, {}
 start = time.time() - 30
-BASE = 1793571840000   # 4:24 PM Nov 1, when MJ's usage page read 89%
+BASE = 1793571840000   # only the key of board-stats.json (CPU totals); costs now start at the weekly reset (WIN)
 def wsum(us):
     """weighted token total over usage dicts that are already one-per-message"""
     t = [0, 0, 0, 0]
@@ -27,7 +27,7 @@ def tokd(path, since=0):
             if k not in best or o >= best[k][0]: best[k] = (o, m['usage'])
     except FileNotFoundError: return None
     return wsum(u for _, u in best.values())[0]
-def mytok(): return tokd(ME, BASE) or 0
+def mytok(): return tokd(ME, WIN['start']) or 0
 
 def ts(s):
     try: return int(datetime.datetime.fromisoformat(s.replace('Z', '+00:00')).timestamp() * 1000)
@@ -132,6 +132,11 @@ def cmd_tokens(c):
 def _walk_reports(o, t):
     if isinstance(o, dict):
         if o.get('type') in ('report', 'done', 'stop') and o.get('id'): ER[str(o['id'])] = max(ER.get(str(o['id']), 0), int(o.get('t') or t))
+        if o.get('type') == 'spawn' and o.get('id') and o.get('t'):
+            L_ = SP.setdefault(str(o['id']), [])
+            if int(o['t']) not in L_: L_.append(int(o['t'])); LDIRTY[0] = True
+        if o.get('type') in ('usage', 'session') and o.get('basePct') is not None and o.get('t') and (o['type'], int(o['t'])) not in UE:
+            UE[(o['type'], int(o['t']))] = {'k': o['type'], 't': int(o['t']), 'base': o['basePct'], 'fab': o.get('fablePct'), 'reset': int(o.get('resetAt') or 0), 'text': str(o.get('text') or '')[:120]}; LDIRTY[0] = True
         for v in o.values(): _walk_reports(v, t)
     elif isinstance(o, list):
         for v in o: _walk_reports(v, t)
@@ -241,49 +246,82 @@ def autofinish(rows, nowm):
     if ch: save_state()
     return out
 
-# ---- cumulative stats ----
+# ---- cumulative stats: a persistent per-message ledger keyed by agent id (never by board name) ----
 SF = '/home/claude/board-stats.json'
 ACC = {'base': BASE, 'ts': 0, 'cs': {}, 'm': {'cs': 0, 'pc': 0, 'pm': 0}}
 try:
     _a = json.load(open(SF))
     if _a.get('base') == BASE: ACC = _a
 except Exception: pass
-SC = {}; SOFF = {}
-def scan(path, key, since=0):
-    c = SC.setdefault(key, {'c': 0, 'tl': {}, 'ti': 0, 'to': 0, 'tw': 0, 'tr': 0, 'ids': set(), 'bid': set(), 'mw': {}, 'mu': {}})
+SUB = '/root/.claude/projects/-home-claude/917e4d6d-feb4-59ad-982a-2757f59bd3a4/subagents/'
+LEDGER_F = os.environ.get('BOARD_LEDGER') or '/home/claude/board-cost-ledger.json'
+WEEK_MS = 7 * 86400000
+DEFAULT_RESET = 1794258000000   # Mon Nov 9 3:00 PM CST, the next weekly reset until a newer 'usage' event says otherwise
+SC = {}; SOFF = {}; PAIRS = {}; SP = {}; UE = {}; LDIRTY = [False]
+# SC[agent id] = {'mu': {message id: [model, lite usage, roles set]}, 'mt': {message id: ms timestamp}, 'mtl': {message id: {tool: n}}, 'bid': tool_use ids, 'mc': memo}
+# PAIRS[agent id] = board ids that agent has worked under; SP[board id] = spawn times the orchestrator logged; UE = usage/session readings the orchestrator logged
+SEED_PAIRS = {'a2d24ef8a79d82923': ['letters'], 'aa340dbfef6201a2b': ['video6'], 'afcb539d4fe2b7034': ['cost'], 'a6659c5223d597ab9': ['storyboard'], 'a985bbf9392cadadd': ['animatic'],
+              'ae41ee3ba06326223': ['radio'], 'aef3a8c6d431f8896': ['radio'], 'af30c813135476bd3': ['radio']}   # agents that finished before the feed saw them in board-running.txt; agent id -> board ids
+def _lite(u):
+    cc = u.get('cache_creation') or {}
+    r = {k: (u.get(k) or 0) for k in ('input_tokens', 'output_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens')}
+    r['cache_creation'] = {'ephemeral_1h_input_tokens': cc.get('ephemeral_1h_input_tokens'), 'ephemeral_5m_input_tokens': cc.get('ephemeral_5m_input_tokens')}
+    ws = (u.get('server_tool_use') or {}).get('web_search_requests') or 0
+    if ws: r['ws'] = ws
+    return r
+def load_ledger():
+    try: L = json.load(open(LEDGER_F))
+    except Exception: return
+    for aid, c in (L.get('sc') or {}).items():
+        SC[aid] = {'mu': {k: [v[0], v[1], set(v[2])] for k, v in c['mu'].items()}, 'mt': c['mt'], 'mtl': c['mtl'], 'bid': set(c['bid']), 'mc': {}}
+    SOFF.update(L.get('off') or {})
+    for a, b in (L.get('pairs') or {}).items(): PAIRS[a] = list(b)
+    for b, v in (L.get('sp') or {}).items(): SP[b] = list(v)
+    for e in (L.get('ue') or []): UE[(e['k'], e['t'])] = e
+def save_ledger():
+    if not LDIRTY[0]: return
     try:
-        with open(path, 'rb') as f:
-            f.seek(SOFF.get(key, 0)); data = f.read()
-    except FileNotFoundError: return
+        L = {'v': 2, 'off': SOFF, 'pairs': PAIRS, 'sp': SP, 'ue': list(UE.values()),
+             'sc': {aid: {'mu': {k: [v[0], v[1], sorted(v[2])] for k, v in c['mu'].items()}, 'mt': c['mt'], 'mtl': c['mtl'], 'bid': sorted(c['bid'])} for aid, c in SC.items()}}
+        with open(LEDGER_F + '.tmp', 'w') as f: json.dump(L, f, separators=(',', ':'))
+        os.replace(LEDGER_F + '.tmp', LEDGER_F); LDIRTY[0] = False
+    except Exception: pass
+def scan(path, aid):
+    """read new complete lines of one transcript. State is keyed by agent id, so a board name reused by a new agent never inherits another agent's offset or dollars."""
+    c = SC.setdefault(aid, {'mu': {}, 'mt': {}, 'mtl': {}, 'bid': set(), 'mc': {}})
+    try: sz = os.path.getsize(path)
+    except OSError: return
+    off = SOFF.get(aid, 0)
+    if sz < off: off = 0   # the file was rewritten; the ledger keeps what was already priced and message ids dedupe the rest
+    if sz == off: return
+    try:
+        with open(path, 'rb') as f: f.seek(off); data = f.read()
+    except OSError: return
     n = data.rfind(b'\n')
     if n < 0: return
-    SOFF[key] = SOFF.get(key, 0) + n + 1
+    SOFF[aid] = off + n + 1; LDIRTY[0] = True
     for l in data[:n].splitlines():
+        if b'"assistant"' not in l: continue
         try: d = json.loads(l)
         except Exception: continue
         m = d.get('message')
-        if not isinstance(m, dict) or (since and ts(d.get('timestamp', '')) < since): continue
-        u = m.get('usage')
-        mw = None
-        if u and m.get('role') == 'assistant':
-            mw = c['mw'].setdefault(m.get('id') or d.get('uuid'), [0, set(), -1])
-            mu = c['mu'].get(m.get('id') or d.get('uuid'))
-            if mu is None: c['mu'][m.get('id') or d.get('uuid')] = [m.get('model') or '', u, mw[1]]
-            elif u.get('output_tokens', 0) >= mu[1].get('output_tokens', 0): mu[0], mu[1] = (m.get('model') or mu[0]), u
-            if (u.get('output_tokens', 0) or 0) >= mw[2]:   # repeated lines of one message: keep the latest usage once, never add
-                mw[2] = u.get('output_tokens', 0) or 0
-                mw[0] = (u.get('input_tokens', 0) or 0) + 1.25 * (u.get('cache_creation_input_tokens', 0) or 0) + .1 * (u.get('cache_read_input_tokens', 0) or 0) + 5 * mw[2]
-        if m.get('role') != 'assistant': continue
-        mid = m.get('id') or d.get('uuid')
-        if mid not in c['ids']: c['ids'].add(mid); c['c'] += 1
+        if not isinstance(m, dict) or m.get('role') != 'assistant': continue
+        mid = m.get('id') or d.get('uuid'); t = ts(d.get('timestamp', '')); u = m.get('usage')
+        if mid not in c['mt']: c['mt'][mid] = t
+        if isinstance(u, dict):
+            ul = _lite(u); mu = c['mu'].get(mid)
+            if mu is None:
+                c['mu'][mid] = [m.get('model') or '', ul, set()]; c['mc'].pop(mid, None); c['mt'][mid] = t or c['mt'][mid]   # repeated lines of one message: keep the latest usage once, never add
+            elif ul['output_tokens'] >= mu[1]['output_tokens']:
+                mu[0], mu[1] = (m.get('model') or mu[0]), ul; c['mc'].pop(mid, None); c['mt'][mid] = t or c['mt'][mid]
         for b in m.get('content') or []:
-            if mw is not None and isinstance(b, dict) and b.get('type') == 'tool_use':
-                mw[1].add('read' if b.get('name') == 'ToolSearch' else kindof(b.get('name'), b.get('input') or {}))
             if isinstance(b, dict) and b.get('type') == 'tool_use' and b.get('id') not in c['bid']:
-                c['bid'].add(b.get('id')); c['tl'][b.get('name')] = c['tl'].get(b.get('name'), 0) + 1
+                c['bid'].add(b.get('id')); tl = c['mtl'].setdefault(mid, {}); tl[b.get('name')] = tl.get(b.get('name'), 0) + 1
+                if mid in c['mu']: c['mu'][mid][2].add('read' if b.get('name') == 'ToolSearch' else kindof(b.get('name'), b.get('input') or {}))
 # ---- public API list prices, USD per million tokens: in, 5m write, 1h write, cache hit, out
 PRICES = {'fable': (10, 12.5, 20, .25, 50), 'opus': (4, 5, 8, .2, 20), 'sonnet': (2, 2.5, 4, .1, 10),
           'haiku': (.1, .125, .2, .01, .5), 'haiku_big': (.5, .625, 1, .05, 2.5)}
+MODELS = ('Fable', 'Opus', 'Sonnet', 'Haiku')
 def model_name(mod):
     mod = (mod or '').lower()
     for k, n in (('fable', 'Fable'), ('opus', 'Opus'), ('sonnet', 'Sonnet'), ('haiku', 'Haiku')):
@@ -300,22 +338,27 @@ def msg_cats(mod, u):
     r = {'tin': inp, 'tcw5': w5, 'tcw1': w1, 'tcr': cr, 'tout': out, 'usdIn': 0.0, 'usdCw': 0.0, 'usdCr': 0.0, 'usdOut': 0.0}
     if n:
         k = n.lower()
-        if k == 'haiku' and inp + cr + cw > 100000: k = 'haiku_big'
+        if k == 'haiku' and inp + cr + cw > 100000: k = 'haiku_big'   # Haiku's higher tier: the whole request over 100K prompt tokens
         p = PRICES[k]
-        r['usdIn'] = inp * p[0] / 1e6; r['usdCw'] = (w5 * p[1] + w1 * p[2]) / 1e6; r['usdCr'] = cr * p[3] / 1e6; r['usdOut'] = out * p[4] / 1e6
+        r['usdIn'] = inp * p[0] / 1e6; r['usdCw'] = (w5 * p[1] + w1 * p[2]) / 1e6; r['usdCr'] = cr * p[3] / 1e6; r['usdOut'] = out * p[4] / 1e6 + (u.get('ws', 0) or 0) * 0.01
     return n, r
-def msg_usd(mod, u):
-    n, r = msg_cats(mod, u)
-    if not n: return None, 0.0
-    return n, r['usdIn'] + r['usdCw'] + r['usdCr'] + r['usdOut']
+def mcats(c, mid):
+    x = c['mc'].get(mid)
+    if x is None: x = c['mc'][mid] = msg_cats(c['mu'][mid][0], c['mu'][mid][1])
+    return x
 CATK = ('tin', 'tcw5', 'tcw1', 'tcr', 'tout', 'usdIn', 'usdCw', 'usdCr', 'usdOut')
 OPUS_IN = PRICES['opus'][0]
-def cats_of(c):
-    """per-actor and per-role-kind sums of the four token kinds and their dollars (same split by role as kusd)"""
+def _wt(u): return (u.get('input_tokens', 0) or 0) + 1.25 * (u.get('cache_creation_input_tokens', 0) or 0) + .1 * (u.get('cache_read_input_tokens', 0) or 0) + 5 * (u.get('output_tokens', 0) or 0)
+def _items(aid, ws=0, we=float('inf')):
+    c = SC.get(aid)
+    if not c: return []
+    return [(c, mid) for mid, t in c['mt'].items() if mid in c['mu'] and ws <= t < we]
+def cats_of(items):
+    """sums of the four token kinds and their dollars, in total and per role-kind (same split by role as kusd)"""
     tot = dict.fromkeys(CATK, 0.0); byk = {}
-    for mod, u, roles in c['mu'].values():
-        _n, r = msg_cats(mod, u)
-        ks = sorted(roles) or ['think']
+    for c, mid in items:
+        _n, r = mcats(c, mid)
+        ks = sorted(c['mu'][mid][2]) or ['think']
         for f in CATK:
             tot[f] += r[f]
             for k in ks: byk.setdefault(k, dict.fromkeys(CATK, 0.0))[f] += r[f] / len(ks)
@@ -324,35 +367,131 @@ def cats_of(c):
 def cost_eq(usd):
     """cost-equivalent tokens: dollars expressed as Opus new-input tokens (usd / Opus input price). Cache-aware by construction."""
     return round(usd / OPUS_IN * 1e6)
-def cost_of(c):
+def cost_of(items):
     tot, bym, byk = 0.0, {}, {}
-    for mod, u, roles in c['mu'].values():
-        n, usd = msg_usd(mod, u)
+    for c, mid in items:
+        n, r = mcats(c, mid)
         if not n: continue
+        usd = r['usdIn'] + r['usdCw'] + r['usdCr'] + r['usdOut']
         tot += usd; bym[n] = bym.get(n, 0) + usd
-        ks = sorted(roles) or ['think']
+        ks = sorted(c['mu'][mid][2]) or ['think']
         for k in ks: byk[k] = byk.get(k, 0) + usd / len(ks)
     return tot, bym, byk
-def kt_of(c):
+def kt_of(items):
     kt = {}
-    for w, ks, _o in c['mw'].values():
-        ks = sorted(ks) or ['think']
+    for c, mid in items:
+        ks = sorted(c['mu'][mid][2]) or ['think']; w = _wt(c['mu'][mid][1])
         for k in ks: kt[k] = kt.get(k, 0) + w / len(ks)
     return {k: round(v) for k, v in kt.items()}
+def actor_row(items, cs):
+    w, (ti, to, tw, tr) = wsum(c['mu'][mid][1] for c, mid in items)   # one usage per message id
+    tl = {}
+    for c, mid in items:
+        for a, b in (c['mtl'].get(mid) or {}).items(): tl[a] = tl.get(a, 0) + b
+    tot, bym, byk = cost_of(items); ct, ck = cats_of(items)
+    return {'c': len(items), 'tl': tl, 'ti': ti, 'to': to, 'tw': tw, 'tr': tr, 'w': w, 'kt': kt_of(items), 'usd': round(tot, 4), **ct, 'kcat': ck, 'wc': cost_eq(tot),
+            'usdM': {a: round(b, 4) for a, b in bym.items()}, 'kusd': {a: round(b, 4) for a, b in byk.items()}, 'cs': cs}
+def win_start(): return WIN['start']
+WIN = {'start': DEFAULT_RESET - WEEK_MS, 'reset': DEFAULT_RESET}
+def refresh_window():
+    """the weekly window comes from the latest 'usage' reading the orchestrator wrote: resetAt is the end, resetAt minus 7 days the start"""
+    L = [e for e in UE.values() if e['k'] == 'usage' and e.get('reset')]
+    if L:
+        e = max(L, key=lambda e: e['t']); WIN['reset'] = e['reset']; WIN['start'] = e['reset'] - WEEK_MS
+def build_tasks():
+    """(board id, agent id, window start, window end): one entry per task. An agent resumed under a new board id (cutv4, cutv5, cutv6) is split at each new spawn, so each task is charged only its own span."""
+    tasks = []
+    for aid, bids in PAIRS.items():
+        c = SC.get(aid)
+        if not c or not c['mt']: continue
+        ft = min(c['mt'].values()); st = []
+        for b in dict.fromkeys(bids):
+            sp = sorted(SP.get(b, [])); cand = [t for t in sp if t <= ft + 5000]
+            aft = [t for t in sp if t > ft]
+            st.append((cand[-1] if cand else (aft[0] if aft else ft), b))
+        st.sort()
+        for i, (s, b) in enumerate(st): tasks.append({'bid': b, 'aid': aid, 'ws': 0 if i == 0 else s, 'we': st[i + 1][0] if i + 1 < len(st) else float('inf')})
+    return tasks
+def fab_of(e):
+    if e.get('fab') is not None: return e['fab']
+    m = re.search(r'Fable(?:-only)?\s+(\d+)\s*%', e.get('text') or '')
+    return int(m.group(1)) if m else None
 def stats_event(rows):
-    scan(ME, 'claude', BASE)
-    for bid, aid in rows: scan(D + aid + '.output', bid)
-    A = {}; CT = 0.0; CM = {}; CTC = dict.fromkeys(CATK, 0.0)
-    for k, c in SC.items():
-        w, (c['ti'], c['to'], c['tw'], c['tr']) = wsum(v[1] for v in c['mu'].values())   # one usage per message id
-        A[k] = {'c': c['c'], 'tl': c['tl'], 'ti': c['ti'], 'to': c['to'], 'tw': c['tw'], 'tr': c['tr'], 'w': w, 'kt': kt_of(c), 'usd': round(cost_of(c)[0], 4), **cats_of(c)[0], 'kcat': cats_of(c)[1], 'wc': cost_eq(cost_of(c)[0]), 'usdM': {a: round(b, 4) for a, b in cost_of(c)[1].items()}, 'kusd': {a: round(b, 4) for a, b in cost_of(c)[2].items()}, 'cs': round(ACC['cs'].get(k, 0))}
-    for k, c in SC.items():
-        t, bm, _ = cost_of(c); CT += t
-        for f, v in cats_of(c)[0].items(): CTC[f] += v
+    for bid, aid in rows:
+        if bid not in PAIRS.setdefault(aid, []): PAIRS[aid].append(bid); LDIRTY[0] = True
+    for k in list(AR) + [b + ' ' + a for b, a in PREV]:
+        p = k.split()
+        if len(p) == 2 and p[0] != 'testagent':
+            if p[0] not in PAIRS.setdefault(p[1], []): PAIRS[p[1]].append(p[0]); LDIRTY[0] = True
+    for a, bs in SEED_PAIRS.items():
+        for b in bs:
+            if b not in PAIRS.setdefault(a, []): PAIRS[a].append(b); LDIRTY[0] = True
+    scan(ME, 'claude')
+    try: names = sorted(os.listdir(SUB))
+    except OSError: names = []
+    for fn in names:
+        if fn.startswith('agent-') and fn.endswith('.jsonl'): scan(SUB + fn, fn[6:-6])
+    refresh_window(); W = WIN['start']
+    tasks = build_tasks(); A = {}
+    best = {}
+    for t in tasks:
+        if t['bid'] not in best or t['ws'] > best[t['bid']]['ws']: best[t['bid']] = t
+    for b, t in best.items():
+        items = _items(t['aid'], t['ws'], t['we']); A[b] = actor_row(items, round(ACC['cs'].get(b, 0)))
+        wi = [(c, mid) for c, mid in items if c['mt'][mid] >= W]; wt, wbm, _ = cost_of(wi)
+        A[b]['usdWk'] = round(wt, 4); A[b]['usdWkM'] = {a: round(v, 4) for a, v in wbm.items()}; A[b]['aid'] = t['aid'][:8]
+    for b, aid in rows:
+        if b not in A and b != 'radio': A[b] = actor_row([], round(ACC['cs'].get(b, 0)))
+    ci = _items('claude', W); A['claude'] = actor_row(ci, round(ACC['cs'].get('claude', 0))); A['claude']['usdWk'] = A['claude']['usd']; A['claude']['usdWkM'] = dict(A['claude']['usdM'])
+    # week totals over EVERY transcript, finished agents and the orchestrator included, from the weekly reset on
+    CT = 0.0; CM = {}; CTC = dict.fromkeys(CATK, 0.0); AG = {}; ML = []; wrate = {}; arate = {}
+    for aid, c in SC.items():
+        wi = [(c, mid) for mid, t in c['mt'].items() if mid in c['mu'] and t >= W]
+        if not wi: continue
+        tot, bm, _ = cost_of(wi); CT += tot
+        for f, v in cats_of(wi)[0].items(): CTC[f] += v
         for a, b in bm.items(): CM[a] = CM.get(a, 0) + b
+        AG[aid[:8] if aid != 'claude' else 'claude'] = {'bid': (PAIRS.get(aid) or [''])[-1] if aid != 'claude' else 'claude', 'usd': round(tot, 4), 'usdM': {a: round(b, 4) for a, b in bm.items()}}
+        for cc_, mid in wi:
+            n, r = mcats(cc_, mid)
+            if not n: continue
+            u = r['usdIn'] + r['usdCw'] + r['usdCr'] + r['usdOut']; ML.append((cc_['mt'][mid], n, u))
+            for d in ((arate,) if aid != 'claude' else ()) + (wrate,):
+                x = d.setdefault(n, [0.0, 0.0]); x[0] += u; x[1] += _wt(cc_['mu'][mid][1])
+    ML.sort()
+    # MJ's readings in this window, each with the exact dollars by model that had been spent by its own timestamp
+    rd = []
+    for e in sorted(UE.values(), key=lambda e: e['t']):
+        if e['t'] < W: continue
+        m = {}
+        for t, n, u in ML:
+            if t > e['t']: break
+            m[n] = m.get(n, 0) + u
+        rd.append({'k': e['k'], 't': e['t'], 'base': e['base'], 'fab': fab_of(e), 'reset': e.get('reset') or 0, 'usdM': {a: round(b, 4) for a, b in m.items()}})
+    nowm = time.time() * 1000; r3 = {}
+    hr = []; hF = hO = 0.0; hi = 0   # cumulative Fable and other-model dollars at each whole hour from the weekly reset, so the page can price any moment by interpolation
+    for k in range(0, int((nowm - W) // 3600000) + 1):
+        bt = W + k * 3600000
+        while hi < len(ML) and ML[hi][0] <= bt:
+            if ML[hi][1] == 'Fable': hF += ML[hi][2]
+            else: hO += ML[hi][2]
+            hi += 1
+        hr.append([int(bt), round(hF, 2), round(hO, 2)])
+    for t, n, u in ML[hi:]:
+        if n == 'Fable': hF += u
+        else: hO += u
+    hr.append([int(nowm), round(hF, 2), round(hO, 2)])
+    for t, n, u in ML:
+        if t >= nowm - 3 * 3600000: r3[n] = r3.get(n, 0) + u
+    rates = {}
+    for n in MODELS:
+        x = arate.get(n) or wrate.get(n)
+        if x and x[1] > 0: rates[n.lower()] = round(x[0] / x[1] * 1e6, 4)   # measured dollars per million weighted tokens
     for k, v in ACC['cs'].items():
         if k not in A and k not in ('system',): A[k] = {'c': 0, 'tl': {}, 'ti': 0, 'to': 0, 'tw': 0, 'tr': 0, 'w': 0, 'cs': round(v)}
-    return {'t': int(time.time() * 1000), 'type': 'stats', 'id': 'stats', 'actors': A, 'cost': {'total': round(CT, 4), 'byModel': {a: round(b, 4) for a, b in CM.items()}, 'wc': cost_eq(CT), **{f: (round(v) if f[0] == 't' else round(v, 4)) for f, v in CTC.items()}}, 'm': {'cs': round(ACC['m']['cs']), 'pc': round(ACC['m']['pc']), 'pm': round(ACC['m']['pm']), 'sys': round(ACC['cs'].get('system', 0))}}
+    wk = {'start': W, 'reset': WIN['reset'], 'usd': round(CT, 4), 'usdM': {a: round(b, 4) for a, b in CM.items()}, 'rd': rd, 'r3': {a: round(b, 4) for a, b in r3.items()}, 'hr': hr, 'rates': rates, 'agents': AG}
+    save_ledger()
+    return {'t': int(time.time() * 1000), 'type': 'stats', 'id': 'stats', 'actors': A, 'cost': {'total': round(CT, 4), 'byModel': {a: round(b, 4) for a, b in CM.items()}, 'wc': cost_eq(CT), **{f: (round(v) if f[0] == 't' else round(v, 4)) for f, v in CTC.items()}}, 'wk': wk, 'm': {'cs': round(ACC['m']['cs']), 'pc': round(ACC['m']['pc']), 'pm': round(ACC['m']['pm']), 'sys': round(ACC['cs'].get('system', 0))}}
 def acc_update(m, procs_all):
     now = time.time(); dt = min(120, now - ACC['ts']) if ACC['ts'] else 60; ACC['ts'] = now
     for o, cpu in procs_all.items(): ACC['cs'][o] = ACC['cs'].get(o, 0) + cpu / 100 * dt
@@ -478,6 +617,7 @@ def machine_changed(m):
     return ch
 
 
+load_ledger()
 MTIME = os.path.getmtime(__file__)
 cad = {'mach': 0, 'stats': 0, 'tok': 0, 'hb': 0}
 FLAG = '/home/claude/board-active'
@@ -548,7 +688,7 @@ while True:
     if nowm - cad['stats'] >= 60:   # heavier stats and cost recompute every 60 s
         cad['stats'] = nowm
         try:
-            se = stats_event(rows); sig = json.dumps([se['actors'], se['cost'], se['m']], sort_keys=True)
+            se = stats_event(rows); sig = json.dumps([se['actors'], se['cost'], se['wk'], se['m']], sort_keys=True)
             if sig != last_stats[0]: last_stats[0] = sig; ev.append(se)
         except Exception: pass
     if ev: print('EVENTS ' + json.dumps(ev, separators=(',', ':')), flush=True)
