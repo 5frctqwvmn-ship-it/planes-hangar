@@ -109,7 +109,7 @@ STATE_F = '/home/claude/board-feed-state.json'
 TR = {}          # board id -> tracker
 ER = {}          # board id -> time (ms) of the latest report/done/stop the orchestrator logged for it
 INFLIGHT_SKIP = {'SendMessage', 'SendUserMessage', 'SendUserFile', 'Agent', 'ArtifactData', 'ToolSearch', 'TaskStop', 'ReadNotifications'}
-def _newtr(): return {'off': 0, 'pend': {}, 'hist': [], 'mid': None, 'end': False, 'lastts': 0, 'grow': time.time(), 'size': -1}
+def _newtr(): return {'off': 0, 'pend': {}, 'hist': [], 'mid': None, 'end': False, 'lastts': 0, 'grow': time.time(), 'size': -1, 'busy': None}
 WAITRE = re.compile(r'\buntil\b|\bsleep\s+\d{2,}|while\b[^;]*\bsleep|inotifywait|tail\s+-f|\bwait\b\s+\$|\bwatch\s')
 def live_text(n, i):
     k = kindof(n, i)
@@ -160,6 +160,7 @@ def track(path, key):
             if mid != T['mid']:   # a new assistant message means every earlier step has returned or was cut off
                 T['pend'] = {k: v for k, v in T['pend'].items() if v['mid'] == mid}; T['mid'] = mid
             T['end'] = m.get('stop_reason') == 'end_turn'; T['lastts'] = max(T['lastts'], t)
+            if T['end']: T['busy'] = None   # final reply of the turn closes the orchestrator-busy window
             for b in bl:
                 if not isinstance(b, dict) or b.get('type') != 'tool_use': continue
                 nm, i = b.get('name'), b.get('input') or {}
@@ -178,6 +179,8 @@ def track(path, key):
                     for h in T['hist']:
                         if h['id'] == b.get('tool_use_id') and h['e'] is None: h['e'] = t / 1000
             if not got: T['pend'].clear()   # a fresh prompt: anything unanswered was interrupted
+            if key == 'claude' and not got and not d.get('isMeta') and not d.get('isSidechain') and (d.get('origin') or {}).get('kind') == 'human':
+                T['busy'] = t   # a real user message opens the busy window
     nw = time.time()
     T['hist'] = [h for h in T['hist'] if (h['e'] or nw) > nw - 3600][-80:]
     for k in [k for k, v in T['pend'].items() if v['since'] < (nw - 10800) * 1000]: del T['pend'][k]
@@ -186,7 +189,12 @@ def track(path, key):
 def live_steps(key):
     T = TR.get(key)
     if not T: return []
-    return [{'kind': v['kind'], 'text': v['text'], 'since': v['since'], 'tool': v['name']} for v in sorted(T['pend'].values(), key=lambda v: v['since'])][-4:]
+    st = [{'kind': v['kind'], 'text': v['text'], 'since': v['since'], 'tool': v['name']} for v in sorted(T['pend'].values(), key=lambda v: v['since'])][-4:]
+    if key == 'claude' and T.get('busy') and not T['end']:
+        # open until the final end_turn message, or no pending tool and no new transcript line for 90 s (hard cap 3 h)
+        if time.time() * 1000 - T['busy'] < 10800000 and (T['pend'] or time.time() - T['lastts'] / 1000 < 90):
+            st = [{'kind': 'think', 'text': 'Working on your request', 'since': T['busy'], 'tool': 'Model'}] + st[-3:]
+    return st
 LV = {}
 def live_events(keys, nowm):
     out = []
