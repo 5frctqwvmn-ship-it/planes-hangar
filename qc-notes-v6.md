@@ -84,3 +84,48 @@ Do not cut: "Running." / "Running what?", "Yikes!" / "Traffic jam.", the 1.5 s S
 - Sunday at 150x with the 1.5 s SFX-only hold; "And that plane right there?" with the ring on the Making-of-video plane before "That's me, making this video."
 - "We built a game for a four-year-old. Then we built one for his dad." on the Hoist close-up; card-only credit with music, no narration.
 - Loudness -16.2 LUFS; no on-screen "Claude"; no em dashes in on-screen text.
+
+---
+
+# Re-check v7 (cut-v7.mp4, 103.0 s)
+
+Quick re-check of the v6 top 5, the transition frames, SFX audibility and one speech-to-text pass on the full mix. Frames in _qc/v7/.
+
+## Verdict
+
+Not ready to show MJ yet. The picture fixes landed well. The comma fix overshot: the new trimming clips the ends of several words. One line also slipped back to wording the brief forbids. Three fixes remain (below); everything else is minor.
+
+## Top-5 status
+
+1. **Comma and question intonation: partly fixed, with a new defect.** Pitch tracking now shows comma fragments ending between -2.3 and +2.7 semitones of their median (v6: -3.4 to -7.6), and statements still fall. That is the fix. Questions now end at or above the median (i5 +0.3, h9 +0.5, e3 -0.1, d4 -0.6), but they get there by jumping to about 240 Hz, roughly 9 semitones over his 125 Hz base. The clips also got much shorter than in v6: h9 0.94 to 0.53 s, i5 0.93 to 0.53 s, d4 1.41 to 0.88 s, d1 3.08 to 2.42 s, c11 2.51 to 1.95 s. Whisper on the isolated v7 clips hears "and that time", "running white", "and that plane right" (no "there"), "Sunday after fast-forwarded", "Thanks for writing a little partner", and still "afters". The v6 clips of the same lines transcribed correctly. The full mix shows the same: "Sunday after", "plane right", "writing a", "pretty simple".
+2. **No dead air: fixed.** silencedetect at -45 dB finds no span over 0.15 s.
+3. **Board on "airfield": fixed.** The wide board arrives at 0:13.4 on the word; s1 plays over it with rings on the planes; Sky City follows with moving footage, large cards, and Hoist lifting the card on his forks.
+4. **One-job walkthrough: fixed.** REQUEST ticket at the tower (0:54), stick rides the arc dot (0:55.9), radio, then plane (1:02.5) and a push-in on the tag (1:03.5), with the chips lighting in step. The cost popup now matches the tag ($1.40 / $1.52).
+5. **Named objects: mostly fixed.** Tug now correct (0:35.4, the blue cart with the terminal icon). The tower pull-out settles before "tower". Amber shows as a pulsing amber ring on the fuel truck (an overlay; the truck's own ground halo stays green). "Organized" now cuts to the tidy board at 1:14.5. Still open: the jam (see R3). The stick also stays on the fuel truck during "out rolls the crew" instead of moving to the carts.
+
+**Transitions:** frame-stepped the TOWER to ORDER card switch (0:56.1) and 1:08: both clean, no blank card. At 1:29.0 the board dips through grey to the close-up over about 3 frames, with no black frame. That's acceptable.
+
+**SFX:** pops, whooshes, zip and slide now sit about 10 dB over the bed; radar (about 20 dB) and boing are clearly audible; the screech is moderate. The strain at about 0:20.2 shows no rise at all, so it is still inaudible.
+
+**Runtime:** 103.0 s. That is inside the brief's 90 to 110 s but under the 105 to 110 s target; R1 and R2 will add about 1 s back, which is fine.
+
+## Remaining fixes (most important first)
+
+R1. **Clipped word endings from the context-trim and bend (i5, h9, e3, d4, d1, c11, h10b; also check t3, t3b, e8, h10, which shrank 0.2 to 0.3 s).** Two fixes:
+- **Context cut:** place the cut at the detected onset of the context word, plus 40 ms of tail. Assert that each trimmed fragment is no shorter than its v6 standalone clip minus 0.1 s.
+- **Questions:** limit the bend to the last 150 ms and +3 semitones at most, so the stressed word stays near his normal pitch.
+
+Re-synth h10b with a tighter tail. Accept when whisper on every isolated clip matches the script (as v6 did) and question ends stay at or above their median.
+
+R2. **0:39.2 h8 regression: "That number is how hard the computer is working."** The brief says not to say that, and v6-decisions says to name the CPU plainly. Restore "That number is the CPU it's using." and keep the new card text ("nearly two processor cores busy").
+
+R3. **1:05 to 1:14 "Traffic jam" still shows a sparse old board.** Sound off, there is no jam. Use the busy V22b clip (16 agents) under e2 to e5 with carts visibly piling up, and push in on "Traffic jam" with the screech.
+
+## Minor (do if cheap)
+
+- Make the strain SFX audible.
+- On "out rolls the crew", sweep the stick to the carts.
+- Hoist still slides off without a wave.
+- The chip stack at bottom left partly covers the legend lines.
+- The plane swaps from shuttle to airliner at 1:28 under "That's me".
+- The mix opens with "Howdy" slightly masked (whisper heard "Tao Di"); raise it 2 dB or duck the bed under it.
