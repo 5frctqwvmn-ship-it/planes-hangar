@@ -15,6 +15,10 @@ HOIST: "Here's the problem. You ask a crew of AI agents to build your game, and 
 ON SCREEN (one line at a time): "What is each agent doing? · Which tools is it calling? · Is it working or waiting? · What is it costing me?"
 HOIST: "So we built a picture of the work. Everything on it answers one of those four questions. Let me show you the finished thing first. Then I'll show you how we got here, because it did not start out looking like this."
 
+## SCENE 2a. Why planes (about 15 s)
+VISUAL: Real gameplay of Planes Hangar: the airport start screen, a plane with a face taking off, a race, the ground crew on the apron. Hoist in his panel, pointing.
+HOIST: "First, why airplanes? Because the thing this crew is building is a plane game, for a four-year-old pilot. Planes with faces, races, a ground crew. So when we needed a picture of the work, we borrowed the game's own world: an airfield."
+
 ## SCENE 2b. Organized chaos (about 10 s)
 VISUAL: Wide shot of the ENTIRE finished board with three or four planes on their stands at once, live and moving: beacons spinning, vehicles lit, command arcs coming down from the tower, the dish sending to the cloud, tokens ticking on every tab. HOLD for 10 to 15 seconds with no cuts so the viewer can take it in. No push in.
 HOIST: "Ever stood at the window of a busy airport? Trucks everywhere, planes coming and going. Looks like chaos. It isn't. It's organized chaos. Break it down to its parts and it's a symphony: every truck, every light, every line moving in sequence, doing its job. This board is the same. Let's take it one piece at a time."
@@ -108,7 +112,12 @@ Small token and cost counters tick up on the plane's tab as it goes.
 HOIST: "Script. Storyboard. Every old version of the board. A camera, a painter, a projector, a filing clerk. Every one of them is a tool call, and every one of them is on the board. That's the whole point. You asked a crew to make something, and now you can watch them do it."
 ON SCREEN: "This film: N tool calls, X tokens, $Y at API prices" (real numbers from the board when the cut is final).
 
-## SCENE 11. Close (6:50 to 7:05)
+## SCENE 11. Close (about 25 s)
+VISUAL: Zoom in on Hoist, full face, looking at the camera. A thought bubble pops up with a tiny plane-graph of the week's spend, then pops away.
+HOIST: "So that's the board. It started as plain curiosity: what is going on under the hood when I ask a crew of agents to build something? Then it turned into an ops tool. It shows where the money goes, keeps the crew honest, and helps the pilot spend his time and his agents where they count. Thanks for riding along. Now go check on your crew. Bye!"
+VISUAL: Hoist waves a fork. Cut to a large, readable credit: "Made by MJ and his son, with an orchestrator and a crew of agents."
+
+## SCENE 11 (old). Close (6:50 to 7:05)
 VISUAL: Brass card: "Every piece on this board is there because something was hard to see." Then: "Made by MJ and his son, with an orchestrator and a crew of agents." Hoist backs out of frame, lamp off.
 HOIST: "That's the board. Now go check on your crew."
 
