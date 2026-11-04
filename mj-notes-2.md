@@ -1,0 +1,7 @@
+# MJ notes, round 2 (Nov 3, 6:02 PM)
+1. VOICE: George (bm_george, the English voice) wins. A little slow: speed it up. Use bm_george at speed 0.92 for ALL Hoist lines in ALL sections (s1 to s5). Same strict STT match, 50 ms tail pad, no pitch shift. Remove the "Voice:" corner tags.
+2. EL CHUPACABRA CARD (s1 capture -> s5): he must NOT be flying. He is parked on the runway, with the camera pointed at him, framed on his face (eyes and mouth), talking. His lines are great; keep them.
+3. TIME-LAPSE (s4): the activity only spins up at the very end. Give it a clear arc: start with ONE pad, grow to SIX pads max at the peak, then shrink back down. Add more activity in the middle so the growth reads.
+4. BELUGA ASIDE (s5): replace the drawn thought bubble with the real Beluga (the game's own Beluga model, rendered). Then Baby Beluga's face from the game pops up in a card (same style as the other talking-face cards, parked on the runway, face framed) and says a quip, for example: "Hmph. Chupacabra always steals the show!" Give Baby Beluga its own voice.
+5. CREW SPOTLIGHTS (s2): drop Hoist's pointer when the spot ring is highlighting; the circles alone are enough. Make sure no ring or label covers any words. KEEP the dimming of everything else with only the active vehicle lit; MJ loved that.
+6. REPRODUCIBILITY (all sections, the most important rule): what MJ approves must re-render in HD EXACTLY one-to-one: same shots, same timing, same framing, same everything, only sharper. See "LOCK RULES" in README.md.
