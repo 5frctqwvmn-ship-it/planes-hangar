@@ -22,3 +22,5 @@
 12. EL CHUPACABRA VERSION, PLANE SIZE (6:52 PM): explain "plane size = job size" in Scene 6, where it lands naturally. Baby Beluga holds the Making-this-video stand BECAUSE it is the biggest job (a big workload, big files), so it gets the biggest plane; small jobs get small planes. Make a joke of how big she is ("oh yeah, it's a big job"). REMOVE the plane-size lines and the size tags from Scene 4 in this version (s3 equivalent).
 13. EL CHUPACABRA VERSION, BELUGA GAG (6:53 PM): Baby Beluga swings her nose open (the cargo door, like the game win show, which already animates it: BK_SHOW door hinge) and offers El Chupacabra a ride inside as a joke. He declines with a dramatic flourish and moves on.
 14. EL CHUPACABRA VERSION VOICE (7:51 PM): MJ picked Alex (em_alex, 0.95). Locked.
+15. MJ 8:39 PM: s2 p3 approved except clipped endings on 'happening', 'had' (find it), 'Radio'. s3 p3 APPROVED and LOCKED; keep the plane-size lines for now.
+16. MJ 8:54 PM: s2 p4 APPROVED and LOCKED.

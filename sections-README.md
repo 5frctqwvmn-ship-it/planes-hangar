@@ -30,3 +30,16 @@ Re-synthesize ONLY your section's Hoist lines with your voice (same machinery as
 - Keep every pass. Never overwrite: preview-pN.mp4 plus spec-pN.json plus a changelog line in progress.md saying exactly what changed and why.
 - When MJ says something was good, mark it LOCKED in progress.md ("LOCKED: crew dimming spotlight, p1, spec keys ..."), and do not change it again unless he asks.
 - Before claiming a pass is done, re-run the build from spec and confirm the output matches frame for frame (hash a few frames).
+
+## SHARED MACHINE LIMITS (8 GB RAM, 5 agents): mandatory
+- Only ONE TTS (Kokoro) process per agent at a time; never run TTS jobs in parallel (each holds about 0.8 GB).
+- Browser captures (game or board, Playwright) take the lock: `flock /home/claude/wt-out/video/sections/.capture.lock <your capture command>`. One capture at a time across all agents.
+- Before a capture, check `free -m`: if "available" is under 1500 MB, wait and retry rather than crash the page.
+
+## TOKEN BUDGET (MJ at 53% of the week, 6:26 PM): mandatory
+- Do NOT hand back status-only reports. Report ONCE per pass, when the preview file exists (or when truly blocked). While a long job runs, wait on it in the background instead of reporting.
+- Keep reports under 120 words. Keep tool output small (head/tail, no big dumps). No extra passes beyond what MJ or the director asked.
+- Every capture under the lock must have a hard timeout: `flock .capture.lock timeout 900 node ...`. A hung capture holds the lock for everyone (one hung for 18 min at 0% CPU at 7:45 PM and was killed).
+
+## SHOT SHEET BEFORE RENDER (MJ, 8:32 PM): mandatory, every pass
+Before rendering any video (and before any long capture), make sections/<name>/shots-pN.jpg: one full-size still per camera angle and key moment in the pass (every shot change, every card or face close-up, start and end of every camera move), each labelled with its timestamp and spec keys. Report the sheet and STOP; the orchestrator approves the angles, then you render. The render must use exactly those camera settings (the same spec keys), so the video matches the approved stills.

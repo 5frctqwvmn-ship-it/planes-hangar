@@ -1,0 +1,414 @@
+{
+ "section": "s2-crew-tower",
+ "pass": 4,
+ "note": "Everything the render depends on. Coordinates are 1920x1080 units; preview = x0.5 at 15 fps, hd = x1.0 at 30 fps.",
+ "seeds": {
+  "random": "none used; board capture is driven by a virtual clock stepped by frame index"
+ },
+ "voice": {
+  "name": "bm_george",
+  "speed": 0.92,
+  "lang": "en-us",
+  "pitch": 1.0,
+  "dir": "audio_george_p4",
+  "tail_pad_s": 0.05,
+  "tts_tool": "tts_george.py",
+  "rescue_tool": "rescue_george.py",
+  "stt": "strict, whisper-base.en, ratio 1.0 (k10 \"upfront\" word-spacing excepted)",
+  "timing_dir": "audio_george"
+ },
+ "lines": [
+  {
+   "id": "k1",
+   "text": "See that fuel truck?",
+   "gap": 0.3
+  },
+  {
+   "id": "k2",
+   "text": "That's its brain,",
+   "gap": 0.3
+  },
+  {
+   "id": "k2b",
+   "text": "flashing amber while it thinks.",
+   "gap": 0.3
+  },
+  {
+   "id": "k3",
+   "text": "And when it calls a tool, out rolls the ground crew!",
+   "gap": 0.4
+  },
+  {
+   "id": "k4",
+   "text": "Baggage reads files.",
+   "gap": 0.3
+  },
+  {
+   "id": "k5",
+   "text": "The tug runs commands.",
+   "gap": 0.3
+  },
+  {
+   "id": "k6",
+   "text": "And that camera truck films.",
+   "gap": 0.5
+  },
+  {
+   "id": "k7",
+   "text": "That number shows how hard the computer is working,",
+   "gap": 0.35
+  },
+  {
+   "id": "k8",
+   "text": "and that tag?",
+   "gap": 0.4
+  },
+  {
+   "id": "k9",
+   "text": "That's the bill!",
+   "gap": 0.3
+  },
+  {
+   "id": "k10",
+   "text": "An estimate up front,",
+   "gap": 0.3
+  },
+  {
+   "id": "k10b",
+   "text": "and the real cost after,",
+   "gap": 0.3
+  },
+  {
+   "id": "k11",
+   "text": "so you learn what things really cost.",
+   "gap": 0.8
+  },
+  {
+   "id": "r1",
+   "text": "Now, how does everybody know what's happening?",
+   "gap": 0.4
+  },
+  {
+   "id": "r2",
+   "text": "Right beside the tower is the Radio,",
+   "gap": 0.3
+  },
+  {
+   "id": "r2b",
+   "text": "our lightweight Haiku helper.",
+   "gap": 0.3
+  },
+  {
+   "id": "r3",
+   "text": "It watches the whole crew,",
+   "gap": 0.3
+  },
+  {
+   "id": "r3b",
+   "text": "and keeps this board up to date,",
+   "gap": 0.2
+  },
+  {
+   "id": "r3c",
+   "text": "so the director never has to.",
+   "gap": 0.5
+  },
+  {
+   "id": "r4",
+   "text": "Up in the tower is the Orchestrator, our director.",
+   "gap": 0.3
+  },
+  {
+   "id": "r5",
+   "text": "It plans the work,",
+   "gap": 0.2
+  },
+  {
+   "id": "r5b",
+   "text": "and shoots each order right down the taxi line.",
+   "gap": 0.6
+  }
+ ],
+ "timeline": {
+  "lead_s": 0.45,
+  "tail_s": 0.6,
+  "old_timeline": "cues11.py + audio11t/dur.json (frozen copies): the board capture was timed to it, so the new voice timeline is warped onto it line by line"
+ },
+ "capture": {
+  "clip": "A4",
+  "tool": "rec11.js",
+  "html": "board-film11.html",
+  "html_sha256": "4c0b81248e4e5e439763bc756101f9972549877a370d8f5dafe9ad0f49c6959b",
+  "events": "ev_A.json",
+  "fps": 30,
+  "slow": 0.5,
+  "warm_s": 4,
+  "T0_ms": 1793700009950,
+  "tau0_s": 19.9,
+  "tau1_s": 69.3,
+  "pad_name": "Polish menus",
+  "force_planes": {
+   "syn-a": "bonanza",
+   "syn-b": "beluga",
+   "syn-c": "cap10"
+  },
+  "camera": [
+   {
+    "t": 0,
+    "n": "plane",
+    "oz": 0.9,
+    "k": 0.72
+   },
+   {
+    "t": 26.1,
+    "n": "plane",
+    "oz": 0.9,
+    "k": 0.72
+   },
+   {
+    "t": 28.8,
+    "n": "fit",
+    "k": 0.95
+   },
+   {
+    "t": 49.4,
+    "n": "fit",
+    "k": 0.95
+   }
+  ],
+  "jpeg_q": {
+   "preview": 85,
+   "hd": 93
+  },
+  "size": {
+   "preview": [
+    960,
+    540
+   ],
+   "hd": [
+    1920,
+    1080
+   ]
+  },
+  "dirs": {
+   "preview": "clips_p/A4",
+   "hd": "clips_hd/A4"
+  }
+ },
+ "style": {
+  "dim_alpha": 165,
+  "dim_spot_radius_mult": 1.15,
+  "dim_fade_in_s": 0.4,
+  "dim_start": [
+   "k1",
+   -0.35
+  ],
+  "dim_end": [
+   "k11",
+   0.45
+  ],
+  "LOCKED": "dimming of everything except the active vehicle (p1): keys dim_alpha, dim_spot_radius_mult, dim_*, beats[].radius, beats[].frm/to",
+  "hoist_box": [
+   40,
+   628,
+   440,
+   1040
+  ],
+  "ring_width": 6,
+  "board_panel": [
+   40,
+   60,
+   560,
+   380
+  ],
+  "estimate_card": {
+   "w": 560,
+   "h": 250,
+   "dx_from_tag": 340,
+   "bottom_above_tag": 70
+  },
+  "ring_text_protect": true
+ },
+ "beats": [
+  {
+   "frm": [
+    "k1",
+    -0.15
+   ],
+   "to": [
+    "k2",
+    -0.1
+   ],
+   "key": "fuel",
+   "title": "FUEL TRUCK",
+   "sub": "",
+   "color": [
+    255,
+    224,
+    138
+   ],
+   "radius": 125
+  },
+  {
+   "frm": [
+    "k2",
+    -0.1
+   ],
+   "to": [
+    "k2b",
+    0.35
+   ],
+   "key": "fuel",
+   "title": "FUEL TRUCK",
+   "sub": "its brain, flashing amber while it thinks",
+   "color": [
+    255,
+    170,
+    30
+   ],
+   "radius": 125,
+   "end_is_line_end": true
+  },
+  {
+   "frm": [
+    "k3",
+    -0.1
+   ],
+   "to": [
+    "k4",
+    -0.15
+   ],
+   "key": "crew",
+   "title": "GROUND CREW",
+   "sub": "a tool call sends the crew rolling out",
+   "color": [
+    130,
+    230,
+    160
+   ],
+   "radius": 420
+  },
+  {
+   "frm": [
+    "k4",
+    -0.15
+   ],
+   "to": [
+    "k5",
+    -0.1
+   ],
+   "key": "bag",
+   "title": "BAGGAGE CART",
+   "sub": "reads files",
+   "color": [
+    90,
+    176,
+    255
+   ],
+   "radius": 125
+  },
+  {
+   "frm": [
+    "k5",
+    -0.1
+   ],
+   "to": [
+    "k6",
+    -0.1
+   ],
+   "key": "tug",
+   "title": "TUG",
+   "sub": "runs commands",
+   "color": [
+    255,
+    159,
+    67
+   ],
+   "radius": 125
+  },
+  {
+   "frm": [
+    "k6",
+    -0.1
+   ],
+   "to": [
+    "k7",
+    -0.2
+   ],
+   "key": "cam",
+   "title": "CAMERA TRUCK",
+   "sub": "films",
+   "color": [
+    197,
+    108,
+    240
+   ],
+   "radius": 125
+  },
+  {
+   "frm": [
+    "k7",
+    -0.2
+   ],
+   "to": [
+    "k8",
+    -0.1
+   ],
+   "key": "cpu",
+   "title": "CPU 180%",
+   "sub": "how hard the computer is working",
+   "color": [
+    111,
+    214,
+    166
+   ],
+   "radius": 95
+  },
+  {
+   "frm": [
+    "k8",
+    -0.1
+   ],
+   "to": [
+    "k10",
+    -0.1
+   ],
+   "key": "tab",
+   "title": "COST TAG",
+   "sub": "the bill",
+   "color": [
+    255,
+    255,
+    255
+   ],
+   "radius": 110
+  },
+  {
+   "frm": [
+    "k10",
+    -0.1
+   ],
+   "to": [
+    "k11",
+    0.4
+   ],
+   "key": "tab",
+   "title": "COST TAG",
+   "sub": "",
+   "color": [
+    255,
+    226,
+    110
+   ],
+   "radius": 110,
+   "end_is_line_end": true
+  }
+ ],
+ "overlays": {
+  "pointer": "removed in p2 (circles only)",
+  "voice_tag": "removed in p2"
+ },
+ "music": "none in section previews (voice only); cue to be added at stitch",
+ "changelog_p3": "rings no longer draw over the Polish menus pill or the CPU number (pixels inside those boxes are restored after the ring); dimming untouched",
+ "changelog_p4": "audio only: clips r1,r2,r2b,r3,r4,k8 re-tailed (audio_george_p4); timing and mouth still driven by the p3 clips so every video frame equals p3"
+}

@@ -1,0 +1,397 @@
+{
+ "pass": "p3",
+ "section": "s3-evolution",
+ "notes": "Coordinates in 1920x1080 units; preview = same render scaled by 0.5. All times in seconds on the section clock.",
+ "voice": {
+  "name": "bm_george",
+  "speed": 0.92,
+  "speed_tries": [
+   0.92,
+   0.9,
+   0.94,
+   0.88,
+   0.96
+  ],
+  "tail_pad_ms": 50,
+  "pitch_shift": false,
+  "audio_dir": "audio_p3",
+  "tag": null
+ },
+ "lines": [
+  {
+   "id": "f1",
+   "text": "And when more jobs come in, whoa!",
+   "stt_expect": "And when more jobs come in, whoa!",
+   "gap_after": 0.3,
+   "alts": []
+  },
+  {
+   "id": "f2",
+   "text": "Look at that, a whole flurry of activity!",
+   "stt_expect": "Look at that, a whole flurry of activity!",
+   "gap_after": 0.3,
+   "alts": []
+  },
+  {
+   "id": "f3",
+   "text": "Watch the airfield stretch out to make room.",
+   "stt_expect": "Watch the airfield stretch out to make room.",
+   "gap_after": 0.3,
+   "alts": []
+  },
+  {
+   "id": "f3b",
+   "text": "Bigger job, bigger plane.",
+   "stt_expect": "Bigger job, bigger plane.",
+   "gap_after": 0.3,
+   "alts": []
+  },
+  {
+   "id": "f3c",
+   "text": "Quick jobs get a little one; the big ones get the Beluga!",
+   "stt_expect": "Quick jobs get a little one; the big ones get the Beluga!",
+   "gap_after": 0.4,
+   "alts": []
+  },
+  {
+   "id": "f4",
+   "text": "Good thing you know what you're looking at now!",
+   "stt_expect": "Good thing you know what you're looking at now!",
+   "gap_after": 0.7,
+   "alts": []
+  },
+  {
+   "id": "e1",
+   "text": "Now, it didn't start this tidy.",
+   "stt_expect": "Now, it didn't start this tidy.",
+   "gap_after": 0.35,
+   "alts": []
+  },
+  {
+   "id": "e2a",
+   "text": "At first, it was simple.",
+   "stt_expect": "At first, it was simple.",
+   "gap_after": 0.35,
+   "alts": []
+  },
+  {
+   "id": "e2",
+   "text": "But as the crew grew, every single action got its own cart",
+   "stt_expect": "But as the crew grew, every single action got its own cart,",
+   "gap_after": 0.4,
+   "alts": [
+    "But as the crew grew, every single action got its own cart.",
+    "But as the crew grew, every single action got its own cart,"
+   ]
+  },
+  {
+   "id": "e3",
+   "text": "and pretty soon?",
+   "stt_expect": "and pretty soon?",
+   "gap_after": 0.5,
+   "alts": [
+    "And pretty soon?",
+    "and pretty soon?"
+   ]
+  },
+  {
+   "id": "e4",
+   "text": "Yikes!",
+   "stt_expect": "Yikes!",
+   "gap_after": 0.6,
+   "alts": [
+    "Yikes!",
+    "Yikes."
+   ]
+  },
+  {
+   "id": "e5",
+   "text": "Traffic jam.",
+   "stt_expect": "Traffic jam.",
+   "gap_after": 0.5,
+   "alts": []
+  },
+  {
+   "id": "e6",
+   "text": "So we gave every crew its own pad and organized the chaos.",
+   "stt_expect": "So we gave every crew its own pad and organized the chaos.",
+   "gap_after": 0.8,
+   "alts": []
+  },
+  {
+   "id": "e8",
+   "text": "Started with planes.",
+   "stt_expect": "Started with planes...",
+   "gap_after": 0.55,
+   "alts": []
+  },
+  {
+   "id": "e8b",
+   "text": "Ended with planes.",
+   "stt_expect": "...ended with planes.",
+   "gap_after": 0.8,
+   "alts": []
+  }
+ ],
+ "start_pad": 0.3,
+ "gap_tail_sub": 0.05,
+ "end_hold": 1.0,
+ "orig_warp": {
+  "section_start_orig": 86.8,
+  "clip_orig_start": 86.8,
+  "note": "board clip index = (orig time - 86.8) * capture fps; orig times from lib/cues11.py + lib/audio11t/dur.json"
+ },
+ "board": {
+  "html": "board-film11.html",
+  "server_root": "/home/claude/wt-out",
+  "events_src": "cfg/ev_A3.json",
+  "base_cfg": "cfg/cfg_A3.json",
+  "force_planes": {
+   "syn-a": "bonanza",
+   "syn-b": "beluga",
+   "syn-c": "stearman"
+  },
+  "pad1_label": "Polish menus",
+  "camera_keys": [
+   {
+    "n": "plane",
+    "oz": 1.35,
+    "k": 0.58,
+    "t": 0
+   },
+   {
+    "n": "plane",
+    "oz": 1.35,
+    "k": 0.58,
+    "t": 45.989
+   },
+   {
+    "t": 48.689,
+    "n": "fit",
+    "k": 1.08
+   },
+   {
+    "t": 65.5,
+    "n": "fit",
+    "k": 1.08
+   },
+   {
+    "t": 76.3,
+    "n": "fit",
+    "k": 1.08
+   },
+   {
+    "t": 78.3,
+    "n": "fit",
+    "k": 1.0
+   }
+  ],
+  "virtual_clock": "frame-indexed: Date.now/performance.now/requestAnimationFrame driven by __step(dt), slow 0.5, warm 10 steps; no wall clock",
+  "start_step_s": 68.86,
+  "end_step_s": 105.73,
+  "seed": "none (no randomness in board)",
+  "capture": {
+   "preview": {
+    "dir": "rec/A3",
+    "fps": 15,
+    "vp": [
+     960,
+     540
+    ]
+   },
+   "hd": {
+    "dir": "rec/A3_hd",
+    "fps": 30,
+    "vp": [
+     1920,
+     1080
+    ]
+   }
+  }
+ },
+ "gen_clips": {
+  "G2": {
+   "dir": "clips/G2",
+   "src": "_anim11/clips/G2 v4-icons-beacons, frames 0-79, 30fps",
+   "zoom": 1.5,
+   "center": [
+    900,
+    500
+   ],
+   "label": "GENERATION 2",
+   "sub": "towers, trucks and metrics",
+   "col": [
+    130,
+    230,
+    160
+   ]
+  },
+  "G3": {
+   "dir": "clips/G3",
+   "src": "_anim11/clips/G3 v3-flat-carts lineage, 30fps",
+   "frame_from": 60,
+   "frame_to": 329,
+   "push": {
+    "max": 0.35,
+    "center": [
+     1450,
+     590
+    ]
+   },
+   "label": "GENERATION 3",
+   "sub": "a cart for every tool call",
+   "col": [
+    255,
+    120,
+    100
+   ]
+  }
+ },
+ "gen1": {
+  "html": "gen1.html",
+  "seconds": 4,
+  "label": "GENERATION 1",
+  "sub": "recreated: planes on a runway",
+  "col": [
+   255,
+   226,
+   110
+  ],
+  "scene": "three.js white faceted planes on a runway, time = frame/fps, no randomness",
+  "capture": {
+   "preview": {
+    "dir": "rec/gen1_prev",
+    "fps": 15,
+    "size": [
+     960,
+     540
+    ]
+   },
+   "hd": {
+    "dir": "rec/gen1_hd",
+    "fps": 30,
+    "size": [
+     1920,
+     1080
+    ]
+   }
+  }
+ },
+ "timing": {
+  "gen1_in": [
+   "e2a",
+   -0.05
+  ],
+  "gen2_in": [
+   "e2",
+   -0.05
+  ],
+  "gen3_in_after_gen2": 2.6,
+  "gen4_in": [
+   "e6",
+   -0.1
+  ],
+  "gen3_jam_chip": [
+   "e4",
+   -0.05
+  ],
+  "gen3_push_from": [
+   "e4",
+   -0.3
+  ],
+  "gen3_progress_end": [
+   "e5",
+   0.9
+  ],
+  "trans_s": 0.22,
+  "size_chip": [
+   "f3b",
+   -0.1
+  ],
+  "little_tag": [
+   "f3c",
+   0.7
+  ],
+  "beluga_tag": [
+   "f3c",
+   2.35
+  ],
+  "tag_dur": 1.3,
+  "turn_start_rel_e8": -0.2,
+  "punch_start_rel_e8": -0.25,
+  "sheep_start_rel_e8b": -0.05,
+  "punch_out_after_e8b": 0.25
+ },
+ "overlays": {
+  "size_chip": {
+   "text": "plane size = job size",
+   "col": [
+    255,
+    226,
+    110
+   ],
+   "size": 52,
+   "x": "tower_x-380 (min 330)",
+   "y": 130
+  },
+  "jam_chip": {
+   "x": 1290,
+   "y": 240,
+   "size": 90,
+   "yikes": "YIKES!",
+   "jam": "TRAFFIC JAM",
+   "col": [
+    255,
+    90,
+    70
+   ]
+  },
+  "tags": {
+   "little": "little plane",
+   "beluga": "Beluga"
+  },
+  "pip_rect": [
+   40,
+   628,
+   440,
+   1040
+  ],
+  "punch_rect": [
+   520,
+   50,
+   1400,
+   1040
+  ],
+  "dim": 0.55
+ },
+ "music": {
+  "file": "lib/music_cue4_S4.wav",
+  "rms": 0.1,
+  "duck_db": -12,
+  "attack_ms": 40,
+  "release_ms": 250,
+  "fade_s": 0.5,
+  "voice_gain": 0.9,
+  "note": "placeholder cue from _anim4"
+ },
+ "output": {
+  "preview": {
+   "size": [
+    960,
+    540
+   ],
+   "fps": 15,
+   "crf": 28,
+   "preset": "ultrafast"
+  },
+  "hd": {
+   "size": [
+    1920,
+    1080
+   ],
+   "fps": 30,
+   "crf": 18,
+   "preset": "medium"
+  }
+ }
+}
