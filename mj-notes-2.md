@@ -54,3 +54,4 @@
 24. MJ 12:44 AM: PICKED the 7th still (the cape test): look 1 (yaw 10 right, nose up 5) WITH the green cape ON. LOCKED as El Chupacabra's talk-to-camera look for the sign-off pop-up and the bottom-left host box. Cape stays on.
 25. MJ 1:13-1:14 AM: the nose-up pose is ONLY for facing the screen (sign-off, host box); on the ground with Baby Beluga he is the runway turntable model facing her. Then: CAPE OFF everywhere (distracting).
 26. MJ 1:28 AM: going to bed. Render the FULL El Chupacabra film, low res, with all directions applied, to watch in the morning. Director (Opus) reviews the stitched cut; fix; deliver.
+27. 2026-11-04 overnight: chupa-full-p3.mp4 delivered (director-reviewed p1, fixes in p2, end swell in p3).
