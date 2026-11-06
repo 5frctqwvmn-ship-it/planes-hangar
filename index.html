@@ -13626,7 +13626,7 @@ function wmRecShot(){ const R = WM.rec, r = WM.r; if(!R || !r) return; R.shots++
    Levels (1 to 6: count to 3, count to 5, find the number, count to 10, add within 5, add within 10; 7 to 12 since 2026-10-31: adding
    past ten, take away, the missing number, counting by twos, fives and tens, the biggest or smallest, story problems) go up after three
    right-first-time answers in a row, down after two misses in a row, and are saved. Since 2026-11-01 he keeps trying until it is right; only a first try counts (lnAnswer). */
-const raceTypeSaved = ()=>{ const t = saveGet('hangar-racetype'); return t === 'numbers' || t === 'words' || ((t === 'beats' || t === 'radio' || t === 'letters') && lang === 'en') || t === 'tower' ? t : 'classic'; };   // (the Letter Race too: English only)   // (Radio Out too: English only)   // Word Launch is English only for now (an old Spanish save with it opens the classic race)
+const raceTypeSaved = ()=>{ const t = saveGet('hangar-racetype'); return t === 'numbers' || t === 'words' || ((t === 'beats' || t === 'radio' || t === 'letters') && lang === 'en') || t === 'tower' ? t : (t == null && lang === 'en' ? 'letters' : 'classic'); };   // first play ever (nothing saved): the Letter Race (English); Spanish first play stays classic   // (the Letter Race too: English only)   // (Radio Out too: English only)   // Word Launch is English only for now (an old Spanish save with it opens the classic race)
 RACE.type = raceTypeSaved();
 const LEARN = {on:false, me:null, q:null, nextT:0, stars:0, scale:1, streak:0, miss:0, lvl:1, help:[]};
 const LN_TOP = 12;   // levels 1 to 12 (7 to 12 since 2026-10-31: lnMake)
