@@ -1,0 +1,12 @@
+{
+  "name": "planes-hangar",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:static": "node tools/test/check-static.mjs",
+    "test:smoke": "node tools/test/smoke.mjs"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}
