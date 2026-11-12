@@ -13998,30 +13998,34 @@ function lnAnswer(v, bt){
 const KF_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 13.5l7-1.5 5.5-7h2.5l-2.5 7 5-1 1.5-2.5H23l-1 5-6.5 1.5L12 21H9.5l2-4.5-7 .5z"/></svg>';
 function lnNo(bt){ bt.classList.remove('no', 'nudge'); void bt.offsetWidth; bt.classList.add('no'); LEARN.help.push(setTimeout(()=>bt.classList.remove('no'), 650)); }
 function lnTouchEls(){ return [...$('rqPics').querySelectorAll('svg,.rq-e')].filter(el=>!el.closest('.rq-eq') && !el.classList.contains('gone') && !el.classList.contains('rq-cmp')); }
+/* No waiting to count (2026-11-12, the owner: "there's a delay before you can actually select it. You should be able to select it. If you do
+   start tapping them to count, that's when they should grow in size"): after a miss the pictures are big and tappable at once, her "Try
+   again!" no longer gates them (her "Count them one by one!" follows only if he has not started). And before any miss, a tap on a picture
+   starts the counting by itself (lnTouchTap, q.touch.free): they grow, the answers stay as they were, nothing times out. */
 function lnTouchStart(q, p){
-  const els = lnTouchEls(); if(!els.length) return lnLiveAfter(q, p);
-  els.forEach(el=>el.classList.remove('lit')); q.touch = {seen: new Set(), n: els.length};
-  Promise.resolve(p).then(()=>{ const t0 = performance.now(), go = ()=>{ if(LEARN.q !== q || q.done || !q.touch) return;
+  lnTouchOff(); const els = lnTouchEls(); if(!els.length) return lnLiveAfter(q, p);
+  q.touch = {seen: new Set(), n: els.length}; $('rqText').textContent = q.bubble = UI[lang].lnTouch; $('rqPics').classList.add('touch'); lnTouchWait(q, 9000);
+  Promise.resolve(p).then(()=>{ const t0 = performance.now(), go = ()=>{ if(LEARN.q !== q || q.done || !q.touch || q.touch.free || q.touch.seen.size) return;
       if(wlTalking() && performance.now() - t0 < 5000) return LEARN.help.push(setTimeout(go, 120));
-      $('rqText').textContent = q.bubble = UI[lang].lnTouch; $('rqPics').classList.add('touch');
       say(UI[lang].lnTouchSay, herV(null, {qpref: /-nums-q$/})); lnTouchWait(q, 7800); };
     LEARN.help.push(setTimeout(go, 250)); });
 }
 function lnTouchWait(q, ms){ const k = q.touch.k = (q.touch.k || 0) + 1; LEARN.help.push(setTimeout(()=>{ if(q.touch && q.touch.k === k) lnTouchEnd(q); }, ms)); }   // the answers wake a few seconds after the prompt or his last touch
 /* Touch each one, bigger (2026-11-11, the owner: "make them bigger... it needs to be more apparent that he's selecting them, and also when there's one that's missing that he hasn't selected"): a tapped one gets a yellow disc and a number badge, a tap in the gap goes to the nearest untapped one (14 px), a tap on a counted one only wobbles it, and the untouched ones bounce after 2.5 s of pause. The sizes are in the CSS (.rq-pics.touch). */
-function lnTouchOff(){ const P = $('rqPics'); if(!P.classList.contains('touch')) return; P.classList.remove('touch', 'att'); P.querySelectorAll('.rq-bd').forEach(b=>b.remove()); P.querySelectorAll('.lit,.wob').forEach(el=>el.classList.remove('lit', 'wob')); }
+function lnTouchOff(){ const P = $('rqPics'); if(LEARN.q && LEARN.q.touch) clearTimeout(LEARN.q.touch.at); if(!P.classList.contains('touch')) return; P.classList.remove('touch', 'att'); P.querySelectorAll('.rq-bd').forEach(b=>b.remove()); P.querySelectorAll('.lit,.wob').forEach(el=>el.classList.remove('lit', 'wob')); }
 function lnTouchEnd(q){ if(LEARN.q !== q || q.done || q.live) return; lnTouchOff(); $('rqText').textContent = q.bubble = lnBubble(q); lnLive(q); }
-function lnTouchTap(el){ const q = LEARN.q, P = $('rqPics'); if(!q || q.done || !q.touch || q.live || !P.classList.contains('touch')) return; const els = lnTouchEls(); if(!els.includes(el)) return;
+function lnTouchTap(el){ const q = LEARN.q, P = $('rqPics'); if(!q || q.done) return; const els = lnTouchEls(); if(!els.includes(el)) return;
+  if(!q.touch || !P.classList.contains('touch')){ lnTouchOff(); q.touch = {seen: new Set(), n: els.length, free: true}; P.classList.add('touch'); void P.offsetWidth; }   // his own start, before any miss: they grow now, the answers stay as they were
   if(q.touch.seen.has(el)){ el.classList.remove('wob'); void el.getBoundingClientRect(); el.classList.add('wob'); return; }   // already counted: a small wobble
   q.touch.seen.add(el); P.classList.remove('att'); const r = el.getBoundingClientRect(), pr = P.getBoundingClientRect(), bd = document.createElement('i'); bd.className = 'rq-bd'; bd.textContent = q.touch.seen.size;
   bd.style.left = (r.right - pr.left - P.clientLeft - 24) + 'px'; bd.style.top = (r.top - pr.top - P.clientTop - 8) + 'px'; P.appendChild(bd);   // (the badge sits at the picture's top right corner)
   el.classList.add('lit'); const k = q.touch.seen.size; audio(); say(String(k), herV(null, {qpref: /-nums-q$/}));
   pgLog('num', {lvl: LEARN.lvl, q: pgQ(q), touch: k, of: q.touch.n, try: q.pgN || 0});
-  clearTimeout(q.touch.at); if(k < q.touch.n){ LEARN.help.push(q.touch.at = setTimeout(()=>{ if(LEARN.q === q && q.touch && !q.live && P.classList.contains('touch')) P.classList.add('att'); }, 2500)); }
-  lnTouchWait(q, k >= q.touch.n ? 900 : 8000); }   // (8 s while some are untouched: ten or more take him a while)
+  clearTimeout(q.touch.at); if(k < q.touch.n){ LEARN.help.push(q.touch.at = setTimeout(()=>{ if(LEARN.q === q && q.touch && P.classList.contains('touch')) P.classList.add('att'); }, 2500)); }
+  if(!q.touch.free) lnTouchWait(q, k >= q.touch.n ? 900 : 8000); }   // (8 s while some are untouched: ten or more take him a while)
 $('rqPics').addEventListener('click', e=>{ const el = e.target.closest('svg,.rq-e'); if(el) return lnTouchTap(el);
-  const q = LEARN.q; if(!q || !q.touch || q.live || !$('rqPics').classList.contains('touch')) return; let best = null, bd = 14.01;
-  lnTouchEls().forEach(c=>{ if(q.touch.seen.has(c)) return; const r = c.getBoundingClientRect(), d = Math.hypot(Math.max(r.left - e.clientX, 0, e.clientX - r.right), Math.max(r.top - e.clientY, 0, e.clientY - r.bottom)); if(d < bd){ bd = d; best = c; } });
+  const q = LEARN.q; if(!q || q.done) return; let best = null, bd = 14.01; const on = q.touch && $('rqPics').classList.contains('touch');   // (before the counting starts the pictures are small: the same 14 px of grace starts it)
+  lnTouchEls().forEach(c=>{ if(on && q.touch.seen.has(c)) return; const r = c.getBoundingClientRect(), d = Math.hypot(Math.max(r.left - e.clientX, 0, e.clientX - r.right), Math.max(r.top - e.clientY, 0, e.clientY - r.bottom)); if(d < bd){ bd = d; best = c; } });
   if(best) lnTouchTap(best); });   // a tap in a gap: the nearest untapped one within 14 px
 /* "Keep flying": a small button after the first miss; it skips the card with no penalty and no answer shown (the card comes back later), logged as a skip */
 function kfShow(q){ const b = $('rqKf'); if(!b) return; const on = !!q && !q.done && q.tries > 0; b.hidden = !on; if(on) b.querySelector('span').textContent = UI[q.L || lang].kfly; }
