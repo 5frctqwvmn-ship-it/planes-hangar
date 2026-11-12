@@ -579,13 +579,28 @@
   .rq-ans.four{gap:10px}.rq-ans.four button{width:70px;height:70px;font-size:36px}.rq-ans.four.wide button{font-size:28px}   /* four number choices from level 7 (2026-11-01 review) */
   .kf-btn{align-self:center;display:inline-flex;align-items:center;gap:6px;border:2px solid #9aa3a7;border-radius:999px;background:#fff;color:#4a5458;font:800 14px/1 var(--display);padding:6px 12px 6px 9px;cursor:pointer;touch-action:manipulation}
   .kf-btn svg{width:18px;height:18px;fill:#4a5458}.kf-btn[hidden]{display:none}
-  .rq-pics.touch svg,.rq-pics.touch .rq-e:not(.rq-cmp){cursor:pointer;animation:kfTouch 1.4s ease-in-out infinite}.rq-pics.touch .lit{animation:none}
-  .rq-pics.touch .rq-e.lit{background:radial-gradient(circle,#ffe27a 52%,rgba(255,226,122,0) 72%);border-radius:50%}.rq-pics.touch svg.lit{filter:drop-shadow(0 0 5px #ffd23f)}
-  @keyframes kfTouch{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
-  @media (prefers-reduced-motion:reduce){.rq-pics.touch svg,.rq-pics.touch .rq-e{animation:none}}
   .rq-ans.lt.hidew .pr-w{visibility:hidden}   /* Letter Race: the word stays hidden until he answers (2026-11-01 review) */
   .rq-pics .rq-cmp{font-size:46px}
   .rq-pics.lots{gap:2px 4px}.rq-pics.lots .rq-e{font-size:25px}.rq-pics.lots svg{width:27px;height:27px}.rq-pics.lots .rq-plus{font-size:24px;padding:0 4px}.rq-pics.lots .rq-row{gap:2px}
+  /* "Touch each one!" after a miss (2026-11-11, the owner: "make them bigger, because usually he misses them when it's like 10 plus, and he has a hard time with dexterity selecting the individual ones... They probably need to be double the size. And it needs to be more apparent that he's selecting them, and also when there's one that's missing that he hasn't selected"): about double size (88 / 68 / 56 px targets, 8 px apart), rows re-wrap, groups stack, the card widens and grows; waiting = pulsing ring, counted = solid yellow disc + number badge, no pulse; .att = the untouched ones bounce after a pause */
+  .rq:has(.rq-pics.touch){width:min(760px,calc(100% - 20px))}
+  @media (max-height:520px){.rq .rq-pics.touch{padding:0 80px 0 2px}}   /* (landscape: the width is there, the height is not) */
+  .rq .rq-pics.touch{--ts:88px;--tf:76px;position:relative;padding:74px 2px 0;gap:8px}   /* (the top 74 px clear the Say it again button) */.rq .rq-pics.touch.many{--ts:68px;--tf:60px}.rq .rq-pics.touch.lots{--ts:56px;--tf:50px}
+  .rq-pics.touch .rq-row{display:contents}.rq .rq-pics.touch .rq-grp{flex:0 0 100%;flex-direction:row;flex-wrap:wrap;justify-content:center;gap:8px}
+  .rq-pics.touch .rq-plus:not(:has(+.rq-num)){flex:0 0 100%;text-align:center;line-height:.9;padding:0}
+  .rq-pics.touch svg,.rq-pics.touch .rq-e:not(.rq-cmp){box-sizing:border-box;flex:none;width:var(--ts);height:var(--ts);padding:6px;border-radius:50%;touch-action:manipulation}
+  .rq-pics.touch .rq-e:not(.rq-cmp){display:inline-flex;align-items:center;justify-content:center;font-size:var(--tf);line-height:1;padding:0}
+  .rq-pics.touch svg:not(.gone):not(.lit),.rq-pics.touch .rq-e:not(.rq-cmp):not(.gone):not(.lit){cursor:pointer;box-shadow:0 0 0 3px rgba(31,154,166,.65);animation:kfRing 1.4s ease-in-out infinite}
+  .rq-pics.touch.att svg:not(.lit):not(.gone),.rq-pics.touch.att .rq-e:not(.lit):not(.rq-cmp):not(.gone){animation:kfRing 1.4s ease-in-out infinite,kfBounce 2.6s ease-in-out infinite}
+  .rq-pics.touch svg.lit,.rq-pics.touch .rq-e.lit{transform:none;background:#ffd23f;border:3px solid var(--ink);box-shadow:0 3px 8px rgba(0,0,0,.3);animation:kfPop .35s ease-out}.rq-pics.touch svg.lit{filter:none}
+  .rq-pics.touch svg.lit.wob,.rq-pics.touch .rq-e.lit.wob{animation:kfWob .4s ease-in-out}
+  .rq-pics.touch .ghost:not(.lit){opacity:.75}.rq-pics.touch .ghost{outline-offset:3px}
+  .rq-pics .rq-bd{position:absolute;z-index:2;width:30px;height:30px;box-sizing:border-box;border-radius:50%;background:var(--ink);color:#fff;border:2px solid #fff;font:900 18px/26px var(--display);text-align:center;pointer-events:none;animation:kfPop .35s ease-out}
+  @keyframes kfRing{0%,100%{box-shadow:0 0 0 3px rgba(31,154,166,.65)}50%{box-shadow:0 0 0 8px rgba(31,154,166,.15)}}
+  @keyframes kfPop{0%{transform:scale(.6)}55%{transform:scale(1.25)}100%{transform:scale(1)}}
+  @keyframes kfBounce{0%,38%,100%{transform:translateY(0)}8%{transform:translateY(-16px) scale(1.12)}16%{transform:translateY(0)}24%{transform:translateY(-10px) scale(1.06)}32%{transform:translateY(0)}}
+  @keyframes kfWob{0%,100%{transform:rotate(0)}25%{transform:rotate(-14deg)}75%{transform:rotate(14deg)}}
+  @media (prefers-reduced-motion:reduce){.rq-pics.touch svg,.rq-pics.touch .rq-e,.rq-pics .rq-bd{animation:none!important}}   /* (the static ring, fill and badge stay) */
   .rq-pics .lt-big.small .lt-cap{font-size:84px;letter-spacing:0}
   .rsw-lv.lt-lv.many{grid-template-columns:repeat(8,1fr);gap:4px}.rsw-lv.lt-lv.many button{min-height:44px;font-size:14px}
   @media (prefers-reduced-motion:reduce){.hl i,.cue-ico i,.wl-tap{animation:none}}
@@ -13904,7 +13919,7 @@ function lnRender(){
   if(op) pics.innerHTML = `<div class="rq-eq" aria-hidden="true">${q.a} <i>${op}</i> ${q.b}</div>` + pics.innerHTML;
   else if(t === 'miss') pics.innerHTML = `<div class="rq-eq" aria-hidden="true">${q.a} <i>+</i> <u>?</u> <i>=</i> ${q.sum}</div>` + pics.innerHTML;
   pics.classList.toggle('eq', !!pics.querySelector('.rq-eq'));   // (eq: the written problem on top; the pictures use the card's left side so 2 + 2 stays on one line)
-  pics.hidden = t === 'find'; pics.classList.toggle('many', many); pics.classList.toggle('lots', q.a + q.b > 10 || (t === 'count' && q.n > 10)); pics.classList.toggle('skip', t === 'skip');   // (lots: past ten, smaller pictures so the card stays low)
+  pics.classList.remove('touch', 'att'); pics.hidden = t === 'find'; pics.classList.toggle('many', many); pics.classList.toggle('lots', q.a + q.b > 10 || (t === 'count' && q.n > 10)); pics.classList.toggle('skip', t === 'skip');   // (lots: past ten, smaller pictures so the card stays low)
   const ans = $('rqAns'); ans.innerHTML = ''; ans.className = 'rq-ans' + (q.live ? '' : ' wait') + (q.choices.some(v=>v > 99) ? ' wide' : '') + (q.choices.length > 3 ? ' four' : ''); kfShow(q);   // (round number buttons: no picture-card classes left over)
   q.choices.forEach(v=>{ const bt = document.createElement('button'); bt.textContent = v; bt.addEventListener('click', ()=>lnAnswer(v, bt)); ans.appendChild(bt); });
   $('rqSay').setAttribute('aria-label', u.sayAgain); $('rqSay').querySelector('.rq-sayt').textContent = u.sayAgain; lnTrail();
@@ -13914,7 +13929,7 @@ function lnAsk(){
   LEARN.spk = LEARN.lastSpk = LEARN.next || lnHelper(); LEARN.next = null; const ask = talkLine(LEARN.spk, 'ask'); lnLiveAfter(q, say([ask, lnSpeech(q, true)], askV(LEARN.spk, ask, null, {qpref: /-nums-q$/})));   // its own line asks for help, then the blimp asks the question (2026-10-17); the buttons wake when it has been said
   newShot('talk', LEARN.spk); RACE.nextCut = RACE.clock + 4.2;   // the plane that asks, from the front; then the whole pack while they think
 }
-function lnClose(){ LEARN.help.forEach(clearTimeout); LEARN.help = []; LEARN.q = null; ltFlyClear(); $('rQ').hidden = true; $('rW').hidden = true; $('rqKf').hidden = true; $('rqPics').classList.remove('touch'); }
+function lnClose(){ LEARN.help.forEach(clearTimeout); LEARN.help = []; LEARN.q = null; ltFlyClear(); $('rQ').hidden = true; $('rW').hidden = true; $('rqKf').hidden = true; lnTouchOff(); }
 /* The listening beat (2026-10-31, the owner: no tapping each answer until one is right): the answers stay asleep (faded, .wait) until the
    question has been said, then fade in; a tap before that does nothing but a tiny wiggle. lnLiveAfter(q, p): p is say()'s promise; once it
    has started the line, the buttons wake when the voice ends (and in 12 s at most, if no voice plays). */
@@ -13961,7 +13976,7 @@ function lnAnswer(v, bt){
   q.pgN = (q.pgN || 0) + 1; pgLog('num', {lvl: LEARN.lvl, q: pgQ(q), pick: v, ok: v === q.n, try: q.pgN, ms: q.pgT ? Math.round(performance.now() - q.pgT) : null});
   audio(); const u = UI[lang];
   if(v === q.n){
-    q.done = true; bt.classList.add('yes'); sfx.chime(); const z = $('rZoom'); LEARN.help.forEach(clearTimeout); kfShow(q); $('rqPics').classList.remove('touch');
+    q.done = true; bt.classList.add('yes'); sfx.chime(); const z = $('rZoom'); LEARN.help.forEach(clearTimeout); kfShow(q); lnTouchOff();
     if(q.tries){ z.textContent = u.lnGot; z.classList.add('small'); z.classList.remove('pop'); void z.offsetWidth; z.classList.add('pop');
       say(u.lnGot, herV(null, {qpref: /-nums-q$/})); LEARN.help = [setTimeout(()=>{ if(LEARN.q === q) lnClose(); }, 1500)]; LEARN.nextT = RACE.t + 15 + Math.random()*3; return; }
     LEARN.stars++; LEARN.streak++; LEARN.miss = 0; lnFirst();
@@ -13993,12 +14008,21 @@ function lnTouchStart(q, p){
     LEARN.help.push(setTimeout(go, 250)); });
 }
 function lnTouchWait(q, ms){ const k = q.touch.k = (q.touch.k || 0) + 1; LEARN.help.push(setTimeout(()=>{ if(q.touch && q.touch.k === k) lnTouchEnd(q); }, ms)); }   // the answers wake a few seconds after the prompt or his last touch
-function lnTouchEnd(q){ if(LEARN.q !== q || q.done || q.live) return; $('rqPics').classList.remove('touch'); $('rqText').textContent = q.bubble = lnBubble(q); lnLive(q); }
-function lnTouchTap(el){ const q = LEARN.q; if(!q || q.done || !q.touch || q.live || !$('rqPics').classList.contains('touch')) return; const els = lnTouchEls(); if(!els.includes(el) || q.touch.seen.has(el)) return;
-  q.touch.seen.add(el); el.classList.add('lit'); const k = q.touch.seen.size; audio(); say(String(k), herV(null, {qpref: /-nums-q$/}));
+/* Touch each one, bigger (2026-11-11, the owner: "make them bigger... it needs to be more apparent that he's selecting them, and also when there's one that's missing that he hasn't selected"): a tapped one gets a yellow disc and a number badge, a tap in the gap goes to the nearest untapped one (14 px), a tap on a counted one only wobbles it, and the untouched ones bounce after 2.5 s of pause. The sizes are in the CSS (.rq-pics.touch). */
+function lnTouchOff(){ const P = $('rqPics'); if(!P.classList.contains('touch')) return; P.classList.remove('touch', 'att'); P.querySelectorAll('.rq-bd').forEach(b=>b.remove()); P.querySelectorAll('.lit,.wob').forEach(el=>el.classList.remove('lit', 'wob')); }
+function lnTouchEnd(q){ if(LEARN.q !== q || q.done || q.live) return; lnTouchOff(); $('rqText').textContent = q.bubble = lnBubble(q); lnLive(q); }
+function lnTouchTap(el){ const q = LEARN.q, P = $('rqPics'); if(!q || q.done || !q.touch || q.live || !P.classList.contains('touch')) return; const els = lnTouchEls(); if(!els.includes(el)) return;
+  if(q.touch.seen.has(el)){ el.classList.remove('wob'); void el.getBoundingClientRect(); el.classList.add('wob'); return; }   // already counted: a small wobble
+  q.touch.seen.add(el); P.classList.remove('att'); const r = el.getBoundingClientRect(), pr = P.getBoundingClientRect(), bd = document.createElement('i'); bd.className = 'rq-bd'; bd.textContent = q.touch.seen.size;
+  bd.style.left = (r.right - pr.left - P.clientLeft - 24) + 'px'; bd.style.top = (r.top - pr.top - P.clientTop - 8) + 'px'; P.appendChild(bd);   // (the badge sits at the picture's top right corner)
+  el.classList.add('lit'); const k = q.touch.seen.size; audio(); say(String(k), herV(null, {qpref: /-nums-q$/}));
   pgLog('num', {lvl: LEARN.lvl, q: pgQ(q), touch: k, of: q.touch.n, try: q.pgN || 0});
-  lnTouchWait(q, k >= q.touch.n ? 900 : 5000); }
-$('rqPics').addEventListener('click', e=>{ const el = e.target.closest('svg,.rq-e'); if(el) lnTouchTap(el); });
+  clearTimeout(q.touch.at); if(k < q.touch.n){ LEARN.help.push(q.touch.at = setTimeout(()=>{ if(LEARN.q === q && q.touch && !q.live && P.classList.contains('touch')) P.classList.add('att'); }, 2500)); }
+  lnTouchWait(q, k >= q.touch.n ? 900 : 8000); }   // (8 s while some are untouched: ten or more take him a while)
+$('rqPics').addEventListener('click', e=>{ const el = e.target.closest('svg,.rq-e'); if(el) return lnTouchTap(el);
+  const q = LEARN.q; if(!q || !q.touch || q.live || !$('rqPics').classList.contains('touch')) return; let best = null, bd = 14.01;
+  lnTouchEls().forEach(c=>{ if(q.touch.seen.has(c)) return; const r = c.getBoundingClientRect(), d = Math.hypot(Math.max(r.left - e.clientX, 0, e.clientX - r.right), Math.max(r.top - e.clientY, 0, e.clientY - r.bottom)); if(d < bd){ bd = d; best = c; } });
+  if(best) lnTouchTap(best); });   // a tap in a gap: the nearest untapped one within 14 px
 /* "Keep flying": a small button after the first miss; it skips the card with no penalty and no answer shown (the card comes back later), logged as a skip */
 function kfShow(q){ const b = $('rqKf'); if(!b) return; const on = !!q && !q.done && q.tries > 0; b.hidden = !on; if(on) b.querySelector('span').textContent = UI[q.L || lang].kfly; }
 function lnSkip(q){ if(!q || q.done || q.heard || !q.tries) return; q.done = true; q.skip = true; audio(); sfx.pop(); voStop();
